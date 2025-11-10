@@ -43,4 +43,4 @@ const doAPlay = (deck, trump, player1Card, player2Hand, player2Card) => {
   return selectPlayWinner(player1Card, player2Card, trump);
 };
 
-export { selectPlayWinner, verifyDeckEmpty, doAPlay };
+export { selectPlayWinner, doAPlay };
