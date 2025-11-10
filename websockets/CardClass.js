@@ -43,3 +43,5 @@ class Card {
     return this.face;
   }
 }
+
+export { Card, suits };
