@@ -10,5 +10,3 @@ io.on("connection", (socket) => {
     //socket.emit("echo", msg);
   });
 });
-os os jogadores
-      this.
