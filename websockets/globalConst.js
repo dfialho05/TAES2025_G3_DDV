@@ -13,7 +13,7 @@
 //   1: { order: 10, points: 11 }, // Ás
 // };
 
-// // Function to shuffle the deck
+// Function to shuffle the deck
 // const shuffle = (deck) => {
 //   for (let i = deck.length - 1; i > 0; i--) {
 //     let j = Math.floor(Math.random() * (i + 1));
@@ -24,7 +24,7 @@
 //   return deck;
 // };
 
-// // Function to create a deck of cards
+// Function to create a deck of cards
 // const createDeck = () => {
 //   const deck = [];
 //   suits.forEach((suit) => {
@@ -40,14 +40,14 @@
 //   return shuffle(deck);
 // };
 
-// // Function to get the trump suit
+// Function to get the trump suit
 // const getTrump = (deck) => {
 //   if (!deck || deck.length === 0) return null;
 //   const lastCard = deck[deck.length - 1];
 //   return lastCard.suit;
 // };
 
-// // Function to deal cards
+// Function to deal cards
 // const dealCard = (deck) => {
 //   if (deck.length === 0) {
 //     return null;
@@ -56,7 +56,7 @@
 //   return card;
 // };
 
-// // Function to deal the first 9 cards
+// Function to deal the first 9 cards
 // const dealFirst9Cards = (deck) => {
 //   const cards = [];
 //   for (let i = 0; i < 9; i++) {
@@ -68,7 +68,7 @@
 //   return cards;
 // };
 
-// // Function to check if a card is trump
+// Function to check if a card is trump
 // const isCardTrump = (card, trump) => {
 //   return getCardSuit(card) == trump;
 // };
