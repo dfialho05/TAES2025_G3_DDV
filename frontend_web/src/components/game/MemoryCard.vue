@@ -1,34 +1,41 @@
 <template>
-    <div class="relative w-30 h-40 leading-40 cursor-pointer
-                border-2 border-slate-600 text-2xl text-center" :class="{ 'cursor-not-allowed': card.matched }"
-        @click="handleClick">
-        <div v-if="!card.flipped" class=" bg-purple-600   hover:bg-violet-400">
-            <span class="text-3xl text-white font-bold">?</span>
-        </div>
-        <div v-else>
-            {{ card.face }}
-        </div>
+    <div class="card w-[80px] h-[120px] rounded-lg shadow-lg overflow-hidden">
+        <img :src="cardImage" class="w-full h-full object-cover" alt="Carta" />
     </div>
 </template>
 
 <script setup>
+import { computed } from "vue";
 
 const props = defineProps({
     card: {
         type: Object,
-        required: true
+        required: true,
+    },
+});
+
+const cardImage = computed(() => {
+    // se a carta estiver virada para baixo
+    if (!props.card.flipped) {
+        return new URL(`../assets/cards/back.png`, import.meta.url).href;
     }
-})
 
-const emits = defineEmits(['clicked'])
-
-const handleClick = () => {
-    if (!props.isMatched && !props.isFlipped) {
-        emits('clicked', props.card)
+    // carta virada para cima
+    try {
+        return new URL(`../assets/cards/${props.card.face}.png`, import.meta.url).href;
+    } catch (err) {
+        console.warn("⚠️ Imagem não encontrada:", props.card.face);
+        return new URL(`../assets/cards/back.png`, import.meta.url).href;
     }
-
-}
-
+});
 </script>
 
-<style scoped></style>
+<style scoped>
+.card {
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: scale(1.05);
+}
+</style>

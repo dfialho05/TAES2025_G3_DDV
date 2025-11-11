@@ -1,4 +1,5 @@
 import { Game } from "./GameClass.js";
+import { Card } from "./CardClass.js";
 
 class GameManager {
   constructor() {
