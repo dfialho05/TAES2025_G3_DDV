@@ -17,12 +17,4 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("playCard", ({ player, card, gameId }) => {
-    const game = manager.activeGames.get(gameId);
-    if (!game) return;
-
-    game.playCard(player, new Card(card.suit, card.cardFigure));
-
-    io.to(gameId).emit("updateState", game.getState()); // 👈 atualiza no frontend
-  });
 });
