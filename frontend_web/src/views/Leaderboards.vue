@@ -7,8 +7,7 @@
             <div
                 v-for="(player, index) in topThree"
                 :key="player.rank"
-                class="order-2 lg:order-1"
-                :class="{ 'lg:order-2': index === 0 }"
+                :class="getPodiumOrder(index)"
             >
                 <div
                     :class="[
@@ -140,7 +139,7 @@
                                         "
                                         class="px-2 py-0.5 bg-primary-100 dark:bg-primary-900/40 text-primary-800 dark:text-primary-200 text-xs font-semibold rounded"
                                     >
-                                        Você
+                                        Tu
                                     </span>
                                 </div>
                             </td>
@@ -216,4 +215,12 @@ const gamesStore = useGamesStore();
 const authStore = useAuthStore();
 
 const topThree = computed(() => gamesStore.leaderboard.slice(0, 3));
+
+// Function to get the correct podium order (2nd-1st-3rd)
+const getPodiumOrder = (index) => {
+    if (index === 0) return "order-2"; // 1st place in the middle
+    if (index === 1) return "order-1"; // 2nd place on the left
+    if (index === 2) return "order-3"; // 3rd place on the right
+    return "";
+};
 </script>

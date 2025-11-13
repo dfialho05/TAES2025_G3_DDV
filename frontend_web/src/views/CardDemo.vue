@@ -11,7 +11,7 @@
                         v-model="showHidden"
                         class="rounded"
                     />
-                    <span>Mostrar cartas viradas</span>
+                    <span>Mostrar cartas voltadas</span>
                 </label>
                 <label class="flex items-center gap-2">
                     <input
@@ -32,8 +32,10 @@
 
         <!-- Deck Demo -->
         <div class="mb-12">
-            <h2 class="text-2xl font-bold mb-4">Baralho e Trunfo</h2>
-            <div class="bg-green-700 dark:bg-green-900 rounded-lg p-8 flex items-center justify-center">
+            <h2 class="text-2xl font-bold mb-4">Monte e Trunfo</h2>
+            <div
+                class="bg-green-700 dark:bg-green-900 rounded-lg p-8 flex items-center justify-center"
+            >
                 <Deck
                     :stack-size="deckSize"
                     :trump-card="trumpCard"
@@ -50,12 +52,22 @@
             <h2 class="text-2xl font-bold mb-4">Todas as Cartas por Naipe</h2>
 
             <div class="space-y-8">
-                <div v-for="suit in suits" :key="suit.code" class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <div
+                    v-for="suit in suits"
+                    :key="suit.code"
+                    class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm"
+                >
+                    <h3
+                        class="text-xl font-semibold mb-4 flex items-center gap-2"
+                    >
                         <span>{{ suit.name }}</span>
-                        <span class="text-2xl" :class="suit.color">{{ suit.symbol }}</span>
+                        <span class="text-2xl" :class="suit.color">{{
+                            suit.symbol
+                        }}</span>
                     </h3>
-                    <div class="grid grid-cols-4 sm:grid-cols-7 lg:grid-cols-10 gap-4">
+                    <div
+                        class="grid grid-cols-4 sm:grid-cols-7 lg:grid-cols-10 gap-4"
+                    >
                         <Card
                             v-for="value in cardValues"
                             :key="`${suit.code}-${value}`"
@@ -63,7 +75,9 @@
                             :value="value"
                             :hidden="showHidden && Math.random() > 0.7"
                             :playable="makePlayable"
-                            :selected="selectedCards.includes(`${suit.code}-${value}`)"
+                            :selected="
+                                selectedCards.includes(`${suit.code}-${value}`)
+                            "
                             @click="handleCardClick"
                         />
                     </div>
@@ -73,7 +87,9 @@
 
         <!-- Selected Cards -->
         <div v-if="selectedCards.length > 0" class="mb-8">
-            <h2 class="text-2xl font-bold mb-4">Cartas Selecionadas ({{ selectedCards.length }})</h2>
+            <h2 class="text-2xl font-bold mb-4">
+                Cartas Seleccionadas ({{ selectedCards.length }})
+            </h2>
             <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
                 <div class="flex flex-wrap gap-4">
                     <div
@@ -87,7 +103,9 @@
                             :selected="true"
                             @click="removeCard"
                         />
-                        <span class="text-xs text-gray-500">{{ getCardName(cardId) }}</span>
+                        <span class="text-xs text-gray-500">{{
+                            getCardName(cardId)
+                        }}</span>
                     </div>
                 </div>
                 <button
@@ -104,20 +122,36 @@
             <h2 class="text-2xl font-bold mb-4">Estatísticas</h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="text-center">
-                    <p class="text-3xl font-bold text-primary-600">{{ totalCards }}</p>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Total de Cartas</p>
+                    <p class="text-3xl font-bold text-primary-600">
+                        {{ totalCards }}
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Total de Cartas
+                    </p>
                 </div>
                 <div class="text-center">
-                    <p class="text-3xl font-bold text-green-600">{{ selectedCards.length }}</p>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Selecionadas</p>
+                    <p class="text-3xl font-bold text-green-600">
+                        {{ selectedCards.length }}
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Selecionadas
+                    </p>
                 </div>
                 <div class="text-center">
-                    <p class="text-3xl font-bold text-blue-600">{{ deckSize }}</p>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">No Baralho</p>
+                    <p class="text-3xl font-bold text-blue-600">
+                        {{ deckSize }}
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        No Monte
+                    </p>
                 </div>
                 <div class="text-center">
-                    <p class="text-3xl font-bold text-purple-600">{{ suits.length }}</p>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Naipes</p>
+                    <p class="text-3xl font-bold text-purple-600">
+                        {{ suits.length }}
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Naipes
+                    </p>
                 </div>
             </div>
         </div>
@@ -134,14 +168,24 @@ const showHidden = ref(false);
 const makePlayable = ref(true);
 const selectedCards = ref([]);
 const deckSize = ref(28);
-const trumpCard = ref({ suit: "c", value: 1 }); // Ás de Copas
+const trumpCard = ref({ suit: "c", value: 1 }); // Ace of Hearts
 
 // Constants
 const suits = [
     { code: "c", name: "Copas", symbol: "♥", color: "text-red-600" },
-    { code: "e", name: "Espadas", symbol: "♠", color: "text-gray-900 dark:text-white" },
+    {
+        code: "e",
+        name: "Espadas",
+        symbol: "♠",
+        color: "text-gray-900 dark:text-white",
+    },
     { code: "o", name: "Ouros", symbol: "♦", color: "text-red-600" },
-    { code: "p", name: "Paus", symbol: "♣", color: "text-gray-900 dark:text-white" },
+    {
+        code: "p",
+        name: "Paus",
+        symbol: "♣",
+        color: "text-gray-900 dark:text-white",
+    },
 ];
 
 const cardValues = [1, 2, 3, 4, 5, 6, 7, 11, 12, 13];
@@ -182,17 +226,16 @@ const resetDemo = () => {
 };
 
 const handleDeckClick = () => {
-    console.log("Baralho clicado!");
+    // Deck clicked
 };
 
 const handleCardDrawn = (remainingCards) => {
     deckSize.value = remainingCards;
-    console.log(`Carta retirada! Restam ${remainingCards} cartas.`);
 };
 
 const getCardName = (cardId) => {
-    const [suitCode, value] = cardId.split('-');
-    const suit = suits.find(s => s.code === suitCode);
+    const [suitCode, value] = cardId.split("-");
+    const suit = suits.find((s) => s.code === suitCode);
 
     const valueNames = {
         1: "Ás",
@@ -204,7 +247,7 @@ const getCardName = (cardId) => {
         7: "7",
         11: "Valete",
         12: "Dama",
-        13: "Rei"
+        13: "Rei",
     };
 
     return `${valueNames[value]} de ${suit?.name}`;

@@ -62,7 +62,7 @@
                         Single-player vs Bot
                     </h3>
                     <p class="text-contrast-muted">
-                        Jogue contra IA avançada e aprimore suas habilidades
+                        Joga contra IA avançada e aprimora as tuas habilidades
                     </p>
                 </div>
 
@@ -86,7 +86,7 @@
                         Multiplayer Online
                     </h3>
                     <p class="text-contrast-muted">
-                        Desafie jogadores de todo o mundo em tempo real
+                        Desafia jogadores de todo o mundo em tempo real
                     </p>
                 </div>
 
@@ -112,7 +112,7 @@
                         Classificações
                     </h3>
                     <p class="text-contrast-muted">
-                        Compita pelos primeiros lugares da tabela global
+                        Compete pelos primeiros lugares da tabela global
                     </p>
                 </div>
             </div>
@@ -125,7 +125,7 @@
                     Pronto para começar?
                 </h2>
                 <p class="text-contrast-muted mb-8">
-                    Junte-se a milhares de jogadores e comece a jogar hoje!
+                    Junta-te a milhares de jogadores e começa a jogar hoje!
                 </p>
                 <router-link
                     v-if="!authStore.isAuthenticated"

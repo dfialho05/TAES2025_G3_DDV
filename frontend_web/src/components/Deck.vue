@@ -10,14 +10,10 @@
                     transform: `translate(${(n - 1) * 2}px, ${(n - 1) * -2}px)`,
                 }"
             >
-                <img
-                    :src="backImage"
-                    alt="Carta do baralho"
-                    class="card-image"
-                />
+                <img :src="backImage" alt="Carta do monte" class="card-image" />
             </div>
             <div v-if="stackSize === 0" class="empty-deck">
-                <div class="empty-deck-placeholder">Baralho Vazio</div>
+                <div class="empty-deck-placeholder">Monte Vazio</div>
             </div>
         </div>
 
@@ -48,7 +44,7 @@
 <script setup>
 import { computed } from "vue";
 import Card from "./Card.vue";
-import { cardBackImage } from "../assets/cardImages.js";
+import { useCardsStore } from "../stores/cards.js";
 
 const props = defineProps({
     stackSize: {
@@ -81,17 +77,19 @@ const props = defineProps({
 
 const emit = defineEmits(["deck-clicked", "card-drawn"]);
 
+const cardsStore = useCardsStore();
+
 const backImage = computed(() => {
-    return cardBackImage;
+    return cardsStore.getCardBackImage();
 });
 
 const trumpSuitSymbol = computed(() => {
     if (!props.trumpCard) return "";
     const symbols = {
-        c: "♥", // Copas
-        e: "♠", // Espadas
-        o: "♦", // Ouros
-        p: "♣", // Paus
+        c: "♥", // Hearts
+        e: "♠", // Spades
+        o: "♦", // Diamonds
+        p: "♣", // Clubs
     };
     return symbols[props.trumpCard.suit] || "";
 });
@@ -99,10 +97,10 @@ const trumpSuitSymbol = computed(() => {
 const trumpSuitColor = computed(() => {
     if (!props.trumpCard) return "";
     const colors = {
-        c: "text-red-600", // Copas - red
-        e: "text-gray-800", // Espadas - black
-        o: "text-red-600", // Ouros - red
-        p: "text-gray-800", // Paus - black
+        c: "text-red-600", // Hearts - red
+        e: "text-gray-800", // Spades - black
+        o: "text-red-600", // Diamonds - red
+        p: "text-gray-800", // Clubs - black
     };
     return colors[props.trumpCard.suit] || "";
 });

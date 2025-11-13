@@ -125,7 +125,7 @@ const canDelete = computed(() => {
 
 function handleDelete() {
     if (canDelete.value) {
-        alert("Conta apagada (mock)");
+        alert("Account deleted (mock)");
         authStore.logout();
         router.push("/");
     }

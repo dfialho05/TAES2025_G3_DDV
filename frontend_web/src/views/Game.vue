@@ -9,7 +9,7 @@
                     <p class="text-sm text-gray-600">
                         Bisca de 9 - Single Player
                     </p>
-                    <p class="font-bold text-gray-900">Você vs Bot</p>
+                    <p class="font-bold text-gray-900">Tu vs Bot</p>
                 </div>
 
                 <div class="flex items-center gap-6">
@@ -25,7 +25,7 @@
 
                     <div class="text-center">
                         <p class="text-2xl font-bold text-gray-900">120</p>
-                        <p class="text-xs text-gray-600">Você</p>
+                        <p class="text-xs text-gray-600">Tu</p>
                     </div>
                 </div>
 
@@ -50,7 +50,7 @@
                     class="w-16 h-24 rounded-lg shadow-lg"
                 >
                     <img
-                        :src="cardBackImage"
+                        :src="cardsStore.getCardBackImage()"
                         alt="Carta virada"
                         class="w-full h-full object-cover rounded-lg"
                     />
@@ -67,7 +67,7 @@
                     <div class="relative">
                         <div class="w-20 h-28 rounded-lg shadow-lg">
                             <img
-                                :src="cardBackImage"
+                                :src="cardsStore.getCardBackImage()"
                                 alt="Baralho"
                                 class="w-full h-full object-cover rounded-lg"
                             />
@@ -76,7 +76,7 @@
                             class="w-20 h-28 rounded-lg shadow-lg absolute top-0 left-0 transform translate-x-1 -translate-y-1"
                         >
                             <img
-                                :src="cardBackImage"
+                                :src="cardsStore.getCardBackImage()"
                                 alt="Baralho"
                                 class="w-full h-full object-cover rounded-lg"
                             />
@@ -132,15 +132,27 @@
 
                         <!-- Player's played card -->
                         <div class="flex flex-col items-center gap-3">
-                            <p class="text-sm text-gray-200 font-medium">
-                                Você
-                            </p>
-                            <div
-                                class="w-28 h-36 bg-gray-200/20 border-2 border-dashed border-gray-400/50 rounded-lg flex items-center justify-center"
-                            >
-                                <span class="text-gray-300 text-sm"
-                                    >Sua vez</span
+                            <p class="text-sm text-gray-200 font-medium">Tu</p>
+                            <div class="relative w-28 h-36">
+                                <div
+                                    v-if="!playerPlayedCard"
+                                    class="w-full h-full bg-gray-200/20 border-2 border-dashed border-gray-400/50 rounded-lg flex items-center justify-center"
                                 >
+                                    <span class="text-gray-300 text-sm"
+                                        >A tua vez</span
+                                    >
+                                </div>
+                                <Transition name="card-play" appear>
+                                    <Card
+                                        v-if="playerPlayedCard"
+                                        :key="`${playerPlayedCard.suit}-${playerPlayedCard.value}`"
+                                        :suit="playerPlayedCard.suit"
+                                        :value="playerPlayedCard.value"
+                                        :hidden="false"
+                                        :playable="false"
+                                        class="absolute inset-0 w-full h-full"
+                                    />
+                                </Transition>
                             </div>
                         </div>
                     </div>
@@ -167,98 +179,33 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref } from "vue";
 import Card from "@/components/Card.vue";
-import {
-    cardImages,
-    cardBackImage,
-    getCardImage as getCardImageFromAssets,
-} from "@/assets/cardImages.js";
+import { useCardsStore } from "@/stores/cards.js";
+
+// Stores
+const cardsStore = useCardsStore();
 
 // Game state
 const deckSize = ref(22);
+const playerPlayedCard = ref(null);
 
 // Player cards
 const playerCards = ref([
-    { value: 1, suit: "e" }, // Ás de Espadas
-    { value: 13, suit: "p" }, // Rei de Paus
-    { value: 3, suit: "c" }, // 3 de Copas
-    { value: 2, suit: "e" }, // 2 de Espadas
-    { value: 11, suit: "c" }, // Valete de Copas
-    { value: 4, suit: "o" }, // 4 de Ouros
-    { value: 5, suit: "e" }, // 5 de Espadas
+    { value: 1, suit: "e" }, // Ace of Spades
+    { value: 13, suit: "p" }, // King of Clubs
+    { value: 3, suit: "c" }, // 3 of Hearts
+    { value: 2, suit: "e" }, // 2 of Spades
+    { value: 11, suit: "c" }, // Jack of Hearts
+    { value: 4, suit: "o" }, // 4 of Diamonds
+    { value: 5, suit: "e" }, // 5 of Spades
 ]);
 
-// Helper functions
-const getCardImage = (suit, value) => {
-    const image = getCardImageFromAssets(suit, value);
-    console.log(`Card image for ${suit}${value}:`, image);
-    if (!image) {
-        console.warn(`No image found for ${suit}${value}, using back image`);
-        return cardBackImage;
-    }
-    return image;
-};
-
-// Debug on mount
-onMounted(() => {
-    console.log("=== CARD IMAGE DEBUG ===");
-    console.log("Card back image:", cardBackImage);
-    console.log("All card images:", cardImages);
-
-    // Test specific cards
-    const testCards = [
-        { suit: "e", value: 1 },
-        { suit: "c", value: 7 },
-        { suit: "o", value: 7 },
-    ];
-
-    testCards.forEach((card) => {
-        const image = getCardImageFromAssets(card.suit, card.value);
-        console.log(`${card.suit}${card.value} image:`, image);
-    });
-
-    console.log("Player cards images:");
-    playerCards.value.forEach((card, index) => {
-        const image = getCardImage(card.suit, card.value);
-        console.log(`Card ${index}: ${card.suit}${card.value} ->`, image);
-    });
-});
-
-const getCardDisplay = (value) => {
-    if (value === 1) return "A";
-    if (value === 11) return "J";
-    if (value === 12) return "Q";
-    if (value === 13) return "K";
-    return value.toString();
-};
-
-const getSuitSymbol = (suit) => {
-    const symbols = {
-        c: "♥", // Copas
-        e: "♠", // Espadas
-        o: "♦", // Ouros
-        p: "♣", // Paus
-    };
-    return symbols[suit] || "?";
-};
-
-const getSuitName = (suit) => {
-    const names = {
-        c: "Copas", // Copas
-        e: "Espadas", // Espadas
-        o: "Ouros", // Ouros
-        p: "Paus", // Paus
-    };
-    return names[suit] || "Desconhecido";
-};
-
-const getSuitColor = (suit) => {
-    return suit === "c" || suit === "o" ? "text-red-600" : "text-gray-800";
-};
+// Game functions
 
 const handleCardPlayed = (card) => {
-    console.log("Carta jogada:", card);
+    // Set the played card to show in the table area
+    playerPlayedCard.value = card;
 
     // Remove card from player's hand
     const cardIndex = playerCards.value.findIndex(
@@ -267,6 +214,11 @@ const handleCardPlayed = (card) => {
     if (cardIndex !== -1) {
         playerCards.value.splice(cardIndex, 1);
     }
+
+    // After 4 seconds, clear the played card (simulate round end)
+    setTimeout(() => {
+        playerPlayedCard.value = null;
+    }, 4000);
 };
 </script>
 
@@ -292,5 +244,30 @@ const handleCardPlayed = (card) => {
     .h-36 {
         height: 9rem;
     }
+}
+
+/* Card play animation */
+.card-play-enter-active {
+    transition: all 0.6s ease-out;
+}
+
+.card-play-leave-active {
+    transition: all 0.4s ease-in;
+}
+
+.card-play-enter-from {
+    opacity: 0;
+    transform: translateY(100px) scale(0.8) rotate(-10deg);
+}
+
+.card-play-leave-to {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+}
+
+.card-play-enter-to,
+.card-play-leave-from {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
 }
 </style>

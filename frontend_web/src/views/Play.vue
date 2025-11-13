@@ -52,7 +52,7 @@
                             <p
                                 class="text-sm text-gray-600 dark:text-gray-400 mb-3"
                             >
-                                Jogue contra a inteligência artificial. Ideal
+                                Joga contra a inteligência artificial. Ideal
                                 para praticar!
                             </p>
                             <div class="flex items-center gap-4 text-sm">
@@ -87,7 +87,7 @@
                             <p
                                 class="text-sm text-gray-600 dark:text-gray-400 mb-3"
                             >
-                                Desafie jogadores reais de todo o mundo!
+                                Desafia jogadores reais de todo o mundo!
                             </p>
                             <div class="flex items-center gap-4 text-sm">
                                 <span

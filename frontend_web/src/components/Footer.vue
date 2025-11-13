@@ -11,8 +11,8 @@
                         Bisca Platform
                     </h3>
                     <p class="text-gray-700 dark:text-gray-300 text-sm">
-                        A melhor plataforma de jogo de cartas Bisca online.
-                        Jogue contra amigos ou desafie a IA!
+                        A melhor plataforma de jogo de cartas Bisca online. Joga
+                        contra amigos ou desafia a IA!
                     </p>
                 </div>
 
@@ -51,7 +51,7 @@
                         Suporte
                     </h3>
                     <p class="text-gray-700 dark:text-gray-300 text-sm mb-2">
-                        Precisa de ajuda? Contacte-nos:
+                        Precisas de ajuda? Contacta-nos:
                     </p>
                     <p
                         class="text-primary-600 dark:text-primary-400 text-sm font-medium"

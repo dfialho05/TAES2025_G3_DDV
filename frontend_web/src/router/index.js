@@ -14,7 +14,7 @@ import DeleteAccount from "../views/DeleteAccount.vue";
 import Coins from "../views/Coins.vue";
 import Play from "../views/Play.vue";
 import Game from "../views/Game.vue";
-import GameTest from "../views/GameTest.vue";
+
 import GameSimple from "../views/GameSimple.vue";
 import CardDemo from "../views/CardDemo.vue";
 import History from "../views/History.vue";
@@ -72,11 +72,7 @@ const routes = [
         name: "game-test",
         component: Game,
       },
-      {
-        path: "game-test",
-        name: "game-test-simple",
-        component: GameTest,
-      },
+
       {
         path: "game-simple",
         name: "game-simple",
