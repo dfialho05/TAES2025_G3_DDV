@@ -138,8 +138,15 @@ io.on("connection", (socket) => {
 
       // Start timer for the first player's turn
       setTimeout(() => {
+        // If human starts, start player's timer
         if (game.currentTurn === playerName) {
           startPlayerTimer(gameId, playerName, io, game, manager);
+        }
+        // If bot starts, trigger bot play after a short thinking delay
+        else if (game.currentTurn === game.bot) {
+          setTimeout(() => {
+            handleBotTurn(game, null, io, gameId);
+          }, 1000);
         }
       }, 1000);
 
@@ -540,6 +547,13 @@ io.on("connection", (socket) => {
 
       if (!result.success) {
         socket.emit("gameError", { message: result.error });
+      } else {
+        // If bot should start the new game, trigger its play after short thinking delay
+        if (game.currentTurn === game.bot) {
+          setTimeout(() => {
+            handleBotTurn(game, null, io, gameId);
+          }, 1000);
+        }
       }
 
       console.log(
