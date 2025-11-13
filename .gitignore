@@ -4,3 +4,15 @@ websockets/node_modules/
 websockets/package-lock.json
 code.zip
 code/
+
+# Android
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
+android/local.properties
+android/*.iml
+android/.DS_Store
+android/captures/
+android/.externalNativeBuild/
+android/.cxx/
