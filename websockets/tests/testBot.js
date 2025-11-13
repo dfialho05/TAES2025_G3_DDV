@@ -1,10 +1,12 @@
-import { Card, suits } from "./core/CardClass.js";
-import { selectPlayWinner } from "./core/gameRules.js";
+// Bot testing module that tests bot AI functionality and game logic
+import { Card, suits } from "../core/CardClass.js";
+import { selectPlayWinner } from "../core/gameRules.js";
 
 // Define ranks locally since it's not exported from CardClass.js - using valid card values
 const ranks = [1, 2, 3, 4, 5, 6, 7, 11, 12, 13];
 
 // Import bot functions directly to avoid singleplayer.js dependencies
+// Counts cards by suit and tracks known cards in the game
 const cardsAddCount = (cardPlayed, botHand) => {
   const suitCounts = suits.map((suit) => ({
     suit: suit,
@@ -32,6 +34,7 @@ const cardsAddCount = (cardPlayed, botHand) => {
   return suitCounts;
 };
 
+// Chooses the best card to lead when bot plays first
 const chooseBestLead = (botHand, trump, assistNeeded, suitsCounts) => {
   // PRIORITY 1: Assist Needed - Play the highest card that can win based on known cards
   if (assistNeeded) {
@@ -98,6 +101,7 @@ const chooseBestLead = (botHand, trump, assistNeeded, suitsCounts) => {
 };
 
 // Function to choose the best response to a played card
+// Chooses the best response card when bot plays second
 const chooseBestResponse = (cardPlayed, botHand, trump, assistNeeded) => {
   if (!botHand || botHand.length === 0) {
     throw new Error("Bot hand is empty");
@@ -334,11 +338,11 @@ const testBotGame = () => {
   console.log(`Final Score - You: ${playerScore}, Bot: ${botScore}`);
 
   if (playerScore > botScore) {
-    console.log("🎉 You won!");
+    console.log("You won!");
   } else if (botScore > playerScore) {
-    console.log("🤖 Bot won!");
+    console.log("Bot won!");
   } else {
-    console.log("🤝 It's a tie!");
+    console.log("It's a tie!");
   }
 
   // Show remaining cards for analysis
@@ -349,7 +353,8 @@ const testBotGame = () => {
 };
 
 // Test bot decision making with specific scenarios
-const testBotDecisions = () => {
+// Tests bot decision making in various game scenarios
+const testBotDecisionMaking = () => {
   console.log("\n\n=== BOT DECISION TESTS ===\n");
 
   // Test scenario 1: Bot has strong trump cards

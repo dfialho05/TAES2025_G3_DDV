@@ -1,16 +1,18 @@
-import { Game } from "./core/GameClass.js";
+// Test script for game startup functionality
+import { Game } from "../core/GameClass.js";
 
 const game = new Game({
   players: ["Alice", "Bob"],
   bots: 2,
-  turnTime: 5, // segundos
+  turnTime: 5, // Turn time in seconds
 });
 
-console.log("=== INÍCIO DO JOGO ===");
+console.log("=== GAME START ===");
 console.log(game.start());
 
+// Test manual card play after 3 seconds
 setTimeout(() => {
-  console.log("\n=== TESTE: Jogada manual ===");
+  console.log("\n=== TEST: Manual card play ===");
   const player = "Alice";
   const card = game.hands[player][0];
   game.playCard(player, card);

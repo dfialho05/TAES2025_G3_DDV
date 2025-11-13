@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="pt">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Bisca WebSocket Test</title>
+        <script src="/socket.io/socket.io.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f0f8ff;
+            }
+            .container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            .panel {
+                background: white;
+                border-radius: 10px;
+                padding: 20px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .game-info {
+                grid-column: 1 / -1;
+            }
+            .cards {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin: 10px 0;
+            }
+            .card {
+                background: #fff;
+                border: 2px solid #333;
+                border-radius: 8px;
+                padding: 8px 12px;
+                cursor: pointer;
+                transition: all 0.3s;
+                font-weight: bold;
+            }
+            .card:hover {
+                background: #e6f3ff;
+                transform: translateY(-2px);
+            }
+            .card.playable {
+                border-color: #4caf50;
+                background: #f0fff0;
+            }
+            .card.trump {
+                border-color: #ff6b35;
+                background: #fff5f0;
+            }
+            button {
+                background: #4caf50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 5px;
+                font-size: 14px;
+            }
+            button:hover {
+                background: #45a049;
+            }
+            button:disabled {
+                background: #cccccc;
+                cursor: not-allowed;
+            }
+            .scores {
+                display: flex;
+                justify-content: space-between;
+                margin: 15px 0;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            .marks {
+                display: flex;
+                justify-content: space-between;
+                margin: 10px 0;
+                font-size: 16px;
+                color: #666;
+            }
+            .trump-info {
+                background: #fff5f0;
+                border: 2px solid #ff6b35;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 15px 0;
+                text-align: center;
+                font-weight: bold;
+            }
+            .current-turn {
+                background: #e6f3ff;
+                border-left: 4px solid #2196f3;
+                padding: 10px;
+                margin: 10px 0;
+                font-weight: bold;
+            }
+            .log {
+                height: 300px;
+                overflow-y: auto;
+                border: 1px solid #ddd;
+                padding: 10px;
+                background: #f9f9f9;
+                font-family: monospace;
+                font-size: 12px;
+            }
+            .timer {
+                background: #ffeb3b;
+                padding: 5px 10px;
+                border-radius: 5px;
+                font-weight: bold;
+                display: inline-block;
+            }
+            .timer.warning {
+                background: #ff9800;
+                animation: pulse 1s infinite;
+            }
+            @keyframes pulse {
+                0% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+                100% {
+                    opacity: 1;
+                }
+            }
+            .match-status {
+                background: #e8f5e8;
+                border: 2px solid #4caf50;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 15px 0;
+                text-align: center;
+            }
+            .game-finished {
+                background: #fff3cd;
+                border: 2px solid #ffc107;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 15px 0;
+                text-align: center;
+            }
+            input {
+                padding: 8px;
+                margin: 5px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Bisca WebSocket Test</h1>
+
+        <div class="panel">
+            <h3>Conexão</h3>
+            <input
+                type="text"
+                id="playerName"
+                placeholder="Nome do jogador"
+                value="Jogador1"
+            />
+            <button onclick="authenticate()">Conectar</button>
+            <button onclick="disconnect()">Desconectar</button>
+            <div id="connectionStatus">Desconectado</div>
+        </div>
+
+        <div class="container">
+            <div class="panel">
+                <h3>Controles do Jogo</h3>
+                <button onclick="startSingleplayer()">Iniciar vs Bot</button>
+                <button onclick="createRoom()">Criar Sala Multiplayer</button>
+                <input type="text" id="roomId" placeholder="ID da sala" />
+                <button onclick="joinRoom()">Entrar na Sala</button>
+                <button onclick="startMultiplayer()">
+                    Iniciar Multiplayer
+                </button>
+                <button
+                    onclick="startNextGame()"
+                    id="nextGameBtn"
+                    style="display: none"
+                >
+                    Próximo Jogo
+                </button>
+                <button onclick="getGameState()">Atualizar Estado</button>
+            </div>
+
+            <div class="panel">
+                <h3>Informações da Partida</h3>
+                <div
+                    id="matchStatus"
+                    class="match-status"
+                    style="display: none"
+                >
+                    <strong>Partida em Progresso</strong>
+                    <div id="matchMarks" class="marks"></div>
+                    <div id="gameNumber"></div>
+                </div>
+                <div
+                    id="gameFinished"
+                    class="game-finished"
+                    style="display: none"
+                ></div>
+            </div>
+        </div>
+
+        <div class="game-info panel">
+            <h3>Estado do Jogo</h3>
+            <div
+                id="currentTurn"
+                class="current-turn"
+                style="display: none"
+            ></div>
+            <div id="trumpInfo" class="trump-info" style="display: none"></div>
+            <div id="scores" class="scores" style="display: none"></div>
+            <div id="timer" style="display: none"></div>
+
+            <h4>Suas Cartas:</h4>
+            <div id="playerCards" class="cards"></div>
+
+            <h4>Mesa:</h4>
+            <div id="playedCards" class="cards"></div>
+        </div>
+
+        <div class="container">
+            <div class="panel">
+                <h3>Log de Eventos</h3>
+                <div id="eventLog" class="log"></div>
+                <button onclick="clearLog()">Limpar Log</button>
+            </div>
+        </div>
+
+        <script>
+            let socket = null;
+            let currentGameId = null;
+            let playerName = null;
+            let gameState = null;
+            let timerInterval = null;
+
+            const log = (message, type = "info") => {
+                const logDiv = document.getElementById("eventLog");
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement("div");
+                logEntry.style.color =
+                    type === "error"
+                        ? "red"
+                        : type === "success"
+                          ? "green"
+                          : "black";
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                logDiv.appendChild(logEntry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            };
+
+            const clearLog = () => {
+                document.getElementById("eventLog").innerHTML = "";
+            };
+
+            const authenticate = () => {
+                playerName = document.getElementById("playerName").value.trim();
+                if (!playerName) {
+                    alert("Por favor, insira um nome de jogador");
+                    return;
+                }
+
+                socket = io("http://localhost:3000");
+
+                socket.on("connect", () => {
+                    log("Conectado ao servidor", "success");
+                    document.getElementById("connectionStatus").textContent =
+                        "Conectado";
+                    socket.emit("auth", { playerName });
+                });
+
+                socket.on("disconnect", () => {
+                    log("Desconectado do servidor", "error");
+                    document.getElementById("connectionStatus").textContent =
+                        "Desconectado";
+                });
+
+                socket.on("authSuccess", (data) => {
+                    log(`Autenticado como: ${data.playerName}`, "success");
+                });
+
+                socket.on("authError", (data) => {
+                    log(`Erro de autenticação: ${data.message}`, "error");
+                });
+
+                // Game events
+                socket.on("gameStarted", (data) => {
+                    currentGameId = data.gameId;
+                    gameState = data.state;
+                    log(`Jogo iniciado: ${data.gameId}`, "success");
+                    updateGameDisplay();
+                    updateMatchStatus();
+                });
+
+                socket.on("gameStateUpdate", (data) => {
+                    gameState = data.state;
+                    log(
+                        `Estado atualizado - Última jogada: ${data.lastPlay?.player} jogou ${data.lastPlay?.card}`,
+                    );
+                    updateGameDisplay();
+                });
+
+                socket.on("cardPlayed", (data) => {
+                    log(
+                        `${data.player} jogou ${data.card} (${data.remainingCards} cartas restantes)`,
+                    );
+                    updateGameDisplay();
+                });
+
+                socket.on("roundResult", (data) => {
+                    log(
+                        `Ronda terminada! Vencedor: ${data.winner} (+${data.points} pontos)`,
+                    );
+                    updateScores(data.scores);
+                    setTimeout(() => {
+                        document.getElementById("playedCards").innerHTML = "";
+                    }, 2000);
+                });
+
+                socket.on("gameEnded", (data) => {
+                    log(
+                        `Jogo ${gameState?.gameNumber || ""} terminado! Vencedor: ${data.winner} com ${data.finalScores[data.winner]} pontos (+${data.marks} marcas)`,
+                        "success",
+                    );
+                    updateScores(data.finalScores);
+                    updateMatchMarks(data.matchMarks);
+
+                    if (data.matchFinished) {
+                        showMatchFinished(data);
+                    } else {
+                        showGameFinished(data);
+                    }
+                });
+
+                socket.on("matchEnded", (data) => {
+                    log(
+                        `PARTIDA TERMINADA! Vencedor da partida: ${data.matchWinner} após ${data.totalGames} jogos!`,
+                        "success",
+                    );
+                    showMatchFinished(data);
+                });
+
+                socket.on("newGameStarted", (data) => {
+                    gameState = data.state;
+                    log(
+                        `Novo jogo ${data.gameNumber} iniciado na partida!`,
+                        "success",
+                    );
+                    updateGameDisplay();
+                    updateMatchStatus();
+                    hideGameFinished();
+                });
+
+                socket.on("nextGameReady", (data) => {
+                    log(
+                        `Jogo terminado. Próximo jogo (${data.nextGameNumber}) disponível.`,
+                    );
+                    showNextGameButton();
+                });
+
+                socket.on("turnTimerStarted", (data) => {
+                    startTimer(data.timeLimit);
+                    log(
+                        `Timer iniciado para ${data.player} (${data.timeLimit / 1000}s)`,
+                    );
+                });
+
+                socket.on("turnTimerUpdate", (data) => {
+                    updateTimer(data.timeRemaining);
+                });
+
+                socket.on("playerTimeout", (data) => {
+                    log(
+                        `${data.player} demorou demais! Jogada automática: ${data.autoPlayedCard}`,
+                        "error",
+                    );
+                });
+
+                socket.on("gameError", (data) => {
+                    log(`Erro: ${data.message}`, "error");
+                });
+
+                // Room events
+                socket.on("roomCreated", (data) => {
+                    currentGameId = data.gameId;
+                    log(`Sala criada: ${data.gameId}`, "success");
+                });
+
+                socket.on("roomJoined", (data) => {
+                    currentGameId = data.gameId;
+                    log(`Entrou na sala: ${data.gameId}`, "success");
+                });
+            };
+
+            const disconnect = () => {
+                if (socket) {
+                    socket.disconnect();
+                    socket = null;
+                }
+            };
+
+            const startSingleplayer = () => {
+                if (!socket || !playerName) {
+                    alert("Por favor, conecte-se primeiro");
+                    return;
+                }
+                socket.emit("startSingleplayerGame", {
+                    playerName,
+                    turnTime: 30,
+                });
+            };
+
+            const createRoom = () => {
+                if (!socket || !playerName) {
+                    alert("Por favor, conecte-se primeiro");
+                    return;
+                }
+                socket.emit("createRoom", {
+                    playerName,
+                    roomOptions: {
+                        roomName: `Sala de ${playerName}`,
+                        turnTime: 30,
+                    },
+                });
+            };
+
+            const joinRoom = () => {
+                const roomId = document.getElementById("roomId").value.trim();
+                if (!socket || !playerName || !roomId) {
+                    alert("Por favor, conecte-se e insira o ID da sala");
+                    return;
+                }
+                socket.emit("joinRoom", { gameId: roomId, playerName });
+            };
+
+            const startMultiplayer = () => {
+                if (!socket || !playerName || !currentGameId) {
+                    alert("Por favor, entre em uma sala primeiro");
+                    return;
+                }
+                socket.emit("startMultiplayerGame", {
+                    gameId: currentGameId,
+                    playerName,
+                });
+            };
+
+            const startNextGame = () => {
+                if (!socket || !playerName || !currentGameId) {
+                    alert("Nenhum jogo ativo");
+                    return;
+                }
+                socket.emit("startNextGame", {
+                    gameId: currentGameId,
+                    playerName,
+                });
+            };
+
+            const getGameState = () => {
+                if (!socket || !currentGameId) {
+                    alert("Nenhum jogo ativo");
+                    return;
+                }
+                socket.emit("getGameState", { gameId: currentGameId });
+            };
+
+            const playCard = (cardFace) => {
+                if (!socket || !playerName || !currentGameId) {
+                    alert("Nenhum jogo ativo");
+                    return;
+                }
+                socket.emit("playCard", {
+                    gameId: currentGameId,
+                    playerName,
+                    cardFace,
+                });
+            };
+
+            const updateGameDisplay = () => {
+                if (!gameState) return;
+
+                // Update trump info
+                const trumpDiv = document.getElementById("trumpInfo");
+                if (gameState.trump) {
+                    trumpDiv.style.display = "block";
+                    trumpDiv.innerHTML = `<strong>Trunfo:</strong> ${gameState.trump} | <strong>Cartas no baralho:</strong> ${gameState.remaining}`;
+                }
+
+                // Update current turn
+                const turnDiv = document.getElementById("currentTurn");
+                if (gameState.currentTurn) {
+                    turnDiv.style.display = "block";
+                    turnDiv.textContent = `Vez de: ${gameState.currentTurn}`;
+                    turnDiv.style.backgroundColor =
+                        gameState.currentTurn === playerName
+                            ? "#e6f3ff"
+                            : "#fff3cd";
+                }
+
+                // Update scores
+                if (gameState.points) {
+                    updateScores(gameState.points);
+                }
+
+                // Update player cards
+                const playerCardsDiv = document.getElementById("playerCards");
+                if (gameState.hands && gameState.hands[playerName]) {
+                    playerCardsDiv.innerHTML = "";
+                    gameState.hands[playerName].forEach((cardFace) => {
+                        const cardElement = document.createElement("div");
+                        cardElement.className = "card";
+                        cardElement.textContent = cardFace;
+
+                        // Highlight trump cards
+                        if (
+                            gameState.trump &&
+                            cardFace[0] === gameState.trump[0]
+                        ) {
+                            cardElement.classList.add("trump");
+                        }
+
+                        // Make playable if it's player's turn
+                        if (gameState.currentTurn === playerName) {
+                            cardElement.classList.add("playable");
+                            cardElement.onclick = () => playCard(cardFace);
+                        }
+
+                        playerCardsDiv.appendChild(cardElement);
+                    });
+                }
+            };
+
+            const updateScores = (scores) => {
+                const scoresDiv = document.getElementById("scores");
+                if (scores) {
+                    scoresDiv.style.display = "block";
+                    const scoreEntries = Object.entries(scores)
+                        .map(
+                            ([player, points]) =>
+                                `<span>${player}: ${points} pts</span>`,
+                        )
+                        .join("");
+                    scoresDiv.innerHTML = scoreEntries;
+                }
+            };
+
+            const updateMatchMarks = (marks) => {
+                const marksDiv = document.getElementById("matchMarks");
+                if (marks) {
+                    const markEntries = Object.entries(marks)
+                        .map(
+                            ([player, playerMarks]) =>
+                                `<span>${player}: ${playerMarks} marcas</span>`,
+                        )
+                        .join("");
+                    marksDiv.innerHTML = markEntries;
+                }
+            };
+
+            const updateMatchStatus = () => {
+                if (gameState) {
+                    const matchStatusDiv =
+                        document.getElementById("matchStatus");
+                    matchStatusDiv.style.display = "block";
+
+                    const gameNumberDiv = document.getElementById("gameNumber");
+                    gameNumberDiv.textContent = `Jogo ${gameState.gameNumber || 1}`;
+
+                    if (gameState.marks) {
+                        updateMatchMarks(gameState.marks);
+                    }
+                }
+            };
+
+            const showGameFinished = (data) => {
+                const finishedDiv = document.getElementById("gameFinished");
+                finishedDiv.style.display = "block";
+                finishedDiv.innerHTML = `
+                <strong>Jogo ${gameState?.gameNumber || ""} Terminado!</strong><br>
+                Vencedor: ${data.winner}<br>
+                Pontos: ${data.finalScores[data.winner]}<br>
+                Marcas ganhas: ${data.marks}<br>
+                ${!data.matchFinished ? "<em>A partida continua...</em>" : ""}
+            `;
+
+                if (!data.matchFinished) {
+                    showNextGameButton();
+                }
+            };
+
+            const showMatchFinished = (data) => {
+                const finishedDiv = document.getElementById("gameFinished");
+                finishedDiv.style.display = "block";
+                finishedDiv.innerHTML = `
+                <strong>PARTIDA TERMINADA!</strong><br>
+                Vencedor da Partida: ${data.matchWinner || data.winner}<br>
+                Total de Jogos: ${data.totalGames || gameState?.gameNumber || ""}<br>
+                Marcas Finais: ${JSON.stringify(data.finalMatchMarks || data.matchMarks)}
+            `;
+                hideNextGameButton();
+            };
+
+            const hideGameFinished = () => {
+                document.getElementById("gameFinished").style.display = "none";
+                hideNextGameButton();
+            };
+
+            const showNextGameButton = () => {
+                document.getElementById("nextGameBtn").style.display =
+                    "inline-block";
+            };
+
+            const hideNextGameButton = () => {
+                document.getElementById("nextGameBtn").style.display = "none";
+            };
+
+            const startTimer = (timeLimit) => {
+                clearInterval(timerInterval);
+                let remaining = timeLimit;
+
+                const timerDiv = document.getElementById("timer");
+                timerDiv.style.display = "block";
+
+                timerInterval = setInterval(() => {
+                    remaining -= 1000;
+                    const seconds = Math.ceil(remaining / 1000);
+
+                    timerDiv.innerHTML = `<span class="timer ${seconds <= 5 ? "warning" : ""}">${seconds}s</span>`;
+
+                    if (remaining <= 0) {
+                        clearInterval(timerInterval);
+                        timerDiv.style.display = "none";
+                    }
+                }, 1000);
+            };
+
+            const updateTimer = (timeRemaining) => {
+                const seconds = Math.ceil(timeRemaining / 1000);
+                const timerDiv = document.getElementById("timer");
+                if (timerDiv.style.display !== "none") {
+                    timerDiv.innerHTML = `<span class="timer ${seconds <= 5 ? "warning" : ""}">${seconds}s</span>`;
+                }
+            };
+
+            // Initialize page
+            window.onload = function () {
+                log("Página carregada. Conecte-se para começar.");
+            };
+        </script>
+    </body>
+</html>

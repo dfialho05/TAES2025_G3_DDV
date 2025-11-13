@@ -1,17 +1,31 @@
 {
   "name": "websockets",
   "version": "1.0.0",
-  "description": "",
+  "description": "WebSocket Game Server for card games with singleplayer and multiplayer support",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node index.js"
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "node tests/integration-test.js",
+    "test:bot": "node tests/testBot.js",
+    "test:manager": "node tests/testmanager.js",
+    "test:game": "node tests/testStartGame.js",
+    "test:all": "npm run test && npm run test:bot && npm run test:manager"
   },
   "type": "module",
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "websocket",
+    "game",
+    "cards",
+    "multiplayer",
+    "bot"
+  ],
+  "author": "TAES2025_G3_DDV",
   "license": "ISC",
   "dependencies": {
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
   }
 }

@@ -1,7 +1,9 @@
+// Game rules that determine card play winners and validate moves
 import { Card, suits } from "./CardClass.js";
 
-// player1, card1 always refferes to the first one playing the card
+// player1, card1 always refers to the first one playing the card
 
+// Determines the winner between two cards based on trump suit and card values
 const selectPlayWinner = (card1, card2, trump) => {
   // Verifies if both cards are valid Card objects and if the trump suit is valid
   if (
@@ -33,8 +35,31 @@ const selectPlayWinner = (card1, card2, trump) => {
   return { winner: 1, card1, card2 };
 };
 
+// Validates a single card play according to game rules
+const validateCardPlay = (deck, trump, leadCard, playerHand, playerCard) => {
+  // If no lead card, any card is valid (player is leading)
+  if (!leadCard) {
+    return { valid: true };
+  }
+
+  // If deck is empty, player must follow suit if possible
+  if (deck.length === 0) {
+    const leadSuit = leadCard.getSuit();
+    const hasSameSuit = playerHand.some((card) => card.getSuit() === leadSuit);
+
+    if (hasSameSuit && playerCard.getSuit() !== leadSuit) {
+      return {
+        valid: false,
+        reason: "Deve seguir o naipe quando possível e o baralho está vazio",
+      };
+    }
+  }
+
+  return { valid: true };
+};
+
+// Validates and executes a play between two players
 const doAPlay = (deck, trump, player1Card, player2Hand, player2Card) => {
-  // Verify if deck is empty and both cards has the same suit
   if (deck.length === 0 && player1Card.getSuit() !== player2Card.getSuit()) {
     if (player2Hand.some((card) => card.getSuit() === player1Card.getSuit())) {
       throw new Error("Invalid play");
@@ -43,4 +68,4 @@ const doAPlay = (deck, trump, player1Card, player2Hand, player2Card) => {
   return selectPlayWinner(player1Card, player2Card, trump);
 };
 
-export { selectPlayWinner, doAPlay };
+export { selectPlayWinner, doAPlay, validateCardPlay };

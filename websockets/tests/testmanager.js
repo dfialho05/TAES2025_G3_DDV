@@ -1,20 +1,21 @@
-import { GameManager } from "./handlers/gameManager.js";
+// Test script for game manager functionality
+import { GameManager } from "../handlers/gameManager.js";
 
 const manager = new GameManager();
 
-// Criar jogos simultâneos
+// Create simultaneous games
 const { gameId: g1 } = manager.createGame("Alice", "Bob");
-const { gameId: g2 } = manager.createGame("Carol"); // vs bot
-const { gameId: g3 } = manager.createGame("Dave"); // vs bot
+const { gameId: g2 } = manager.createGame("Carol"); // Player vs bot
+const { gameId: g3 } = manager.createGame("Dave"); // Player vs bot
 
-console.log("Jogos ativos:", manager.listActiveGames());
+console.log("Active games:", manager.listActiveGames());
 
-// Jogador faz uma jogada
+// Player makes a move
 const gameAlice = manager.getGameByPlayer("Alice");
 const cardAlice = gameAlice.hands["Alice"][0];
 gameAlice.playCard("Alice", cardAlice);
 
-// Jogador vs bot
+// Player vs bot game
 const gameCarol = manager.getGameByPlayer("Carol");
 const cardCarol = gameCarol.hands["Carol"][0];
 gameCarol.playCard("Carol", cardCarol);

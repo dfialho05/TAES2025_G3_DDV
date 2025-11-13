@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="pt">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Jogo de Cartas</title>
+        <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                background: #f0f0f0;
+            }
+            .card {
+                display: inline-block;
+                padding: 8px 12px;
+                margin: 5px;
+                background: white;
+                border: 2px solid #333;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: bold;
+            }
+            .card:hover {
+                background: #e0e0e0;
+            }
+            .trump {
+                background: #fffacd;
+                border-color: #ff6b6b;
+            }
+            .trump:hover {
+                background: #fff5b4;
+            }
+            .game-info {
+                background: white;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 10px 0;
+            }
+            .scores {
+                display: flex;
+                justify-content: space-around;
+                background: white;
+                padding: 10px;
+                border-radius: 8px;
+                margin: 10px 0;
+            }
+            .log {
+                height: 200px;
+                overflow-y: scroll;
+                background: white;
+                padding: 10px;
+                border-radius: 8px;
+                border: 1px solid #ccc;
+                font-family: monospace;
+                font-size: 12px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                background: #4caf50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 5px;
+            }
+            button:hover {
+                background: #45a049;
+            }
+            button:disabled {
+                background: #cccccc;
+                cursor: not-allowed;
+            }
+            .status {
+                padding: 10px;
+                border-radius: 5px;
+                margin: 10px 0;
+                font-weight: bold;
+            }
+            .connected {
+                background: #d4edda;
+                color: #155724;
+            }
+            .disconnected {
+                background: #f8d7da;
+                color: #721c24;
+            }
+            .waiting {
+                background: #fff3cd;
+                color: #856404;
+            }
+            .timer {
+                background: #f8f9fa;
+                padding: 10px;
+                border-radius: 8px;
+                margin: 10px 0;
+                text-align: center;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            .timer.warning {
+                background: #fff3cd;
+                color: #856404;
+            }
+            .timer.danger {
+                background: #f8d7da;
+                color: #721c24;
+            }
+            .bot-card-area {
+                background: white;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 10px 0;
+                text-align: center;
+                border: 2px solid #6c757d;
+            }
+            .bot-card {
+                display: inline-block;
+                padding: 12px 18px;
+                margin: 5px;
+                background: #e9ecef;
+                border: 3px solid #6c757d;
+                border-radius: 12px;
+                font-weight: bold;
+                font-size: 18px;
+                min-width: 60px;
+                text-align: center;
+            }
+            .bot-card.trump {
+                background: #fff5b4;
+                border-color: #ff6b6b;
+            }
+            .bot-card.empty {
+                background: #f8f9fa;
+                border: 2px dashed #dee2e6;
+                color: #6c757d;
+                font-style: italic;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🃏 Jogo de Cartas vs Bot</h1>
+
+        <div id="status" class="status disconnected">❌ Desconectado</div>
+
+        <div style="text-align: center; margin: 20px 0">
+            <input
+                type="text"
+                id="playerName"
+                placeholder="Seu nome"
+                value="Jogador"
+            />
+            <button onclick="connect()">Conectar</button>
+            <button onclick="startGame()" id="startBtn" disabled>
+                Novo Jogo
+            </button>
+        </div>
+
+        <div id="gameInfo" class="game-info" style="display: none">
+            <div><strong>Trunfo:</strong> <span id="trump">-</span></div>
+            <div><strong>Vez de:</strong> <span id="currentTurn">-</span></div>
+            <div>
+                <strong>Cartas no baralho:</strong>
+                <span id="deckCount">-</span>
+            </div>
+        </div>
+
+        <div id="timer" class="timer" style="display: none">
+            ⏱️ Tempo restante: <span id="timeRemaining">2:00</span>
+        </div>
+
+        <div id="botCardArea" class="bot-card-area" style="display: none">
+            <h4>🤖 Carta do Bot:</h4>
+            <div id="botCurrentCard" class="bot-card empty">
+                Aguardando jogada...
+            </div>
+        </div>
+
+        <div class="scores" id="scores" style="display: none">
+            <div><strong>Você:</strong> <span id="playerScore">0</span></div>
+            <div><strong>Bot:</strong> <span id="botScore">0</span></div>
+        </div>
+
+        <div>
+            <h3>Suas Cartas:</h3>
+            <div id="playerCards"></div>
+        </div>
+
+        <div>
+            <h3>Log do Jogo:</h3>
+            <div id="log" class="log"></div>
+        </div>
+
+        <script>
+            let socket = null;
+            let playerName = "";
+            let gameId = null;
+            let playerCards = [];
+            let trumpSuit = "";
+            let turnTimer = null;
+            let timeRemaining = 0;
+
+            const log = (message) => {
+                const logDiv = document.getElementById("log");
+                const time = new Date().toLocaleTimeString();
+                logDiv.innerHTML += `[${time}] ${message}<br>`;
+                logDiv.scrollTop = logDiv.scrollHeight;
+            };
+
+            const updateStatus = (status, message) => {
+                const statusDiv = document.getElementById("status");
+                statusDiv.className = `status ${status}`;
+                statusDiv.textContent = message;
+            };
+
+            const connect = () => {
+                playerName = document.getElementById("playerName").value.trim();
+                if (!playerName) {
+                    alert("Digite seu nome!");
+                    return;
+                }
+
+                updateStatus("waiting", "🔄 Conectando...");
+                log("Conectando ao servidor...");
+
+                socket = io("ws://localhost:3000");
+
+                socket.on("connect", () => {
+                    log("Conectado! Fazendo autenticação...");
+                    socket.emit("auth", { playerName });
+                });
+
+                socket.on("authSuccess", (data) => {
+                    updateStatus("connected", "✅ Conectado");
+                    log(`Autenticado como: ${data.playerName}`);
+                    document.getElementById("startBtn").disabled = false;
+                });
+
+                socket.on("authError", (error) => {
+                    updateStatus("disconnected", "❌ Erro de autenticação");
+                    log(`Erro: ${error.message}`);
+                });
+
+                socket.on("gameStarted", (data) => {
+                    gameId = data.gameId;
+                    updateGameInfo(data.state);
+                    log(`Jogo iniciado! ID: ${gameId}`);
+                    log(`Trunfo: ${data.state.trump}`);
+                    document.getElementById("gameInfo").style.display = "block";
+                    document.getElementById("scores").style.display = "flex";
+                    document.getElementById("botCardArea").style.display =
+                        "block";
+                });
+
+                socket.on("cardPlayed", (data) => {
+                    log(`${data.player} jogou: ${data.card}`);
+                    if (data.player === playerName) {
+                        playerCards = playerCards.filter(
+                            (card) => card !== data.card,
+                        );
+                        updatePlayerCards();
+                    }
+                });
+
+                socket.on("roundResult", (data) => {
+                    log(
+                        `🏆 Vencedor da rodada: ${data.winner} (+${data.points} pontos)`,
+                    );
+                    updateScores(data.scores);
+                    if (data.dealtCards && data.dealtCards[playerName]) {
+                        playerCards.push(data.dealtCards[playerName]);
+                        updatePlayerCards();
+                        log(`Você recebeu: ${data.dealtCards[playerName]}`);
+                    }
+                });
+
+                socket.on("gameEnded", (data) => {
+                    log(`🎉 Jogo terminou! Vencedor: ${data.winner}`);
+                    log(`Pontuação final: ${JSON.stringify(data.finalScores)}`);
+                    document.getElementById("startBtn").disabled = false;
+                });
+
+                socket.on("gameStateUpdate", (data) => {
+                    updateGameInfo(data.state);
+                    if (data.lastPlay) {
+                        log(
+                            `${data.lastPlay.player} jogou: ${data.lastPlay.card}`,
+                        );
+                    }
+                });
+
+                socket.on("gameError", (error) => {
+                    log(`❌ Erro: ${error.message}`);
+                });
+
+                // Timer events
+                socket.on("turnTimerStarted", (data) => {
+                    if (data.player === playerName) {
+                        startTurnTimer(data.timeLimit);
+                        log(`⏱️ Sua vez! Você tem 2 minutos para jogar.`);
+                    }
+                });
+
+                socket.on("turnTimerUpdate", (data) => {
+                    if (data.player === playerName) {
+                        updateTimer(data.timeRemaining);
+                    }
+                });
+
+                socket.on("playerTimeout", (data) => {
+                    if (data.player === playerName) {
+                        log(
+                            `⏰ TEMPO ESGOTADO! Jogada automática: ${data.autoPlayedCard}`,
+                        );
+                        clearTurnTimer();
+                    }
+                });
+
+                // Bot card events
+                socket.on("botTurnStarted", (data) => {
+                    setBotCard("pensando", "Bot está pensando...");
+                });
+
+                socket.on("botCardPlayed", (data) => {
+                    setBotCard(data.card, `Bot jogou: ${data.card}`);
+                    log(`🤖 Bot jogou: ${data.card}`);
+                });
+
+                socket.on("roundEnded", (data) => {
+                    // Clear bot card after round ends
+                    setTimeout(() => {
+                        clearBotCard();
+                    }, 3000); // Show for 3 seconds after round ends
+                });
+
+                socket.on("disconnect", () => {
+                    updateStatus("disconnected", "❌ Desconectado");
+                    log("Desconectado do servidor");
+                    document.getElementById("startBtn").disabled = true;
+                    clearTurnTimer();
+                });
+            };
+
+            const startGame = () => {
+                if (!socket || !socket.connected) {
+                    alert("Conecte-se primeiro!");
+                    return;
+                }
+
+                log("Iniciando novo jogo...");
+                socket.emit("startSingleplayerGame", {
+                    playerName,
+                    turnTime: 120, // 2 minutes
+                });
+                document.getElementById("startBtn").disabled = true;
+            };
+
+            const playCard = (cardFace) => {
+                if (!gameId) {
+                    log("❌ Nenhum jogo ativo");
+                    return;
+                }
+
+                // Clear timer immediately when player makes a move
+                clearTurnTimer();
+
+                log(`Jogando: ${cardFace}`);
+                socket.emit("playCard", {
+                    gameId,
+                    playerName,
+                    cardFace,
+                });
+            };
+
+            const updateGameInfo = (state) => {
+                document.getElementById("trump").textContent = state.trump;
+                document.getElementById("currentTurn").textContent =
+                    state.currentTurn;
+                document.getElementById("deckCount").textContent =
+                    state.remaining;
+
+                if (state.hands && state.hands[playerName]) {
+                    playerCards = state.hands[playerName];
+                    updatePlayerCards();
+                }
+
+                trumpSuit = state.trump.charAt(0);
+            };
+
+            const updatePlayerCards = () => {
+                const cardsDiv = document.getElementById("playerCards");
+                cardsDiv.innerHTML = "";
+
+                playerCards.forEach((cardFace) => {
+                    const cardDiv = document.createElement("div");
+                    cardDiv.className = "card";
+                    cardDiv.textContent = cardFace;
+                    cardDiv.onclick = () => playCard(cardFace);
+
+                    if (cardFace.charAt(0) === trumpSuit) {
+                        cardDiv.classList.add("trump");
+                    }
+
+                    cardsDiv.appendChild(cardDiv);
+                });
+            };
+
+            const updateScores = (scores) => {
+                document.getElementById("playerScore").textContent =
+                    scores[playerName] || 0;
+                document.getElementById("botScore").textContent =
+                    scores["Bot"] || 0;
+            };
+
+            // Timer functions
+            const startTurnTimer = (timeLimit) => {
+                // Clear any existing timer first
+                clearTurnTimer();
+
+                timeRemaining = timeLimit;
+                document.getElementById("timer").style.display = "block";
+                updateTimerDisplay();
+
+                turnTimer = setInterval(() => {
+                    timeRemaining -= 1000;
+                    if (timeRemaining <= 0) {
+                        clearTurnTimer();
+                        log(
+                            "⏰ Tempo esgotado! Aguardando jogada automática...",
+                        );
+                    } else {
+                        updateTimerDisplay();
+                    }
+                }, 1000);
+            };
+
+            const updateTimer = (remaining) => {
+                timeRemaining = remaining;
+                updateTimerDisplay();
+            };
+
+            const updateTimerDisplay = () => {
+                const minutes = Math.floor(timeRemaining / 60000);
+                const seconds = Math.floor((timeRemaining % 60000) / 1000);
+                const timeString = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+                document.getElementById("timeRemaining").textContent =
+                    timeString;
+
+                const timerElement = document.getElementById("timer");
+                if (timeRemaining < 30000) {
+                    // Less than 30 seconds
+                    timerElement.className = "timer danger";
+                } else if (timeRemaining < 60000) {
+                    // Less than 1 minute
+                    timerElement.className = "timer warning";
+                } else {
+                    timerElement.className = "timer";
+                }
+            };
+
+            const clearTurnTimer = () => {
+                if (turnTimer) {
+                    clearInterval(turnTimer);
+                    turnTimer = null;
+                }
+                document.getElementById("timer").style.display = "none";
+            };
+
+            // Bot card functions
+            const setBotCard = (cardFace, message) => {
+                const botCardElement =
+                    document.getElementById("botCurrentCard");
+
+                if (cardFace === "pensando") {
+                    botCardElement.textContent = "🤔 Pensando...";
+                    botCardElement.className = "bot-card empty";
+                } else {
+                    botCardElement.textContent = cardFace;
+                    botCardElement.className = "bot-card";
+
+                    // Check if it's a trump card
+                    if (
+                        cardFace &&
+                        trumpSuit &&
+                        cardFace.charAt(0) === trumpSuit
+                    ) {
+                        botCardElement.classList.add("trump");
+                    }
+
+                    // Add animation effect
+                    botCardElement.style.transform = "scale(1.1)";
+                    setTimeout(() => {
+                        botCardElement.style.transform = "scale(1)";
+                    }, 300);
+                }
+            };
+
+            const clearBotCard = () => {
+                const botCardElement =
+                    document.getElementById("botCurrentCard");
+                botCardElement.textContent = "Aguardando jogada...";
+                botCardElement.className = "bot-card empty";
+            };
+
+            document
+                .getElementById("playerName")
+                .addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") {
+                        connect();
+                    }
+                });
+        </script>
+    </body>
+</html>

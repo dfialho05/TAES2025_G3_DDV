@@ -1,6 +1,6 @@
 // bot that plays against the user
-import { Card, suits } from "./core/CardClass.js";
-import { selectPlayWinner, doAPlay } from "./core/gameRules.js";
+import { Card, suits } from "../core/CardClass.js";
+import { selectPlayWinner, doAPlay } from "../core/gameRules.js";
 
 const cardsAddCount = (cardPlayed, botHand) => {
   const suitCounts = suits.map((suit) => ({
