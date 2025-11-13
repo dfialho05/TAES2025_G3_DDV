@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Manual - Sistema de Proteção</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .test-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .test-panel h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .status.disconnected {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ffcdd2;
+        }
+
+        .status.connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 2px solid #c8e6c9;
+        }
+
+        .status.error {
+            background: #fff3e0;
+            color: #f57c00;
+            border: 2px solid #ffcc02;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #51cf66, #40c057);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .log {
+            background: #2d3748;
+            color: #68d391;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .log .timestamp {
+            color: #90cdf4;
+        }
+
+        .log .error {
+            color: #fc8181;
+        }
+
+        .log .success {
+            color: #68d391;
+        }
+
+        .log .warning {
+            color: #fbb040;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .header p {
+                font-size: 1em;
+            }
+        }
+
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Sistema de Proteção Contra Erros</h1>
+            <p>Teste manual para verificar se o jogo continua funcionando mesmo com erros</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Painel de Conexão -->
+            <div class="test-panel">
+                <h3><span class="emoji">🔌</span> Conexão & Estado</h3>
+
+                <div id="connection-status" class="status disconnected">
+                    🔴 Desconectado
+                </div>
+
+                <div class="stats">
+                    <div class="stat-box">
+                        <div id="errors-count" class="stat-number">0</div>
+                        <div class="stat-label">Erros Capturados</div>
+                    </div>
+                    <div class="stat-box">
+                        <div id="recovered-count" class="stat-number">0</div>
+                        <div class="stat-label">Recuperações</div>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="connectToServer()">Conectar</button>
+                <button class="btn danger" onclick="disconnect()">Desconectar</button>
+                <button class="btn success" onclick="checkHealth()">Verificar Saúde</button>
+            </div>
+
+            <!-- Painel de Testes -->
+            <div class="test-panel">
+                <h3><span class="emoji">🧪</span> Testes de Erro</h3>
+
+                <button class="btn danger" onclick="testInvalidCard()">🃏 Carta Inválida</button>
+                <button class="btn danger" onclick="testGameNotFound()">🎮 Jogo Inexistente</button>
+                <button class="btn danger" onclick="testNetworkError()">📡 Erro de Rede</button>
+                <button class="btn danger" onclick="testBotFailure()">🤖 Falha do Bot</button>
+                <button class="btn danger" onclick="testTimeout()">⏰ Timeout</button>
+                <button class="btn danger" onclick="testCriticalError()">🚨 Erro Crítico</button>
+
+                <div style="margin: 20px 0;">
+                    <button class="btn success" onclick="clearLogs()">🧹 Limpar Logs</button>
+                    <button class="btn" onclick="getErrorStats()">📊 Estatísticas</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Console -->
+        <div style="padding: 0 30px 30px;">
+            <h3><span class="emoji">📝</span> Console de Logs</h3>
+            <div id="log-console" class="log">
+                <div class="timestamp">[Sistema iniciado]</div>
+                <div>🛡️ Sistema de proteção carregado</div>
+                <div>🔌 Aguardando conexão...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket = null;
+        let errorCount = 0;
+        let recoveredCount = 0;
+        let isConnected = false;
+
+        function log(message, type = 'info') {
+            const console = document.getElementById('log-console');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeClass = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span class="timestamp">[${timestamp}]</span> <span class="${typeClass}">${message}</span>`;
+            console.appendChild(logEntry);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            isConnected = connected;
+            const statusEl = document.getElementById('connection-status');
+            if (connected) {
+                statusEl.className = 'status connected';
+                statusEl.innerHTML = '🟢 Conectado';
+            } else {
+                statusEl.className = 'status disconnected';
+                statusEl.innerHTML = '🔴 Desconectado';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('errors-count').textContent = errorCount;
+            document.getElementById('recovered-count').textContent = recoveredCount;
+        }
+
+        function connectToServer() {
+            if (socket) {
+                socket.disconnect();
+            }
+
+            log('🔌 Tentando conectar ao servidor...', 'info');
+            socket = io('ws://localhost:3000');
+
+            socket.on('connect', () => {
+                log('✅ Conectado com sucesso!', 'success');
+                updateStatus(true);
+            });
+
+            socket.on('disconnect', () => {
+                log('🔌 Desconectado do servidor', 'warning');
+                updateStatus(false);
+            });
+
+            // Eventos de erro protegido
+            socket.on('gameError', (data) => {
+                errorCount++;
+                if (data.recovered) {
+                    recoveredCount++;
+                    log(`🛡️ ERRO RECUPERADO: ${data.message}`, 'warning');
+                } else {
+                    log(`❌ ERRO: ${data.message}`, 'error');
+                }
+                updateStats();
+            });
+
+            socket.on('gameWarning', (data) => {
+                log(`⚠️ AVISO: ${data.message}`, 'warning');
+            });
+
+            socket.on('gameRecovered', (data) => {
+                recoveredCount++;
+                log(`🔄 RECOVERY: ${data.message}`, 'success');
+                updateStats();
+            });
+
+            socket.on('systemHealthResponse', (data) => {
+                log(`💚 SAÚDE DO SISTEMA: ${data.healthy ? 'Saudável' : 'Degradado'}`, data.healthy ? 'success' : 'warning');
+                log(`📊 Jogos ativos: ${data.activeGames}, Conexões: ${data.connectedSockets}`, 'info');
+            });
+
+            socket.on('errorStatsResponse', (data) => {
+                log(`📈 ESTATÍSTICAS: ${data.total} erros totais, ${data.last24hCount} nas últimas 24h`, 'info');
+            });
+
+            socket.on('connect_error', (error) => {
+                log(`❌ Erro de conexão: ${error.message}`, 'error');
+                updateStatus(false);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                log('🔌 Desconectado manualmente', 'info');
+                updateStatus(false);
+            }
+        }
+
+        function checkHealth() {
+            if (!socket || !isConnected) {
+                log('❌ Não conectado ao servidor', 'error');
+                return;
+            }
+
+            log('🔍 Verificando saúde do sistema...', 'info');
+            socket.emit('getSystemHealth');
+        }
+
+        function testInvalidCard() {
+            if (!socket || !isConnected) {
+                log('❌ Não conectado ao servidor', 'error');
+                return;
+            }
+
+            log('🧪 TESTE: Tentando jogar carta inválida...', 'warning');
+            socket.emit('playCard', {
+                gameId: 'test-game-123',
+                playerName: 'TestPlayer',
+                cardFace: 'CARTA_INEXISTENTE'
+            });
+        }
+
+        function testGameNotFound() {
+            if (!socket || !isConnected) {
+                log('❌ Não conectado ao servidor', 'error');
+                return;
+            }
+
+            log('🧪 TESTE: Tentando acessar jogo inexistente...', 'warning');
+            socket.emit('getGameState', {
+                gameId: 'jogo-que-nao-existe-123'
+            });
+        }
+
+        function testNetworkError() {
+            if (!socket || !isConnected) {
+                log('❌ Não conectado ao servidor', 'error');
+                return;
+            }
+
+            log('🧪 TESTE: Simulando erro de rede...', 'warning');
+            // Simular dados malformados
+            socket.emit('playCard', {
+                gameId: null,
+                playerName: undefined,
+                cardFace: { invalid: 'data' }
+            });
+        }
+
+        function testBotFailure() {
+            if (!socket || !isConnected) {
+                log('❌ Não conectado ao servidor', 'error');
+                return;
+            }
+
+            log('🧪 TESTE: Simulando falha do bot...', 'warning');
+            socket.emit('startSingleplayerGame', {
+                playerName: 'TestPlayer',
+                turnTime: -1 // Valor inválido para forçar erro
+            });
+        }
+
+        function testTimeout() {
+            if (!socket || !isConnected) {
+                log('❌ Não conectado ao servidor', 'error');
+                return;
+            }
+
+            log('🧪 TESTE: Simulando timeout...', 'warning');
+            // Enviar evento com dados que podem causar timeout
+            socket.emit('playCard', {
+                gameId: 'a'.repeat(10000), // String muito longa
+                playerName: 'TestPlayer',
+                cardFace: 'A♠'
+            });
+        }
+
+        function testCriticalError() {
+            if (!socket || !isConnected) {
+                log('❌ Não conectado ao servidor', 'error');
+                return;
+            }
+
+            log('🧪 TESTE: Simulando erro crítico...', 'warning');
+            // Tentar acessar função que não existe
+            socket.emit('nonExistentFunction', {
+                data: 'test'
+            });
+        }
+
+        function clearLogs() {
+            document.getElementById('log-console').innerHTML = '';
+            log('🧹 Logs limpos', 'success');
+        }
+
+        function getErrorStats() {
+            if (!socket || !isConnected) {
+                log('❌ Não conectado ao servidor', 'error');
+                return;
+            }
+
+            log('📊 Obtendo estatísticas de erro...', 'info');
+            socket.emit('getErrorStats', { adminKey: 'admin123' });
+        }
+
+        // Conectar automaticamente ao carregar a página
+        window.onload = () => {
+            log('🚀 Página carregada - Conectando automaticamente...', 'info');
+            setTimeout(connectToServer, 1000);
+        };
+
+        // Simular alguns testes automáticos após 3 segundos
+        setTimeout(() => {
+            if (isConnected) {
+                log('🤖 Iniciando testes automáticos...', 'info');
+
+                setTimeout(() => testInvalidCard(), 1000);
+                setTimeout(() => testGameNotFound(), 2000);
+                setTimeout(() => checkHealth(), 3000);
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

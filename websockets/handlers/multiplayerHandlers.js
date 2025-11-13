@@ -157,10 +157,23 @@ export const leaveMultiplayerRoom = (manager, gameId, playerName, io) => {
     manager.playerGames.delete(playerName);
 
     if (room.gameStarted) {
+      const winner = room.players[0] || null;
+
       io.to(gameId).emit("gameAbandoned", {
         reason: `${playerName} abandonou o jogo`,
-        winner: room.players[0] || null,
+        winner: winner,
       });
+
+      // Emit user-friendly victory notification for abandonment
+      if (winner) {
+        io.to(gameId).emit("matchVictory", {
+          winner: winner,
+          message: `🏆 ${winner} venceu por abandono do adversário!`,
+          reason: "abandonment",
+          celebration: true,
+        });
+      }
+
       manager.removeGame(gameId);
       return { success: true, gameEnded: true };
     }

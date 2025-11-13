@@ -7,15 +7,15 @@ const config = {
     port: 3000,
     cors: {
       origin: "*",
-      methods: ["GET", "POST"]
+      methods: ["GET", "POST"],
     },
-    transports: ["websocket", "polling"]
+    transports: ["websocket", "polling"],
   },
 
   // Configurações do timer de jogadas
   timer: {
-    // Tempo limite para cada jogada em milissegundos (2 minutos = 120000ms)
-    turnTimeLimit: 2 * 60 * 1000,
+    // Tempo limite para cada jogada em milissegundos (5 minutos = 300000ms)
+    turnTimeLimit: 5 * 60 * 1000,
 
     // Intervalo de atualização do timer enviado aos clientes (10 segundos)
     updateInterval: 10 * 1000,
@@ -24,14 +24,14 @@ const config = {
     clientUpdateInterval: 1000,
 
     // Avisos de tempo
-    warningTime: 60 * 1000,  // Aviso quando restam 1 minuto
-    dangerTime: 30 * 1000,   // Perigo quando restam 30 segundos
+    warningTime: 60 * 1000, // Aviso quando restam 1 minuto
+    dangerTime: 30 * 1000, // Perigo quando restam 30 segundos
 
     // Ativar/desativar timer automático
     enabled: true,
 
     // Tempo de atraso antes de iniciar timer após eventos (em ms)
-    startDelay: 1000
+    startDelay: 1000,
   },
 
   // Configurações da visualização do bot
@@ -52,8 +52,8 @@ const config = {
     messages: {
       thinking: "🤔 Pensando...",
       waiting: "Aguardando jogada...",
-      played: "Bot jogou:"
-    }
+      played: "Bot jogou:",
+    },
   },
 
   // Configurações do jogo
@@ -70,8 +70,8 @@ const config = {
     // Configurações de reconexão
     reconnection: {
       timeout: 2 * 60 * 1000, // 2 minutos para reconectar
-      enabled: true
-    }
+      enabled: true,
+    },
   },
 
   // Configurações de limpeza automática
@@ -83,7 +83,7 @@ const config = {
     sessionTimeout: 60 * 60 * 1000,
 
     // Ativar limpeza automática
-    enabled: true
+    enabled: true,
   },
 
   // Configurações de logging
@@ -101,7 +101,7 @@ const config = {
     connectionLogs: true,
 
     // Formato de timestamp
-    timestampFormat: "HH:mm:ss"
+    timestampFormat: "HH:mm:ss",
   },
 
   // Configurações de performance
@@ -113,7 +113,7 @@ const config = {
     maxConnectionsPerIP: 5,
 
     // Timeout de conexão inativa (10 minutos)
-    connectionTimeout: 10 * 60 * 1000
+    connectionTimeout: 10 * 60 * 1000,
   },
 
   // Configurações da interface
@@ -122,7 +122,7 @@ const config = {
     timerColors: {
       normal: "#e3f2fd",
       warning: "#fff3cd",
-      danger: "#f8d7da"
+      danger: "#f8d7da",
     },
 
     // Configurações da carta do bot
@@ -131,14 +131,14 @@ const config = {
       animationDuration: 300,
 
       // Escala da animação (1.1 = 110%)
-      animationScale: 1.1
+      animationScale: 1.1,
     },
 
     // Configurações de responsividade
     responsive: {
       // Breakpoint para mobile
-      mobileBreakpoint: 768
-    }
+      mobileBreakpoint: 768,
+    },
   },
 
   // Funcionalidades experimentais
@@ -150,8 +150,8 @@ const config = {
     playAnalysis: false,
 
     // Ativar estatísticas avançadas
-    advancedStats: false
-  }
+    advancedStats: false,
+  },
 };
 
 // Função para validar configurações
@@ -176,7 +176,7 @@ const validateConfig = () => {
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -184,13 +184,13 @@ const validateConfig = () => {
 const getConfig = (overrides = {}) => {
   return {
     ...config,
-    ...overrides
+    ...overrides,
   };
 };
 
 // Função para atualizar configuração em runtime
 const updateConfig = (path, value) => {
-  const paths = path.split('.');
+  const paths = path.split(".");
   let current = config;
 
   for (let i = 0; i < paths.length - 1; i++) {
@@ -206,12 +206,7 @@ const updateConfig = (path, value) => {
 };
 
 // Exportar configurações e funções utilitárias
-export {
-  config,
-  validateConfig,
-  getConfig,
-  updateConfig
-};
+export { config, validateConfig, getConfig, updateConfig };
 
 // Export default para compatibilidade
 export default config;

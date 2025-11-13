@@ -24,49 +24,15 @@ export const startPlayerTimer = (gameId, playerName, io, game, manager) => {
       console.log(`Timer expirou para ${playerName} no jogo ${gameId}`);
     }
 
-    // Auto-play for the player who timed out
+    // Handle timeout - player loses the game
     const timeoutResult = handlePlayerTimeout(game, playerName, io, gameId);
 
-    if (timeoutResult.success) {
-      // If it's against bot and player just auto-played
-      if (game.bot && game.playedCards.length === 1) {
-        const botResult = handleBotTurn(
-          game,
-          timeoutResult.autoPlayedCard,
-          io,
-          gameId,
-        );
-
-        if (botResult.success) {
-          // Resolve round
-          const roundResult = resolveRound(
-            game,
-            timeoutResult.autoPlayedCard,
-            botResult.botCard,
-            playerName,
-            game.bot,
-            io,
-            gameId,
-          );
-
-          if (roundResult.success && roundResult.gameFinished) {
-            handleGameEnd(game, io, gameId, manager);
-          } else if (roundResult.success && game.currentTurn === game.bot) {
-            setTimeout(() => {
-              handleBotTurn(game, null, io, gameId);
-            }, 1000);
-          }
-        }
+    if (timeoutResult.success && timeoutResult.gameEnded) {
+      // Game ended due to timeout, remove from manager if available
+      if (manager) {
+        manager.removeGame(gameId);
       }
-
-      // Update game state
-      io.to(gameId).emit("gameStateUpdate", {
-        state: game.getState(),
-        lastPlay: {
-          player: playerName,
-          card: timeoutResult.autoPlayedCard.getFace(),
-        },
-      });
+      console.log(`Jogo ${gameId} terminado por timeout de ${playerName}`);
     }
 
     // Clear the timer
@@ -326,6 +292,25 @@ export const handleGameEnd = (game, io, gameId, manager) => {
       gameId,
     });
 
+    // Emit user-friendly victory notification
+    if (gameResult.winner) {
+      const winnerPoints = gameResult.points;
+      const marksText =
+        gameResult.marks === 3
+          ? "Bandeira (120 pontos)!"
+          : gameResult.marks === 2
+            ? "Capote (91+ pontos)!"
+            : "Vitória normal!";
+
+      io.to(gameId).emit("playerVictory", {
+        winner: gameResult.winner,
+        message: `🎉 ${gameResult.winner} ganhou o jogo com ${winnerPoints} pontos! ${marksText}`,
+        points: winnerPoints,
+        marks: gameResult.marks,
+        marksDescription: marksText,
+      });
+    }
+
     // If match is finished, clean up the game
     if (gameResult.matchFinished) {
       const matchWinner = game.getMatchLeader();
@@ -335,6 +320,15 @@ export const handleGameEnd = (game, io, gameId, manager) => {
         finalMatchMarks: gameResult.matchMarks,
         totalGames: game.gameNumber,
         gameId,
+      });
+
+      // Emit user-friendly match victory notification
+      io.to(gameId).emit("matchVictory", {
+        winner: matchWinner,
+        message: `🏆 ${matchWinner} venceu a partida completa!`,
+        finalMarks: gameResult.matchMarks[matchWinner],
+        totalGames: game.gameNumber,
+        celebration: true,
       });
 
       manager.removeGame(gameId);
@@ -382,29 +376,51 @@ export const handleGameEnd = (game, io, gameId, manager) => {
 // Handles automatic card play when a player times out
 export const handlePlayerTimeout = (game, playerName, io, gameId) => {
   try {
-    const playerHand = game.hands[playerName];
-    if (!playerHand || playerHand.length === 0) {
-      return { success: false, error: "Jogador não tem cartas" };
-    }
+    // Clear any active timers
+    clearPlayerTimer(gameId);
 
-    // Auto-play the lowest card when player times out
-    const lowestCard = playerHand.reduce((lowest, card) =>
-      card.getRank() < lowest.getRank() ? card : lowest,
-    );
+    // Determine the winner (the other player)
+    const [p1, p2] =
+      game.players.length === 2 ? game.players : [game.players[0], game.bot];
+    const winner = playerName === p1 ? p2 : p1;
 
-    const cardIndex = playerHand.findIndex(
-      (card) => card.getFace() === lowestCard.getFace(),
-    );
-    playerHand.splice(cardIndex, 1);
-    game.playedCards.push({ player: playerName, card: lowestCard });
+    // Set maximum marks to the winner to end the match immediately
+    game.marks[winner] = 4;
+    game.matchFinished = true;
 
+    // Emit timeout event
     io.to(gameId).emit("playerTimeout", {
       player: playerName,
-      autoPlayedCard: lowestCard.getFace(),
-      message: `${playerName} demorou demais e jogou automaticamente`,
+      winner: winner,
+      reason: "timeout",
+      message: `${playerName} demorou demais e perdeu o jogo!`,
     });
 
-    return { success: true, autoPlayedCard: lowestCard };
+    // Emit match ended event
+    io.to(gameId).emit("matchEnded", {
+      matchWinner: winner,
+      finalMatchMarks: { ...game.marks },
+      totalGames: game.gameNumber,
+      gameId,
+      reason: "timeout",
+    });
+
+    // Emit user-friendly timeout victory notification
+    io.to(gameId).emit("matchVictory", {
+      winner: winner,
+      message: `🏆 ${winner} venceu por desistência (timeout)!`,
+      reason: "timeout",
+      celebration: true,
+    });
+
+    console.log(`${playerName} perdeu por timeout. Vencedor: ${winner}`);
+
+    return {
+      success: true,
+      gameEnded: true,
+      winner: winner,
+      reason: "timeout",
+    };
   } catch (error) {
     return { success: false, error: error.message };
   }

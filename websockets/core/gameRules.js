@@ -42,6 +42,12 @@ const validateCardPlay = (deck, trump, leadCard, playerHand, playerCard) => {
     return { valid: true };
   }
 
+  // Safety check: ensure leadCard has getSuit method
+  if (typeof leadCard.getSuit !== "function") {
+    console.warn("leadCard não tem método getSuit(), permitindo jogada");
+    return { valid: true };
+  }
+
   // If deck is empty, player must follow suit if possible
   if (deck.length === 0) {
     const leadSuit = leadCard.getSuit();

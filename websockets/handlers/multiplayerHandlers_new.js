@@ -179,10 +179,23 @@ export const leaveMultiplayerRoom = (manager, gameId, playerName, io) => {
     manager.playerGames.delete(playerName);
 
     if (room.gameStarted) {
+      const winner = room.players[0] || null;
+
       io.to(gameId).emit("gameAbandoned", {
         reason: `${playerName} abandonou o jogo`,
-        winner: room.players[0] || null,
+        winner: winner,
       });
+
+      // Emit user-friendly victory notification for abandonment
+      if (winner) {
+        io.to(gameId).emit("matchVictory", {
+          winner: winner,
+          message: `🏆 ${winner} venceu por abandono do adversário!`,
+          reason: "abandonment",
+          celebration: true,
+        });
+      }
+
       manager.removeGame(gameId);
       return { success: true, gameEnded: true };
     }
@@ -443,23 +456,35 @@ export const handleMultiplayerNewGame = (game, playerName, io, gameId) => {
 };
 
 // Updates room settings (host only)
-export const updateRoomSettings = (game, playerName, newSettings, io, gameId) => {
+export const updateRoomSettings = (
+  game,
+  playerName,
+  newSettings,
+  io,
+  gameId,
+) => {
   try {
     if (!game.roomInfo) {
       return { success: false, error: "Não é uma sala multiplayer" };
     }
 
     if (game.roomInfo.host !== playerName) {
-      return { success: false, error: "Apenas o host pode alterar configurações" };
+      return {
+        success: false,
+        error: "Apenas o host pode alterar configurações",
+      };
     }
 
     if (game.roomInfo.gameStarted) {
-      return { success: false, error: "Não é possível alterar configurações durante o jogo" };
+      return {
+        success: false,
+        error: "Não é possível alterar configurações durante o jogo",
+      };
     }
 
     // Update allowed settings
-    const allowedSettings = ['roomName', 'isPrivate', 'password'];
-    Object.keys(newSettings).forEach(key => {
+    const allowedSettings = ["roomName", "isPrivate", "password"];
+    Object.keys(newSettings).forEach((key) => {
       if (allowedSettings.includes(key)) {
         game.roomInfo[key] = newSettings[key];
       }
