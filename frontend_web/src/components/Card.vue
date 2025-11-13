@@ -80,11 +80,16 @@ const suitName = computed(() => {
 const cardImage = computed(() => {
     // Try to get PNG image first
     const pngImage = getCardImage(props.suit, props.value);
-    if (pngImage) {
+    console.log(`Card ${props.suit}${props.value} image:`, pngImage);
+
+    // Check if we have a valid image URL
+    if (pngImage && typeof pngImage === "string" && pngImage.length > 0) {
+        console.log(`Using PNG image for ${props.suit}${props.value}`);
         return pngImage;
     }
 
     // Fallback to generated SVG
+    console.log(`Fallback to SVG for ${props.suit}${props.value}`);
     return generateCardSVG();
 });
 
@@ -164,6 +169,7 @@ const handleImageError = (event) => {
     console.log(
         `Failed to load card image: ${props.suit}${props.value}, using SVG fallback`,
     );
+    console.log(`Original src was:`, event.target.src);
     // Replace with SVG fallback
     event.target.src = generateCardSVG();
 };

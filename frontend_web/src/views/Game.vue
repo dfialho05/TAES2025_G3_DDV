@@ -89,13 +89,13 @@
                         <div
                             class="w-20 h-28 transform rotate-90 origin-center"
                         >
-                            <div class="w-full h-full rounded-lg shadow-lg">
-                                <img
-                                    :src="getCardImage('c', 7)"
-                                    alt="Trunfo"
-                                    class="w-full h-full object-cover rounded-lg transform -rotate-90"
-                                />
-                            </div>
+                            <Card
+                                suit="c"
+                                :value="7"
+                                :hidden="false"
+                                :playable="false"
+                                class="transform -rotate-90"
+                            />
                         </div>
                         <div class="text-center mt-1">
                             <p class="text-white text-sm font-semibold">
@@ -121,13 +121,13 @@
                         <!-- Opponent's played card -->
                         <div class="flex flex-col items-center gap-3">
                             <p class="text-sm text-gray-200 font-medium">Bot</p>
-                            <div class="w-28 h-36 rounded-lg shadow-xl">
-                                <img
-                                    :src="getCardImage('o', 7)"
-                                    alt="Carta do Bot"
-                                    class="w-full h-full object-cover rounded-lg"
-                                />
-                            </div>
+                            <Card
+                                suit="o"
+                                :value="7"
+                                :hidden="false"
+                                :playable="false"
+                                class="w-28 h-36"
+                            />
                         </div>
 
                         <!-- Player's played card -->
@@ -152,25 +152,23 @@
 
             <!-- Player Cards -->
             <div class="flex items-center justify-center gap-2 flex-wrap">
-                <div
+                <Card
                     v-for="(card, i) in playerCards"
                     :key="`player-${i}`"
-                    class="w-20 h-28 rounded-lg shadow-lg cursor-pointer hover:-translate-y-2 transition-all duration-200"
-                    @click="handleCardPlayed(card)"
-                >
-                    <img
-                        :src="getCardImage(card.suit, card.value)"
-                        :alt="`${getCardDisplay(card.value)} de ${getSuitName(card.suit)}`"
-                        class="w-full h-full object-cover rounded-lg"
-                    />
-                </div>
+                    :suit="card.suit"
+                    :value="card.value"
+                    :hidden="false"
+                    :playable="true"
+                    @click="handleCardPlayed"
+                />
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import Card from "@/components/Card.vue";
 import {
     cardImages,
     cardBackImage,
@@ -193,8 +191,39 @@ const playerCards = ref([
 
 // Helper functions
 const getCardImage = (suit, value) => {
-    return getCardImageFromAssets(suit, value) || cardBackImage;
+    const image = getCardImageFromAssets(suit, value);
+    console.log(`Card image for ${suit}${value}:`, image);
+    if (!image) {
+        console.warn(`No image found for ${suit}${value}, using back image`);
+        return cardBackImage;
+    }
+    return image;
 };
+
+// Debug on mount
+onMounted(() => {
+    console.log("=== CARD IMAGE DEBUG ===");
+    console.log("Card back image:", cardBackImage);
+    console.log("All card images:", cardImages);
+
+    // Test specific cards
+    const testCards = [
+        { suit: "e", value: 1 },
+        { suit: "c", value: 7 },
+        { suit: "o", value: 7 },
+    ];
+
+    testCards.forEach((card) => {
+        const image = getCardImageFromAssets(card.suit, card.value);
+        console.log(`${card.suit}${card.value} image:`, image);
+    });
+
+    console.log("Player cards images:");
+    playerCards.value.forEach((card, index) => {
+        const image = getCardImage(card.suit, card.value);
+        console.log(`Card ${index}: ${card.suit}${card.value} ->`, image);
+    });
+});
 
 const getCardDisplay = (value) => {
     if (value === 1) return "A";
