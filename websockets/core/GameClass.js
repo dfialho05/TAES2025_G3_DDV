@@ -32,6 +32,7 @@ class Game {
     this.currentTurn = null;
     this.timer = null;
     this.started = false;
+    this.lastGameWinner = null;
     this.gameNumber = 1; // Track current game in match
     this.matchFinished = false;
   }
@@ -75,7 +76,13 @@ class Game {
     if (this.marks[p1] === undefined) this.marks[p1] = 0;
     if (this.marks[p2] === undefined) this.marks[p2] = 0;
 
-    this.currentTurn = p1;
+    // First player of the new game is the winner of the last finished game when available
+    const firstPlayer =
+      this.lastGameWinner && [p1, p2].includes(this.lastGameWinner)
+        ? this.lastGameWinner
+        : p1;
+
+    this.currentTurn = firstPlayer;
     this.started = true;
     this.startTimer();
 
@@ -179,6 +186,11 @@ class Game {
       }
     }
 
+    // Remember who won this game so they start the next one
+    if (winner) {
+      this.lastGameWinner = winner;
+    }
+
     console.log(
       `Jogo ${this.gameNumber} - Vencedor: ${winner || "Empate"} com ${winner ? this.points[winner] : 0} pontos! Marks: ${marks}`,
     );
@@ -207,19 +219,10 @@ class Game {
     }));
   };
 
-  // Checks if the current game is finished (all cards played or 61+ points reached)
+  // Checks if the current game is finished (all cards played)
   isGameFinished = () => {
-    // Game ends when all cards are played
-    const allCardsPlayed = Object.values(this.hands).every(
-      (hand) => hand.length === 0,
-    );
-
-    // Or when someone reaches 61+ points and all tricks are resolved
-    const someoneWon = Object.values(this.points).some(
-      (points) => points >= 61,
-    );
-
-    return allCardsPlayed || (someoneWon && this.playedCards.length === 0);
+    // Game ends only when all cards are played
+    return Object.values(this.hands).every((hand) => hand.length === 0);
   };
 
   // Gets the current leader based on points in this game

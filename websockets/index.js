@@ -536,7 +536,7 @@ io.on("connection", (socket) => {
         return;
       }
 
-      const result = handleNewGameInMatch(game, io, gameId);
+      const result = handleNewGameInMatch(game, io, gameId, manager);
 
       if (!result.success) {
         socket.emit("gameError", { message: result.error });

@@ -462,7 +462,7 @@ export const getGameStats = (game) => {
 };
 
 // Handles starting a new game in an ongoing match
-export const handleNewGameInMatch = (game, io, gameId) => {
+export const handleNewGameInMatch = (game, io, gameId, manager) => {
   try {
     if (game.isMatchFinished()) {
       return { success: false, error: "A partida já terminou" };
@@ -477,8 +477,8 @@ export const handleNewGameInMatch = (game, io, gameId) => {
       matchMarks: { ...game.marks },
     });
 
-    // Start timer for the first player's turn
-    const firstPlayer = game.players[0];
+    // Start timer for the first player's turn (first player defined by game's currentTurn)
+    const firstPlayer = game.currentTurn;
     setTimeout(() => {
       if (game.currentTurn === firstPlayer) {
         startPlayerTimer(gameId, firstPlayer, io, game, manager);
