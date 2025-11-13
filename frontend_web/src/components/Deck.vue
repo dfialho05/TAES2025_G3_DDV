@@ -6,7 +6,9 @@
                 v-for="n in Math.min(stackSize, 5)"
                 :key="n"
                 class="deck-card"
-                :style="{ transform: `translate(${(n - 1) * 2}px, ${(n - 1) * -2}px)` }"
+                :style="{
+                    transform: `translate(${(n - 1) * 2}px, ${(n - 1) * -2}px)`,
+                }"
             >
                 <img
                     :src="backImage"
@@ -15,9 +17,7 @@
                 />
             </div>
             <div v-if="stackSize === 0" class="empty-deck">
-                <div class="empty-deck-placeholder">
-                    Baralho Vazio
-                </div>
+                <div class="empty-deck-placeholder">Baralho Vazio</div>
             </div>
         </div>
 
@@ -26,16 +26,20 @@
             <span class="cards-count">{{ stackSize }} cartas</span>
         </div>
 
-        <!-- Trump Card (if visible) -->
+        <!-- Trump Card (positioned below deck) -->
         <div v-if="trumpCard && showTrump" class="trump-container">
             <Card
                 :suit="trumpCard.suit"
                 :value="trumpCard.value"
+                :hidden="false"
+                :playable="false"
                 class="trump-card"
             />
             <div class="trump-label">
                 <span class="trump-text">Trunfo</span>
-                <span class="trump-suit">{{ trumpSuitSymbol }}</span>
+                <span class="trump-suit" :class="trumpSuitColor">{{
+                    trumpSuitSymbol
+                }}</span>
             </div>
         </div>
     </div>
@@ -44,6 +48,7 @@
 <script setup>
 import { computed } from "vue";
 import Card from "./Card.vue";
+import { cardBackImage } from "../assets/cardImages.js";
 
 const props = defineProps({
     stackSize: {
@@ -77,7 +82,7 @@ const props = defineProps({
 const emit = defineEmits(["deck-clicked", "card-drawn"]);
 
 const backImage = computed(() => {
-    return "/src/assets/cards1/semFace.png";
+    return cardBackImage;
 });
 
 const trumpSuitSymbol = computed(() => {
@@ -91,6 +96,17 @@ const trumpSuitSymbol = computed(() => {
     return symbols[props.trumpCard.suit] || "";
 });
 
+const trumpSuitColor = computed(() => {
+    if (!props.trumpCard) return "";
+    const colors = {
+        c: "text-red-600", // Copas - red
+        e: "text-gray-800", // Espadas - black
+        o: "text-red-600", // Ouros - red
+        p: "text-gray-800", // Paus - black
+    };
+    return colors[props.trumpCard.suit] || "";
+});
+
 const handleDeckClick = () => {
     if (props.interactive && props.stackSize > 0) {
         emit("deck-clicked");
@@ -101,7 +117,7 @@ const handleDeckClick = () => {
 
 <style scoped>
 .deck-container {
-    @apply flex items-center gap-4 relative;
+    @apply flex flex-col items-center gap-3 relative;
 }
 
 .deck-stack {
@@ -120,7 +136,8 @@ const handleDeckClick = () => {
 }
 
 .card-image {
-    @apply w-full h-full object-cover rounded-lg;
+    @apply w-full h-full object-contain rounded-lg;
+    background: white;
 }
 
 .empty-deck {
@@ -136,33 +153,30 @@ const handleDeckClick = () => {
 }
 
 .cards-count {
-    @apply text-sm font-medium text-gray-600 dark:text-gray-400;
+    @apply text-sm font-medium text-gray-100 dark:text-gray-300;
 }
 
 .trump-container {
-    @apply relative;
+    @apply flex flex-col items-center gap-2 mt-2;
 }
 
 .trump-card {
     @apply transform rotate-90;
-    margin-left: -20px;
+    transform-origin: center;
+    width: 5rem !important;
+    height: 7rem !important;
 }
 
 .trump-label {
-    @apply absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-center;
+    @apply text-center mt-1;
 }
 
 .trump-text {
-    @apply block text-xs text-gray-600 dark:text-gray-400;
+    @apply block text-sm text-gray-100 dark:text-gray-300 font-semibold;
 }
 
 .trump-suit {
-    @apply block text-lg font-bold;
-}
-
-/* Trump suit colors */
-.trump-suit {
-    @apply text-red-600;
+    @apply block text-3xl font-bold drop-shadow-lg;
 }
 
 /* Responsive adjustments */
@@ -179,10 +193,6 @@ const handleDeckClick = () => {
     .empty-deck {
         @apply w-16 h-24;
     }
-
-    .trump-card {
-        margin-left: -16px;
-    }
 }
 
 @media (min-width: 1024px) {
@@ -197,10 +207,6 @@ const handleDeckClick = () => {
 
     .empty-deck {
         @apply w-24 h-32;
-    }
-
-    .trump-card {
-        margin-left: -24px;
     }
 }
 

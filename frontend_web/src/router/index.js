@@ -14,6 +14,9 @@ import DeleteAccount from "../views/DeleteAccount.vue";
 import Coins from "../views/Coins.vue";
 import Play from "../views/Play.vue";
 import Game from "../views/Game.vue";
+import GameTest from "../views/GameTest.vue";
+import GameSimple from "../views/GameSimple.vue";
+import CardDemo from "../views/CardDemo.vue";
 import History from "../views/History.vue";
 import Leaderboards from "../views/Leaderboards.vue";
 import Statistics from "../views/Statistics.vue";
@@ -63,6 +66,26 @@ const routes = [
         name: "game",
         component: Game,
         meta: { requiresAuth: true },
+      },
+      {
+        path: "game",
+        name: "game-test",
+        component: Game,
+      },
+      {
+        path: "game-test",
+        name: "game-test-simple",
+        component: GameTest,
+      },
+      {
+        path: "game-simple",
+        name: "game-simple",
+        component: GameSimple,
+      },
+      {
+        path: "card-demo",
+        name: "card-demo",
+        component: CardDemo,
       },
       {
         path: "history",

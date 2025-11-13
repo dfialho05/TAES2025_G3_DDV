@@ -16,20 +16,22 @@
                 :alt="`${value} de ${suitName}`"
                 class="card-image"
                 @error="handleImageError"
+                @load="handleImageLoad"
             />
         </div>
         <div class="card-back" v-else>
-            <img
-                :src="backImage"
-                alt="Carta virada"
-                class="card-image"
-            />
+            <img :src="backImage" alt="Carta virada" class="card-image" />
         </div>
     </div>
 </template>
 
 <script setup>
 import { computed, ref } from "vue";
+import {
+    getCardImage,
+    cardBackImage,
+    hasCardImage,
+} from "../assets/cardImages.js";
 
 const props = defineProps({
     suit: {
@@ -65,8 +67,6 @@ const props = defineProps({
 
 const emit = defineEmits(["click", "card-played"]);
 
-const imageLoadError = ref(false);
-
 const suitName = computed(() => {
     const suitNames = {
         c: "Copas",
@@ -78,15 +78,76 @@ const suitName = computed(() => {
 });
 
 const cardImage = computed(() => {
-    if (imageLoadError.value) {
-        return "/src/assets/cards1/semFace.png";
+    // Try to get PNG image first
+    const pngImage = getCardImage(props.suit, props.value);
+    if (pngImage) {
+        return pngImage;
     }
-    return `/src/assets/cards1/${props.suit}${props.value}.png`;
+
+    // Fallback to generated SVG
+    return generateCardSVG();
 });
 
 const backImage = computed(() => {
-    return "/src/assets/cards1/semFace.png";
+    return cardBackImage;
 });
+
+const generateCardSVG = () => {
+    const suitSymbols = {
+        c: "♥", // Copas (Hearts)
+        e: "♠", // Espadas (Spades)
+        o: "♦", // Ouros (Diamonds)
+        p: "♣", // Paus (Clubs)
+    };
+
+    const suitColors = {
+        c: "#dc2626", // red
+        e: "#000000", // black
+        o: "#dc2626", // red
+        p: "#000000", // black
+    };
+
+    const valueDisplay =
+        props.value === 1
+            ? "A"
+            : props.value === 11
+              ? "J"
+              : props.value === 12
+                ? "Q"
+                : props.value === 13
+                  ? "K"
+                  : props.value.toString();
+
+    const svg = `
+        <svg width="80" height="112" viewBox="0 0 80 112" xmlns="http://www.w3.org/2000/svg">
+            <rect width="80" height="112" rx="8" fill="white" stroke="#ccc" stroke-width="1"/>
+            <text x="12" y="20" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="${suitColors[props.suit]}">${valueDisplay}</text>
+            <text x="12" y="35" font-family="Arial, sans-serif" font-size="16" fill="${suitColors[props.suit]}">${suitSymbols[props.suit]}</text>
+            <text x="40" y="65" font-family="Arial, sans-serif" font-size="24" fill="${suitColors[props.suit]}" text-anchor="middle">${suitSymbols[props.suit]}</text>
+            <g transform="rotate(180 68 92)">
+                <text x="68" y="92" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="${suitColors[props.suit]}">${valueDisplay}</text>
+                <text x="68" y="107" font-family="Arial, sans-serif" font-size="16" fill="${suitColors[props.suit]}">${suitSymbols[props.suit]}</text>
+            </g>
+        </svg>
+    `;
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
+const generateBackSVGDataUrl = () => {
+    const svg = `
+        <svg width="80" height="112" viewBox="0 0 80 112" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="cardBack" patternUnits="userSpaceOnUse" width="8" height="8">
+                    <rect width="8" height="8" fill="#1e40af"/>
+                    <path d="M0,8 l8,-8 M-2,2 l4,-4 M6,10 l4,-4" stroke="#3b82f6" stroke-width="1"/>
+                </pattern>
+            </defs>
+            <rect width="80" height="112" rx="8" fill="url(#cardBack)" stroke="#1e40af" stroke-width="2"/>
+            <rect x="8" y="8" width="64" height="96" rx="4" fill="none" stroke="#60a5fa" stroke-width="1"/>
+        </svg>
+    `;
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
 
 const handleClick = () => {
     if (!props.disabled && props.playable) {
@@ -95,8 +156,16 @@ const handleClick = () => {
     }
 };
 
-const handleImageError = () => {
-    imageLoadError.value = true;
+const handleImageLoad = (event) => {
+    console.log(`Successfully loaded card image: ${props.suit}${props.value}`);
+};
+
+const handleImageError = (event) => {
+    console.log(
+        `Failed to load card image: ${props.suit}${props.value}, using SVG fallback`,
+    );
+    // Replace with SVG fallback
+    event.target.src = generateCardSVG();
 };
 </script>
 
@@ -108,12 +177,13 @@ const handleImageError = () => {
 
 .card-face,
 .card-back {
-    @apply w-full h-full rounded-lg overflow-hidden;
+    @apply w-full h-full rounded-lg overflow-hidden bg-white;
     backface-visibility: hidden;
 }
 
 .card-image {
-    @apply w-full h-full object-cover rounded-lg;
+    @apply w-full h-full object-contain rounded-lg;
+    background: white;
 }
 
 .card-playable {
