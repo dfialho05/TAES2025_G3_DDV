@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.android.data.*
 import com.example.android.utils.GameConfig
 import com.example.android.utils.Logger
+import com.example.android.utils.TrumpCardDebug
 import io.socket.client.IO
 import io.socket.client.Socket
 import kotlinx.coroutines.channels.awaitClose
@@ -438,23 +439,9 @@ class GameRepository {
             val stateKeys = state.keys().asSequence().toList()
             Log.d(TAG, "State object keys: $stateKeys")
 
-            // Parse trump - extract suit and card from format "suit - cardFace" or use as is
-            var trump = if (state.has("trump")) state.getString("trump") else ""
-            var trumpCard: Card? = null
-
-            if (trump.contains(" - ")) {
-                val trumpParts = trump.split(" - ")
-                trump = trumpParts[0] // Extract just the suit
-                if (trumpParts.size > 1) {
-                    try {
-                        trumpCard = Card.fromFace(trumpParts[1])
-                        Log.d(TAG, "Parsed trump card: ${trumpCard.getDisplayName()}")
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse trump card: ${trumpParts[1]}", e)
-                    }
-                }
-            }
-            Log.d(TAG, "Extracted trump suit: $trump")
+            // Parse trump using enhanced debug utility
+            val rawTrump = if (state.has("trump")) state.getString("trump") else ""
+            val (trump, trumpCard) = TrumpCardDebug.parseTrumpFromServer(rawTrump)
 
             val currentPlayer = when {
                 state.has("currentPlayer") -> state.getString("currentPlayer")
@@ -587,6 +574,8 @@ class GameRepository {
                 // Add trump card if available
                 trumpCard = trumpCard
             )
+
+            Log.d(TAG, "GameState created - Trump: '${newGameState.trump}', TrumpCard: ${newGameState.trumpCard?.getDisplayName() ?: "null"}")
             Log.d(TAG, "Created GameState with ${newGameState.playerCards.size} player cards")
             newGameState
         } catch (e: Exception) {

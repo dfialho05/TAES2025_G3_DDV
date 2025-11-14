@@ -48,11 +48,31 @@ const config = {
     // Ativar/desativar animações da carta do bot
     animations: true,
 
+    // Configurações de confirmação e retry do bot
+    confirmation: {
+      // Tempo limite para o bot responder (10 segundos)
+      responseTimeout: 10 * 1000,
+
+      // Número máximo de tentativas se o bot falhar
+      maxRetries: 3,
+
+      // Ativar sistema de confirmação e retry
+      enabled: true,
+
+      // Delay entre tentativas (com backoff exponencial)
+      retryBaseDelay: 2000,
+
+      // Delay máximo entre tentativas
+      maxRetryDelay: 8000,
+    },
+
     // Mensagens do bot
     messages: {
       thinking: "🤔 Pensando...",
       waiting: "Aguardando jogada...",
       played: "Bot jogou:",
+      retrying: "🔄 Bot tentando novamente...",
+      failed: "❌ Bot falhou após várias tentativas",
     },
   },
 

@@ -10,6 +10,11 @@ import socketProtection from "../middleware/socketProtection.js";
 
 // Import original handlers
 import * as gameHandlers from "./gameHandlers.js";
+import {
+  triggerBotPlayIfNeeded,
+  clearBotResponseTimer,
+  startBotResponseTimer,
+} from "./gameHandlers.js";
 import * as multiplayerHandlers from "./multiplayerHandlers.js";
 import * as connectionHandlers from "./connectionHandlers.js";
 
@@ -165,7 +170,9 @@ class ProtectedHandlers {
 
       clearPlayerTimer: wrapHandler("timerClearHandler", async (gameId) => {
         try {
-          return await gameHandlers.clearPlayerTimer(gameId);
+          await gameHandlers.clearPlayerTimer(gameId);
+          clearBotResponseTimer(gameId);
+          return { success: true };
         } catch (error) {
           // Clearing timer errors are non-critical
           console.warn(
@@ -652,10 +659,10 @@ class ProtectedHandlers {
                     manager,
                   );
                 }
-                // If it's bot's turn, make bot play
+                // If it's bot's turn, make bot play with confirmation
                 else if (game.currentTurn === game.bot) {
                   console.log(`Bot jogando após recovery`);
-                  await gameHandlers.handleBotTurn(game, null, io, gameId);
+                  await triggerBotPlayIfNeeded(game, io, gameId);
                 }
               } catch (flowError) {
                 console.warn(
@@ -693,6 +700,9 @@ class ProtectedHandlers {
   // Create fallback bot play when bot handler fails
   createFallbackBotPlay(game, io, gameId) {
     try {
+      // Clear any bot response timers since we're doing fallback
+      clearBotResponseTimer(gameId);
+
       const botHand = game.hands[game.bot];
       if (!botHand || botHand.length === 0) {
         return { success: false, error: "Bot sem cartas válidas" };

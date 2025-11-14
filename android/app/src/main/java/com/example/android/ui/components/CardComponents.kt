@@ -304,21 +304,23 @@ fun ModernTrumpCard(
         modifier = modifier.size(width = 70.dp, height = 98.dp),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(2.dp, Color(0xFFFBBF24))
+        border = BorderStroke(2.dp, Color(0xFFFBBF24)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(4.dp),
+                .padding(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceEvenly
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Crown icon and TRUMP text
             Surface(
                 shape = RoundedCornerShape(4.dp),
                 color = Color(0xFFFBBF24)
             ) {
                 Text(
-                    text = "TRUMP",
+                    text = "👑 TRUMP",
                     color = Color.White,
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Bold,
@@ -326,39 +328,157 @@ fun ModernTrumpCard(
                 )
             }
 
-            // Try to show part of the actual card image
-            val context = LocalContext.current
-            val cardResourceName = "card_${card.face}"
-            val cardResourceId = context.resources.getIdentifier(
-                cardResourceName,
-                "drawable",
-                context.packageName
-            )
+            // Card image or fallback
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                val context = LocalContext.current
+                val cardResourceName = "card_${card.face}"
+                val cardResourceId = try {
+                    context.resources.getIdentifier(
+                        cardResourceName,
+                        "drawable",
+                        context.packageName
+                    )
+                } catch (e: Exception) {
+                    0
+                }
 
-            if (cardResourceId != 0) {
-                Image(
-                    painter = painterResource(id = cardResourceId),
-                    contentDescription = "Trump ${card.getDisplayName()}",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .clip(RoundedCornerShape(4.dp)),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                // Fallback
-                Text(
-                    text = getSuitSymbol(card.suit),
-                    color = if (card.isRed()) Color(0xFFDC2626) else Color.Black,
-                    fontSize = 28.sp
-                )
+                if (cardResourceId != 0) {
+                    Image(
+                        painter = painterResource(id = cardResourceId),
+                        contentDescription = "Trump ${card.getDisplayName()}",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(4.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    // Enhanced fallback with better visibility
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = getSuitSymbol(card.suit),
+                            color = if (card.isRed()) Color(0xFFDC2626) else Color.Black,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = card.getDisplayValue(),
+                            color = if (card.isRed()) Color(0xFFDC2626) else Color.Black,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Alternative trump card with better visibility and contrast
+ */
+@Composable
+fun AlternativeTrumpCard(
+    card: Card,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.size(width = 90.dp, height = 126.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFFBEB) // Light yellow background
+        ),
+        border = BorderStroke(3.dp, Color(0xFFFBBF24)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Crown header with better styling
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color(0xFFFBBF24),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "👑",
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "TRUNFO",
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
+            // Large card display
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Large suit symbol
+                Text(
+                    text = getSuitSymbol(card.suit),
+                    color = if (card.isRed()) Color(0xFFDC2626) else Color(0xFF1F2937),
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Card value with background
+                Surface(
+                    shape = CircleShape,
+                    color = if (card.isRed()) Color(0xFFDC2626) else Color(0xFF1F2937),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text(
+                            text = card.getDisplayValue(),
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // Suit name at bottom
             Text(
-                text = card.getDisplayValue(),
-                color = if (card.isRed()) Color(0xFFDC2626) else Color.Black,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
+                text = when (card.suit) {
+                    Card.COPAS -> "COPAS"
+                    Card.ESPADAS -> "ESPADAS"
+                    Card.OUROS -> "OUROS"
+                    Card.PAUS -> "PAUS"
+                    else -> card.suit.uppercase()
+                },
+                color = Color(0xFF6B7280),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Medium
             )
         }
     }

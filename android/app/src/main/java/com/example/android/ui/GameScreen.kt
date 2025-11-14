@@ -745,17 +745,30 @@ private fun BotAndTableSection(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Use real trump card if available, otherwise create dummy
+                    // Use real trump card if available, otherwise create dummy with better fallback
                     val displayTrumpCard = trumpCard ?: try {
-                        when (trump) {
-                            "c" -> Card.create(Card.COPAS, 1)
-                            "e" -> Card.create(Card.ESPADAS, 1)
-                            "o" -> Card.create(Card.OUROS, 1)
-                            "p" -> Card.create(Card.PAUS, 1)
-                            else -> Card.create(Card.COPAS, 1)
+                        when (trump.lowercase()) {
+                            "c", "copas" -> Card.create(Card.COPAS, 7)  // Use 7 (high value card)
+                            "e", "espadas" -> Card.create(Card.ESPADAS, 7)
+                            "o", "ouros" -> Card.create(Card.OUROS, 7)
+                            "p", "paus" -> Card.create(Card.PAUS, 7)
+                            else -> {
+                                // If trump is empty or invalid, try to extract from server format
+                                if (trump.contains("-")) {
+                                    val parts = trump.split("-")
+                                    if (parts.size >= 2) {
+                                        Card.fromFace(parts[1].trim())
+                                    } else {
+                                        Card.create(Card.COPAS, 7)
+                                    }
+                                } else {
+                                    Card.create(Card.COPAS, 7)
+                                }
+                            }
                         }
                     } catch (e: Exception) {
-                        Card.create(Card.COPAS, 1)
+                        // Last resort fallback
+                        Card.create(Card.COPAS, 7)
                     }
 
                     val scale by animateFloatAsState(
@@ -764,11 +777,10 @@ private fun BotAndTableSection(
                         label = "trump_scale"
                     )
 
-                    ModernTrumpCard(
+                    // Use alternative trump card component for better visibility
+                    AlternativeTrumpCard(
                         card = displayTrumpCard,
-                        modifier = Modifier
-                            .size(width = 80.dp, height = 112.dp)
-                            .scale(scale)
+                        modifier = Modifier.scale(scale)
                     )
                 }
             }
