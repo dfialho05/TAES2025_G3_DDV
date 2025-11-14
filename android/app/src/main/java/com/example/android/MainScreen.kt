@@ -105,21 +105,7 @@ fun PlayOptionsScreen(onStartGame: () -> Unit, onBack: () -> Unit, isDark: Boole
     }
 }
 
-@Composable
-fun GameScreen(onExit: () -> Unit, isDark: Boolean, onToggleTheme: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopBar(isDark = isDark, onToggleTheme = onToggleTheme)
-            Spacer(modifier = Modifier.height(8.dp))
-            // Add an exit button aligned to the end
-            Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.End) {
-                Button(onClick = onExit) { Text("Sair") }
-            }
-            // Reuse the existing GamePreviewSection as the gameplay area
-            GamePreviewSection()
-        }
-    }
-}
+
 
 // Change HeroSection to accept callbacks
 @Composable

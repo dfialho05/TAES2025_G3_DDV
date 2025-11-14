@@ -1,3 +1,22 @@
 2025-11-13T21:22:24.044Z [uncaughtException] TypeError: Cannot destructure property 'handleCardPlay' of 'protectedHandlers.protectedGameHandlers' as it is undefined.
 2025-11-13T21:22:46.165Z [uncaughtException] Error: listen EADDRINUSE: address already in use :::3000
 2025-11-13T21:22:46.169Z [uncaughtException] Error: listen EADDRINUSE: address already in use :::3000
+2025-11-13T23:48:29.337Z [serverConnectionError] Object: Transport unknown
+2025-11-13T23:49:47.919Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:49:52.077Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:49:54.037Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:49:55.110Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:49:55.417Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:49:56.627Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:01.194Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:01.746Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:01.960Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:02.172Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:02.460Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:02.462Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:02.733Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:03.574Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:04.138Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:05.023Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:50:28.256Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.
+2025-11-13T23:54:33.850Z [socketEvent:startSingleplayerGame] TypeError: Cannot destructure property 'playerName' of 'undefined' as it is undefined.

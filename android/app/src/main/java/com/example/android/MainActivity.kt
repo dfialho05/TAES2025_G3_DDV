@@ -4,7 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.android.ui.theme.AndroidTheme
+import com.example.android.ui.theme.BiscaTheme
+import com.example.android.ui.GameScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,7 +21,7 @@ class MainActivity : ComponentActivity() {
             var screen by remember { mutableStateOf(Screen.HOME) }
             var isDark by remember { mutableStateOf(true) }
 
-            AndroidTheme(darkTheme = isDark) {
+            BiscaTheme(darkTheme = isDark) {
                 val toggleTheme = { isDark = !isDark }
 
                 when (screen) {
@@ -36,7 +37,11 @@ class MainActivity : ComponentActivity() {
                         isDark = isDark,
                         onToggleTheme = toggleTheme
                     )
-                    Screen.GAME -> GameScreen(onExit = { screen = Screen.HOME }, isDark = isDark, onToggleTheme = toggleTheme)
+                    Screen.GAME -> GameScreen(
+                        onExit = { screen = Screen.HOME },
+                        isDark = isDark,
+                        onToggleTheme = toggleTheme
+                    )
                 }
             }
         }
