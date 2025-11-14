@@ -68,11 +68,11 @@ const config = {
 
     // Mensagens do bot
     messages: {
-      thinking: "🤔 Pensando...",
+      thinking: "Pensando...",
       waiting: "Aguardando jogada...",
       played: "Bot jogou:",
-      retrying: "🔄 Bot tentando novamente...",
-      failed: "❌ Bot falhou após várias tentativas",
+      retrying: "Bot tentando novamente...",
+      failed: "Bot falhou após várias tentativas",
     },
   },
 

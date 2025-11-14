@@ -145,9 +145,7 @@ export const attemptGameRecovery = (game, gameId, io) => {
         const receiver = diff > 0 ? p2 : p1;
         const card = game.deck.pop();
         game.hands[receiver].push(card);
-        console.log(
-          `🔧 Balanced cards - gave ${card.getFace()} to ${receiver}`,
-        );
+        console.log(`Balanced cards - gave ${card.getFace()} to ${receiver}`);
       }
 
       // Emit updated state
@@ -495,7 +493,7 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
     }
 
     // Debug logging for bot hand state
-    console.log(`🔍 Bot turn debug - Game ${gameId}:`);
+    console.log(`Bot turn debug - Game ${gameId}:`);
     console.log(`   - Bot name: ${game.bot}`);
     console.log(`   - Game hands keys: ${Object.keys(game.hands)}`);
     console.log(
@@ -524,7 +522,7 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
 
     if (!Array.isArray(botHand)) {
       console.error(
-        `❌ Bot hand is not an array! Type: ${typeof botHand}`,
+        `Bot hand is not an array! Type: ${typeof botHand}`,
         botHand,
       );
       return { success: false, error: "Bot hand corrompida" };
@@ -538,7 +536,7 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
         botHand.length +
         (game.deck ? game.deck.length : 0);
 
-      console.error(`❌ Bot sem cartas! Análise completa:`, {
+      console.error(`Bot sem cartas! Análise completa:`, {
         botCards: botHand.length,
         playerCards: playerHand ? playerHand.length : "undefined",
         deckCards: game.deck ? game.deck.length : "undefined",
@@ -556,20 +554,20 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
       }
 
       // Attempt automatic recovery if possible
-      console.log(`🔧 Attempting automatic game recovery for bot...`);
+      console.log(`Attempting automatic game recovery for bot...`);
       const recoveryResult = attemptGameRecovery(game, gameId, io);
 
       if (recoveryResult.success) {
         console.log(
-          `✅ Game recovered successfully - bot now has ${game.hands[game.bot].length} cards`,
+          `Game recovered successfully - bot now has ${game.hands[game.bot].length} cards`,
         );
         // Continue with bot turn after recovery
       } else if (recoveryResult.shouldEndGame) {
-        console.log(`🏁 Recovery indicates game should end`);
+        console.log(`Recovery indicates game should end`);
         return { success: false, error: "Jogo finalizado - sem cartas" };
       } else {
         console.error(
-          `❌ Recovery failed: ${recoveryResult.message || recoveryResult.error}`,
+          `Recovery failed: ${recoveryResult.message || recoveryResult.error}`,
         );
         return {
           success: false,
@@ -743,7 +741,7 @@ export const handleGameEnd = (game, io, gameId, manager) => {
 
       io.to(gameId).emit("playerVictory", {
         winner: gameResult.winner,
-        message: `🎉 ${gameResult.winner} ganhou o jogo com ${winnerPoints} pontos! ${marksText}`,
+        message: `${gameResult.winner} ganhou o jogo com ${winnerPoints} pontos! ${marksText}`,
         points: winnerPoints,
         marks: gameResult.marks,
         marksDescription: marksText,
@@ -764,7 +762,7 @@ export const handleGameEnd = (game, io, gameId, manager) => {
       // Emit user-friendly match victory notification
       io.to(gameId).emit("matchVictory", {
         winner: matchWinner,
-        message: `🏆 ${matchWinner} venceu a partida completa!`,
+        message: `${matchWinner} venceu a partida completa!`,
         finalMarks: gameResult.matchMarks[matchWinner],
         totalGames: game.gameNumber,
         celebration: true,
@@ -848,7 +846,7 @@ export const handlePlayerTimeout = (game, playerName, io, gameId) => {
     // Emit user-friendly timeout victory notification
     io.to(gameId).emit("matchVictory", {
       winner: winner,
-      message: `🏆 ${winner} venceu por desistência (timeout)!`,
+      message: `${winner} venceu por desistência (timeout)!`,
       reason: "timeout",
       celebration: true,
     });

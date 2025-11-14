@@ -169,11 +169,11 @@
         </div>
 
         <div id="timer" class="timer" style="display: none">
-            ⏱️ Tempo restante: <span id="timeRemaining">2:00</span>
+            Tempo restante: <span id="timeRemaining">2:00</span>
         </div>
 
         <div id="botCardArea" class="bot-card-area" style="display: none">
-            <h4>🤖 Carta do Bot:</h4>
+            <h4>Carta do Bot:</h4>
             <div id="botCurrentCard" class="bot-card empty">
                 Aguardando jogada...
             </div>
@@ -223,7 +223,7 @@
                     return;
                 }
 
-                updateStatus("waiting", "🔄 Conectando...");
+                updateStatus("waiting", "Conectando...");
                 log("Conectando ao servidor...");
 
                 socket = io("ws://localhost:3000");
@@ -267,7 +267,7 @@
 
                 socket.on("roundResult", (data) => {
                     log(
-                        `🏆 Vencedor da rodada: ${data.winner} (+${data.points} pontos)`,
+                        `Vencedor da rodada: ${data.winner} (+${data.points} pontos)`,
                     );
                     updateScores(data.scores);
                     if (data.dealtCards && data.dealtCards[playerName]) {
@@ -278,7 +278,7 @@
                 });
 
                 socket.on("gameEnded", (data) => {
-                    log(`🎉 Jogo terminou! Vencedor: ${data.winner}`);
+                    log(`Jogo terminou! Vencedor: ${data.winner}`);
                     log(`Pontuação final: ${JSON.stringify(data.finalScores)}`);
                     document.getElementById("startBtn").disabled = false;
                 });
@@ -300,7 +300,7 @@
                 socket.on("turnTimerStarted", (data) => {
                     if (data.player === playerName) {
                         startTurnTimer(data.timeLimit);
-                        log(`⏱️ Sua vez! Você tem 2 minutos para jogar.`);
+                        log(`Sua vez! Você tem 2 minutos para jogar.`);
                     }
                 });
 
@@ -326,7 +326,7 @@
 
                 socket.on("botCardPlayed", (data) => {
                     setBotCard(data.card, `Bot jogou: ${data.card}`);
-                    log(`🤖 Bot jogou: ${data.card}`);
+                    log(`Bot jogou: ${data.card}`);
                 });
 
                 socket.on("roundEnded", (data) => {
@@ -476,7 +476,7 @@
                     document.getElementById("botCurrentCard");
 
                 if (cardFace === "pensando") {
-                    botCardElement.textContent = "🤔 Pensando...";
+                    botCardElement.textContent = "Pensando...";
                     botCardElement.className = "bot-card empty";
                 } else {
                     botCardElement.textContent = cardFace;

@@ -1007,7 +1007,7 @@ setInterval(() => {
     const health = errorHandler.isSystemHealthy();
     if (!health.healthy) {
       console.warn(
-        `⚠️  SISTEMA DEGRADADO: ${health.errorCount} erros nas últimas 24h`,
+        `SISTEMA DEGRADADO: ${health.errorCount} erros nas últimas 24h`,
       );
     }
 
@@ -1017,7 +1017,7 @@ setInterval(() => {
 
     if (activeGamesCount > 0 || connectionsCount > 0) {
       console.log(
-        `📊 Status: ${activeGamesCount} jogos ativos, ${connectionsCount} conexões`,
+        `Status: ${activeGamesCount} jogos ativos, ${connectionsCount} conexões`,
       );
     }
   } catch (error) {
@@ -1036,7 +1036,7 @@ io.on("connect_error", (error) => {
 
 // Graceful shutdown with error protection
 process.on("SIGINT", async () => {
-  console.log("\n🔄 Encerrando servidor...");
+  console.log("\nEncerrando servidor...");
 
   try {
     // Notify all connected clients
@@ -1048,40 +1048,40 @@ process.on("SIGINT", async () => {
     // Give clients time to receive shutdown message
     setTimeout(() => {
       // Save critical game states before shutdown
-      console.log("💾 Salvando estados críticos...");
+      console.log("Salvando estados críticos...");
 
       // Close server
       io.close(() => {
-        console.log("✅ Servidor encerrado com sucesso");
-        console.log("📊 Estatísticas finais:");
+        console.log("Servidor encerrado com sucesso");
+        console.log("Estatísticas finais:");
         console.log(`   - Erros totais: ${errorHandler.getErrorStats().total}`);
         console.log(`   - Jogos encerrados: ${manager.activeGames.size}`);
         process.exit(0);
       });
     }, 2000);
   } catch (error) {
-    console.error("❌ Erro durante encerramento:", error.message);
+    console.error("Erro durante encerramento:", error.message);
     process.exit(1);
   }
 });
 
 // Handle uncaught exceptions at process level
 process.on("uncaughtException", (error) => {
-  console.error("🚨 EXCEÇÃO NÃO CAPTURADA:", error);
+  console.error("EXCEÇÃO NÃO CAPTURADA:", error);
   errorHandler.handleError(error, "uncaughtException");
   // Don't exit - let the error handler manage it
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("🚨 PROMISE REJEITADA:", reason);
+  console.error("PROMISE REJEITADA:", reason);
   errorHandler.handleError(new Error(reason), "unhandledRejection", {
     promise,
   });
   // Don't exit - let the error handler manage it
 });
 
-console.log("🚀 Servidor WebSocket pronto para conexões!");
-console.log("🛡️  Sistema de proteção contra erros ATIVO");
+console.log("Servidor WebSocket pronto para conexões!");
+console.log("Sistema de proteção contra erros ATIVO");
 console.log(
-  "📝 Para monitoramento: ws://localhost:3000 (evento: getSystemHealth)",
+  "Para monitoramento: ws://localhost:3000 (evento: getSystemHealth)",
 );

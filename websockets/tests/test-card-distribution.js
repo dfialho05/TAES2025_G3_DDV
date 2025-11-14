@@ -2,22 +2,25 @@
 // This script tests if cards are being distributed correctly and validates game integrity
 
 import { GameManager } from "./handlers/gameManager.js";
-import { validateGameIntegrity, attemptGameRecovery } from "./handlers/gameHandlers.js";
+import {
+  validateGameIntegrity,
+  attemptGameRecovery,
+} from "./handlers/gameHandlers.js";
 import config from "./config.js";
 
-console.log("🃏 Iniciando teste de distribuição de cartas...\n");
+console.log("Iniciando teste de distribuição de cartas...\n");
 
 const manager = new GameManager();
 
 // Test 1: Basic card distribution
 const testBasicDistribution = () => {
-  console.log("📋 Teste 1: Distribuição básica de cartas");
+  console.log("Teste 1: Distribuição básica de cartas");
 
   try {
     const game = manager.createGame(["TestPlayer"], { cardsPerPlayer: 9 });
     const gameState = game.start();
 
-    console.log(`   ✅ Jogo criado com ID: ${game.gameId || "N/A"}`);
+    console.log(`   Jogo criado com ID: ${game.gameId || "N/A"}`);
     console.log(`   - Jogadores: ${game.players.join(", ")}`);
     console.log(`   - Bot: ${game.bot || "Nenhum"}`);
     console.log(`   - Cartas por jogador: ${game.cardsPerPlayer}`);
@@ -35,55 +38,54 @@ const testBasicDistribution = () => {
     console.log(`   - Trunfo: ${gameState.trump}`);
 
     if (totalCards === 40) {
-      console.log(`   ✅ Total de cartas correto (40)`);
+      console.log(`   Total de cartas correto (40)`);
     } else {
-      console.log(`   ❌ Total de cartas incorreto: ${totalCards} (esperado: 40)`);
+      console.log(`   Total de cartas incorreto: ${totalCards} (esperado: 40)`);
     }
 
     if (Math.abs(playerCards - botCards) <= 1) {
-      console.log(`   ✅ Distribuição equilibrada`);
+      console.log(`   Distribuição equilibrada`);
     } else {
-      console.log(`   ❌ Distribuição desequilibrada`);
+      console.log(`   Distribuição desequilibrada`);
     }
 
     return { success: true, game };
-
   } catch (error) {
-    console.log(`   ❌ Erro: ${error.message}`);
+    console.log(`   Erro: ${error.message}`);
     return { success: false, error };
   }
 };
 
 // Test 2: Game integrity validation
 const testGameIntegrity = (game) => {
-  console.log("\n📋 Teste 2: Validação de integridade do jogo");
+  console.log("\nTeste 2: Validação de integridade do jogo");
 
   const validation = validateGameIntegrity(game, "test-game-1");
 
   if (validation.valid) {
-    console.log(`   ✅ Jogo válido`);
+    console.log(`   Jogo válido`);
   } else {
-    console.log(`   ❌ Jogo inválido:`);
-    validation.errors.forEach(error => {
+    console.log(`   Jogo inválido:`);
+    validation.errors.forEach((error) => {
       console.log(`      - ${error}`);
     });
   }
 
   if (validation.warnings.length > 0) {
-    console.log(`   ⚠️ Avisos:`);
-    validation.warnings.forEach(warning => {
+    console.log(`   Avisos:`);
+    validation.warnings.forEach((warning) => {
       console.log(`      - ${warning}`);
     });
   }
 
-  console.log(`   📊 Resumo:`, validation.summary);
+  console.log(`   Resumo:`, validation.summary);
 
   return validation;
 };
 
 // Test 3: Simulate card play and check distribution
 const testCardPlay = (game) => {
-  console.log("\n📋 Teste 3: Simulação de jogadas e verificação");
+  console.log("\nTeste 3: Simulação de jogadas e verificação");
 
   try {
     const player = game.players[0];
@@ -134,16 +136,15 @@ const testCardPlay = (game) => {
     console.log(`     Deck: ${game.deck.length} cartas`);
 
     return { success: true };
-
   } catch (error) {
-    console.log(`   ❌ Erro durante simulação: ${error.message}`);
+    console.log(`   Erro durante simulação: ${error.message}`);
     return { success: false, error };
   }
 };
 
 // Test 4: Recovery system
 const testRecoverySystem = () => {
-  console.log("\n📋 Teste 4: Sistema de recuperação");
+  console.log("\nTeste 4: Sistema de recuperação");
 
   try {
     // Create a game with corrupted state
@@ -163,38 +164,41 @@ const testRecoverySystem = () => {
     const mockIo = {
       to: () => ({
         emit: (event, data) => {
-          console.log(`   📡 Event emitted: ${event}`, data.message || '');
-        }
-      })
+          console.log(`   Event emitted: ${event}`, data.message || "");
+        },
+      }),
     };
 
     const recovery = attemptGameRecovery(game, "test-recovery", mockIo);
 
     if (recovery.success) {
-      console.log(`   ✅ Recuperação bem-sucedida`);
+      console.log(`   Recuperação bem-sucedida`);
       console.log(`     Bot cards após recuperação: ${game.hands[bot].length}`);
     } else {
-      console.log(`   ❌ Recuperação falhou: ${recovery.message || recovery.error}`);
+      console.log(
+        `   Recuperação falhou: ${recovery.message || recovery.error}`,
+      );
     }
 
     return { success: recovery.success };
-
   } catch (error) {
-    console.log(`   ❌ Erro no teste de recuperação: ${error.message}`);
+    console.log(`   Erro no teste de recuperação: ${error.message}`);
     return { success: false, error };
   }
 };
 
 // Test 5: Multiple games in match
 const testMultipleGames = () => {
-  console.log("\n📋 Teste 5: Múltiplos jogos em uma partida");
+  console.log("\nTeste 5: Múltiplos jogos em uma partida");
 
   try {
     const game = manager.createGame(["TestPlayer"], { cardsPerPlayer: 9 });
     game.start();
 
     console.log(`   - Jogo inicial ${game.gameNumber}:`);
-    console.log(`     Total de cartas: ${Object.values(game.hands).reduce((sum, hand) => sum + hand.length, 0) + game.deck.length}`);
+    console.log(
+      `     Total de cartas: ${Object.values(game.hands).reduce((sum, hand) => sum + hand.length, 0) + game.deck.length}`,
+    );
 
     // Simulate finishing first game
     game.marks[game.players[0]] = 1;
@@ -203,26 +207,27 @@ const testMultipleGames = () => {
     const newGameState = game.startNewGame();
 
     console.log(`   - Novo jogo ${game.gameNumber}:`);
-    const totalCards = Object.values(game.hands).reduce((sum, hand) => sum + hand.length, 0) + game.deck.length;
+    const totalCards =
+      Object.values(game.hands).reduce((sum, hand) => sum + hand.length, 0) +
+      game.deck.length;
     console.log(`     Total de cartas: ${totalCards}`);
 
     if (totalCards === 40) {
-      console.log(`   ✅ Distribuição correta no novo jogo`);
+      console.log(`   Nova distribuição correta`);
       return { success: true };
     } else {
-      console.log(`   ❌ Distribuição incorreta no novo jogo: ${totalCards}`);
+      console.log(`   Distribuição incorreta no novo jogo: ${totalCards}`);
       return { success: false };
     }
-
   } catch (error) {
-    console.log(`   ❌ Erro no teste de múltiplos jogos: ${error.message}`);
+    console.log(`   Erro no teste de múltiplos jogos: ${error.message}`);
     return { success: false, error };
   }
 };
 
 // Run all tests
 const runAllTests = async () => {
-  console.log("🚀 Executando todos os testes de distribuição de cartas...\n");
+  console.log("Executando todos os testes de distribuição de cartas...\n");
 
   const results = [];
 
@@ -249,38 +254,40 @@ const runAllTests = async () => {
   results.push({ name: "Múltiplos Jogos", success: test5.success });
 
   // Summary
-  console.log("\n📊 Resumo dos Testes:");
+  console.log("\nResumo dos Testes:");
   console.log("========================");
 
   let passed = 0;
   results.forEach((result, index) => {
-    const status = result.success ? "✅ PASSOU" : "❌ FALHOU";
+    const status = result.success ? "PASSOU" : "FALHOU";
     console.log(`${index + 1}. ${result.name}: ${status}`);
     if (result.success) passed++;
   });
 
-  console.log(`\n🏁 Resultado Final: ${passed}/${results.length} testes passaram`);
+  console.log(`\nResultado Final: ${passed}/${results.length} testes passaram`);
 
   if (passed === results.length) {
-    console.log("🎉 Todos os testes de distribuição de cartas passaram!");
+    console.log("Todos os testes de distribuição de cartas passaram!");
   } else {
-    console.log("⚠️ Alguns testes falharam - verifique os logs acima");
+    console.log("Alguns testes falharam - verifique os logs acima");
   }
 
   return results;
 };
 
 // Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log("\n🛑 Encerrando testes...");
+process.on("SIGINT", () => {
+  console.log("\nEncerrando testes...");
   process.exit(0);
 });
 
 // Run tests
-runAllTests().then((results) => {
-  const allPassed = results.every(r => r.success);
-  process.exit(allPassed ? 0 : 1);
-}).catch((error) => {
-  console.error("💥 Erro fatal durante os testes:", error.message);
-  process.exit(1);
-});
+runAllTests()
+  .then((results) => {
+    const allPassed = results.every((r) => r.success);
+    process.exit(allPassed ? 0 : 1);
+  })
+  .catch((error) => {
+    console.error("Erro fatal durante os testes:", error.message);
+    process.exit(1);
+  });

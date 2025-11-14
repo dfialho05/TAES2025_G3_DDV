@@ -496,13 +496,13 @@ class ProtectedHandlers {
       });
 
       console.log(
-        `✅ Backup criado para jogo ${gameId}:`,
+        `Backup criado para jogo ${gameId}:`,
         `${Object.keys(safeHands).length} jogadores,`,
         `${safeDeck.length} cartas no deck,`,
         `${safePlayedCards.length} cartas jogadas`,
       );
     } catch (error) {
-      console.warn(`❌ Erro ao fazer backup do jogo ${gameId}:`, error.message);
+      console.warn(`Erro ao fazer backup do jogo ${gameId}:`, error.message);
     }
   }
 
@@ -679,10 +679,10 @@ class ProtectedHandlers {
             timestamp: new Date().toISOString(),
           });
 
-          console.log(`✅ Jogo ${gameId} recuperado com sucesso`);
+          console.log(`Jogo ${gameId} recuperado com sucesso`);
           return true;
         } catch (restoreError) {
-          console.warn(`❌ Erro durante restauração:`, restoreError.message);
+          console.warn(`Erro durante restauração:`, restoreError.message);
           return false;
         }
       }

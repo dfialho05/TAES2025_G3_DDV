@@ -18,7 +18,7 @@
                 background: white;
                 padding: 20px;
                 border-radius: 15px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             }
             h1 {
                 text-align: center;
@@ -128,7 +128,7 @@
                 color: #e2e8f0;
                 padding: 15px;
                 border-radius: 8px;
-                font-family: 'Courier New', monospace;
+                font-family: "Courier New", monospace;
                 font-size: 13px;
                 border: 1px solid #4a5568;
             }
@@ -164,19 +164,24 @@
     </head>
     <body>
         <div class="container">
-            <h1>🧪 Teste Timer & Bot Card - Sistema Avançado</h1>
+            <h1>Teste Timer & Bot Card - Sistema Avançado</h1>
 
             <div id="status" class="status disconnected">
-                ❌ Desconectado do servidor
+                Desconectado do servidor
             </div>
 
             <div class="test-section">
-                <h3>🎮 Controles de Teste</h3>
+                <h3>Controles de Teste</h3>
                 <div class="controls">
                     <button class="btn-primary" onclick="connectToServer()">
                         Conectar ao Servidor
                     </button>
-                    <button class="btn-success" onclick="startTestGame()" id="startBtn" disabled>
+                    <button
+                        class="btn-success"
+                        onclick="startTestGame()"
+                        id="startBtn"
+                        disabled
+                    >
                         Iniciar Teste
                     </button>
                     <button class="btn-warning" onclick="simulateTimeout()">
@@ -187,35 +192,50 @@
 
             <div class="feature-demo">
                 <div class="test-section">
-                    <h3>⏱️ Timer de Jogadas (2 minutos)</h3>
-                    <div id="timerDisplay" class="timer-display" style="display: none;">
+                    <h3>Timer de Jogadas (2 minutos)</h3>
+                    <div
+                        id="timerDisplay"
+                        class="timer-display"
+                        style="display: none"
+                    >
                         Tempo restante: <span id="timeText">2:00</span>
                     </div>
-                    <p><strong>Status:</strong> <span id="timerStatus">Aguardando início do jogo</span></p>
+                    <p>
+                        <strong>Status:</strong>
+                        <span id="timerStatus">Aguardando início do jogo</span>
+                    </p>
                 </div>
 
                 <div class="test-section">
-                    <h3>🤖 Visualização do Bot</h3>
+                    <h3>Visualização do Bot</h3>
                     <div class="bot-area">
                         <div id="botCard" class="bot-card empty">
                             Aguardando bot...
                         </div>
                     </div>
-                    <p><strong>Status:</strong> <span id="botStatus">Bot inativo</span></p>
+                    <p>
+                        <strong>Status:</strong>
+                        <span id="botStatus">Bot inativo</span>
+                    </p>
                 </div>
             </div>
 
             <div class="test-section">
-                <h3>📊 Informações do Jogo</h3>
-                <div id="gameInfo" style="display: none;">
-                    <p><strong>ID do Jogo:</strong> <span id="gameId">-</span></p>
+                <h3>Informações do Jogo</h3>
+                <div id="gameInfo" style="display: none">
+                    <p>
+                        <strong>ID do Jogo:</strong> <span id="gameId">-</span>
+                    </p>
                     <p><strong>Trunfo:</strong> <span id="trump">-</span></p>
-                    <p><strong>Vez atual:</strong> <span id="currentTurn">-</span></p>
+                    <p>
+                        <strong>Vez atual:</strong>
+                        <span id="currentTurn">-</span>
+                    </p>
                 </div>
             </div>
 
             <div class="test-section">
-                <h3>📝 Log de Eventos</h3>
+                <h3>Log de Eventos</h3>
                 <div id="log" class="log"></div>
             </div>
         </div>
@@ -227,12 +247,17 @@
             let timerInterval = null;
             let timeRemaining = 0;
 
-            const log = (message, type = 'info') => {
+            const log = (message, type = "info") => {
                 const logDiv = document.getElementById("log");
                 const time = new Date().toLocaleTimeString();
-                const color = type === 'error' ? '#ff6b6b' :
-                             type === 'success' ? '#51cf66' :
-                             type === 'warning' ? '#ffd43b' : '#74c0fc';
+                const color =
+                    type === "error"
+                        ? "#ff6b6b"
+                        : type === "success"
+                          ? "#51cf66"
+                          : type === "warning"
+                            ? "#ffd43b"
+                            : "#74c0fc";
                 logDiv.innerHTML += `<span style="color: ${color}">[${time}] ${message}</span><br>`;
                 logDiv.scrollTop = logDiv.scrollHeight;
             };
@@ -241,32 +266,32 @@
                 const statusDiv = document.getElementById("status");
                 if (connected) {
                     statusDiv.className = "status connected";
-                    statusDiv.innerHTML = "✅ Conectado ao servidor";
+                    statusDiv.innerHTML = "Conectado ao servidor";
                 } else {
                     statusDiv.className = "status disconnected";
-                    statusDiv.innerHTML = "❌ Desconectado do servidor";
+                    statusDiv.innerHTML = "Desconectado do servidor";
                 }
             };
 
             const connectToServer = () => {
-                log("🔌 Iniciando conexão com o servidor...");
+                log("Iniciando conexão com o servidor...");
 
                 socket = io("ws://localhost:3000");
 
                 socket.on("connect", () => {
-                    log("✅ Conectado! Fazendo autenticação...", 'success');
+                    log("Conectado! Fazendo autenticação...", "success");
                     socket.emit("auth", { playerName });
                     updateStatus(true);
                 });
 
                 socket.on("authSuccess", (data) => {
-                    log(`🎯 Autenticado como: ${data.playerName}`, 'success');
+                    log(`Autenticado como: ${data.playerName}`, "success");
                     document.getElementById("startBtn").disabled = false;
                 });
 
                 socket.on("gameStarted", (data) => {
                     gameId = data.gameId;
-                    log(`🎮 Jogo iniciado! ID: ${gameId}`, 'success');
+                    log(`Jogo iniciado! ID: ${gameId}`, "success");
                     updateGameInfo(data.state);
                     document.getElementById("gameInfo").style.display = "block";
                 });
@@ -274,9 +299,13 @@
                 // Timer events
                 socket.on("turnTimerStarted", (data) => {
                     if (data.player === playerName) {
-                        log(`⏱️ Timer iniciado! Você tem 2 minutos para jogar.`, 'warning');
+                        log(
+                            `Timer iniciado! Você tem 2 minutos para jogar.`,
+                            "warning",
+                        );
                         startTimerDisplay(data.timeLimit);
-                        document.getElementById("timerStatus").textContent = "Timer ativo - Sua vez!";
+                        document.getElementById("timerStatus").textContent =
+                            "Timer ativo - Sua vez!";
                     }
                 });
 
@@ -288,43 +317,52 @@
 
                 socket.on("playerTimeout", (data) => {
                     if (data.player === playerName) {
-                        log(`⏰ TIMEOUT! Jogada automática: ${data.autoPlayedCard}`, 'error');
+                        log(
+                            `TIMEOUT! Jogada automática: ${data.autoPlayedCard}`,
+                            "error",
+                        );
                         clearTimerDisplay();
-                        document.getElementById("timerStatus").textContent = "Timeout - Jogada automática executada";
+                        document.getElementById("timerStatus").textContent =
+                            "Timeout - Jogada automática executada";
                     }
                 });
 
                 // Bot events
                 socket.on("botTurnStarted", (data) => {
-                    log("🤖 Bot está pensando...");
-                    setBotCard("thinking", "🤔 Pensando...");
-                    document.getElementById("botStatus").textContent = "Bot pensando...";
+                    log("Bot está pensando...");
+                    setBotCard("thinking", "Pensando...");
+                    document.getElementById("botStatus").textContent =
+                        "Bot pensando...";
                 });
 
                 socket.on("botCardPlayed", (data) => {
-                    log(`🤖 Bot jogou: ${data.card}`, 'success');
+                    log(`Bot jogou: ${data.card}`, "success");
                     setBotCard(data.card);
-                    document.getElementById("botStatus").textContent = `Bot jogou: ${data.card}`;
+                    document.getElementById("botStatus").textContent =
+                        `Bot jogou: ${data.card}`;
                 });
 
                 socket.on("roundEnded", (data) => {
-                    log(`🏆 Rodada terminou! Vencedor: ${data.winner}`);
+                    log(`Rodada terminou! Vencedor: ${data.winner}`);
                     setTimeout(() => {
                         clearBotCard();
-                        document.getElementById("botStatus").textContent = "Aguardando próxima jogada...";
+                        document.getElementById("botStatus").textContent =
+                            "Aguardando próxima jogada...";
                     }, 3000);
                 });
 
                 socket.on("gameEnded", (data) => {
-                    log(`🎉 Jogo terminou! Vencedor: ${data.winner}`, 'success');
+                    log(`Jogo terminou! Vencedor: ${data.winner}`, "success");
                     clearTimerDisplay();
                     clearBotCard();
-                    document.getElementById("timerStatus").textContent = "Jogo finalizado";
-                    document.getElementById("botStatus").textContent = "Jogo finalizado";
+                    document.getElementById("timerStatus").textContent =
+                        "Jogo finalizado";
+                    document.getElementById("botStatus").textContent =
+                        "Jogo finalizado";
                 });
 
                 socket.on("disconnect", () => {
-                    log("🔌 Desconectado do servidor", 'error');
+                    log("Desconectado do servidor", "error");
                     updateStatus(false);
                     document.getElementById("startBtn").disabled = true;
                     clearTimerDisplay();
@@ -332,35 +370,39 @@
                 });
 
                 socket.on("error", (error) => {
-                    log(`❌ Erro: ${error.message}`, 'error');
+                    log(`Erro: ${error.message}`, "error");
                 });
             };
 
             const startTestGame = () => {
                 if (!socket || !socket.connected) {
-                    log("❌ Conecte-se ao servidor primeiro!", 'error');
+                    log("Conecte-se ao servidor primeiro!", "error");
                     return;
                 }
 
-                log("🚀 Iniciando jogo de teste...");
+                log("Iniciando jogo de teste...");
                 socket.emit("startSingleplayerGame", {
                     playerName,
-                    turnTime: 120 // 2 minutes
+                    turnTime: 120, // 2 minutes
                 });
             };
 
             const simulateTimeout = () => {
                 if (!gameId) {
-                    log("❌ Nenhum jogo ativo para simular timeout", 'error');
+                    log("Nenhum jogo ativo para simular timeout", "error");
                     return;
                 }
-                log("⚠️ Simulando timeout... (aguarde 2 minutos ou jogue uma carta)", 'warning');
+                log(
+                    "Simulando timeout... (aguarde 2 minutos ou jogue uma carta)",
+                    "warning",
+                );
             };
 
             const updateGameInfo = (state) => {
                 document.getElementById("gameId").textContent = gameId;
                 document.getElementById("trump").textContent = state.trump;
-                document.getElementById("currentTurn").textContent = state.currentTurn;
+                document.getElementById("currentTurn").textContent =
+                    state.currentTurn;
             };
 
             // Timer functions
@@ -387,7 +429,7 @@
             const updateTimerVisual = () => {
                 const minutes = Math.floor(timeRemaining / 60000);
                 const seconds = Math.floor((timeRemaining % 60000) / 1000);
-                const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                const timeString = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
                 document.getElementById("timeText").textContent = timeString;
 
@@ -407,7 +449,8 @@
                     timerInterval = null;
                 }
                 document.getElementById("timerDisplay").style.display = "none";
-                document.getElementById("timerStatus").textContent = "Timer inativo";
+                document.getElementById("timerStatus").textContent =
+                    "Timer inativo";
             };
 
             // Bot card functions
@@ -415,17 +458,22 @@
                 const botCardElement = document.getElementById("botCard");
 
                 if (cardFace === "thinking") {
-                    botCardElement.textContent = customText || "🤔 Pensando...";
+                    botCardElement.textContent = customText || "Pensando...";
                     botCardElement.className = "bot-card empty";
                 } else {
                     botCardElement.textContent = cardFace;
                     botCardElement.className = "bot-card";
 
                     // Check if it's a trump card (simplified check)
-                    if (cardFace && cardFace.includes('♠') || cardFace.includes('♣') ||
-                        cardFace.includes('♥') || cardFace.includes('♦')) {
+                    if (
+                        (cardFace && cardFace.includes("♠")) ||
+                        cardFace.includes("♣") ||
+                        cardFace.includes("♥") ||
+                        cardFace.includes("♦")
+                    ) {
                         // This is a simple check - in real game, you'd compare with trump suit
-                        if (Math.random() > 0.7) { // 30% chance to simulate trump
+                        if (Math.random() > 0.7) {
+                            // 30% chance to simulate trump
                             botCardElement.classList.add("trump");
                         }
                     }
@@ -439,7 +487,9 @@
             };
 
             // Initialize
-            log("🎯 Sistema de teste carregado. Clique em 'Conectar ao Servidor' para iniciar.");
+            log(
+                "Sistema de teste carregado. Clique em 'Conectar ao Servidor' para iniciar.",
+            );
         </script>
     </body>
 </html>

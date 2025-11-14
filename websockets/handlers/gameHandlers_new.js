@@ -475,10 +475,10 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
     const validation = validateGameIntegrity(game, gameId);
     if (!validation.valid) {
       console.error(
-        `❌ Game integrity check failed for ${gameId}:`,
+        `Game integrity check failed for ${gameId}:`,
         validation.errors,
       );
-      console.error(`📊 Game summary:`, validation.summary);
+      console.error(`Game summary:`, validation.summary);
       return {
         success: false,
         error: `Integridade do jogo comprometida: ${validation.errors.join(", ")}`,
@@ -487,13 +487,13 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
 
     if (validation.warnings.length > 0) {
       console.warn(
-        `⚠️ Game integrity warnings for ${gameId}:`,
+        `Game integrity warnings for ${gameId}:`,
         validation.warnings,
       );
     }
 
     // Debug logging for bot hand state
-    console.log(`🔍 Bot turn debug - Game ${gameId}:`);
+    console.log(`Bot turn debug - Game ${gameId}:`);
     console.log(`   - Bot name: ${game.bot}`);
     console.log(`   - Game hands keys: ${Object.keys(game.hands)}`);
     console.log(
@@ -511,7 +511,7 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
 
     // Enhanced validation with detailed error info
     if (!botHand) {
-      console.error(`❌ Bot hand is undefined! Game state:`, {
+      console.error(`Bot hand is undefined! Game state:`, {
         botName: game.bot,
         handsKeys: Object.keys(game.hands),
         gameId: gameId,
@@ -522,7 +522,7 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
 
     if (!Array.isArray(botHand)) {
       console.error(
-        `❌ Bot hand is not an array! Type: ${typeof botHand}`,
+        `Bot hand is not an array! Type: ${typeof botHand}`,
         botHand,
       );
       return { success: false, error: "Bot hand corrompida" };
@@ -559,15 +559,15 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
 
       if (recoveryResult.success) {
         console.log(
-          `✅ Game recovered successfully - bot now has ${game.hands[game.bot].length} cards`,
+          `Game recovered successfully - bot now has ${game.hands[game.bot].length} cards`,
         );
         // Continue with bot turn after recovery
       } else if (recoveryResult.shouldEndGame) {
-        console.log(`🏁 Recovery indicates game should end`);
+        console.log(`Recovery indicates game should end`);
         return { success: false, error: "Jogo finalizado - sem cartas" };
       } else {
         console.error(
-          `❌ Recovery failed: ${recoveryResult.message || recoveryResult.error}`,
+          `Recovery failed: ${recoveryResult.message || recoveryResult.error}`,
         );
         return {
           success: false,
@@ -742,7 +742,7 @@ export const handleGameEnd = (game, io, gameId, manager) => {
 
       io.to(gameId).emit("playerVictory", {
         winner: gameResult.winner,
-        message: `🎉 ${gameResult.winner} ganhou o jogo com ${winnerPoints} pontos! ${marksText}`,
+        message: `${gameResult.winner} ganhou o jogo com ${winnerPoints} pontos! ${marksText}`,
         points: winnerPoints,
         marks: gameResult.marks,
         marksDescription: marksText,
@@ -763,7 +763,7 @@ export const handleGameEnd = (game, io, gameId, manager) => {
       // Emit user-friendly match victory notification
       io.to(gameId).emit("matchVictory", {
         winner: matchWinner,
-        message: `🏆 ${matchWinner} venceu a partida completa!`,
+        message: `${matchWinner} venceu a partida completa!`,
         finalMarks: gameResult.matchMarks[matchWinner],
         totalGames: game.gameNumber,
         celebration: true,
@@ -846,7 +846,7 @@ export const handlePlayerTimeout = (game, playerName, io, gameId) => {
     // Emit user-friendly timeout victory notification
     io.to(gameId).emit("matchVictory", {
       winner: winner,
-      message: `🏆 ${winner} venceu por desistência (timeout)!`,
+      message: `${winner} venceu por desistência (timeout)!`,
       reason: "timeout",
       celebration: true,
     });
