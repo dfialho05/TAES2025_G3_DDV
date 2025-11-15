@@ -5,7 +5,7 @@ export const useCardsStore = defineStore("cards", () => {
   const validSuits = ["c", "e", "o", "p"];
   const validValues = [1, 2, 3, 4, 5, 6, 7, 11, 12, 13];
 
-  // Import all card images using import.meta.glob
+  // Import all card images using import.meta.glob (attempt to load from bundled assets)
   const cardImageModules = import.meta.glob("../assets/cards1/*.png", {
     eager: true,
   });
@@ -14,31 +14,46 @@ export const useCardsStore = defineStore("cards", () => {
   const cardImages = {};
   let cardBackImage = null;
 
-  // Process imported images
+  // Process imported images (support both module.default and direct string)
   for (const path in cardImageModules) {
     const fileName = path.split("/").pop().replace(".png", "");
+    const mod = cardImageModules[path];
+    const url = (mod && (mod.default || mod)) || null;
 
     if (fileName === "semFace") {
-      cardBackImage = cardImageModules[path].default;
-    } else {
-      cardImages[fileName] = cardImageModules[path].default;
+      cardBackImage = url;
+    } else if (url) {
+      cardImages[fileName] = url;
     }
   }
 
-  // Get card image by suit and value
+  // Helper: build public URL fallback for a given key (ex: 'c1' -> '/cards1/c1.png')
+  const publicCardUrl = (key) => `/cards1/${key}.png`;
+
+  // Get card image by suit and value: prefer bundled asset, then public fallback
   const getCardImage = (suit, value) => {
     const key = `${suit}${value}`;
-    return cardImages[key] || null;
+    if (cardImages[key]) return cardImages[key];
+    // fallback to public folder (Vite serves files from `public/` at root)
+    return publicCardUrl(key);
   };
 
-  // Get card back image
+  // Get card back image with fallback to public folder
   const getCardBackImage = () => {
-    return cardBackImage;
+    return cardBackImage || publicCardUrl("semFace");
   };
 
-  // Get all card images
+  // Get all card images, include public fallback for missing ones
   const getAllCardImages = () => {
-    return { ...cardImages };
+    const all = {};
+    for (const s of validSuits) {
+      for (const v of validValues) {
+        const key = `${s}${v}`;
+        all[key] = cardImages[key] || publicCardUrl(key);
+      }
+    }
+    all["semFace"] = cardBackImage || publicCardUrl("semFace");
+    return all;
   };
 
   // Get suit name in Portuguese
