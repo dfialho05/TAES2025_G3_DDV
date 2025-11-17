@@ -179,9 +179,10 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import Card from "@/components/Card.vue";
 import { useCardsStore } from "@/stores/cards.js";
+import socketService from "@/services/socket.js";
 
 // Stores
 const cardsStore = useCardsStore();
@@ -189,25 +190,42 @@ const cardsStore = useCardsStore();
 // Game state
 const deckSize = ref(22);
 const playerPlayedCard = ref(null);
+const gameId = ref(null);
 
-// Player cards
-const playerCards = ref([
-    { value: 1, suit: "e" }, // Ace of Spades
-    { value: 13, suit: "p" }, // King of Clubs
-    { value: 3, suit: "c" }, // 3 of Hearts
-    { value: 2, suit: "e" }, // 2 of Spades
-    { value: 11, suit: "c" }, // Jack of Hearts
-    { value: 4, suit: "o" }, // 4 of Diamonds
-    { value: 5, suit: "e" }, // 5 of Spades
-]);
+// Player cards (initially empty; will be populated from server)
+const playerCards = ref([]);
 
-// Game functions
+// Simple player name (in a real app get from auth/store)
+const playerName = "Player1";
 
+// Helpers
+function faceToCard(face) {
+    // face format is like 'c7' => suit 'c', value '7' (string). Convert to number.
+    if (!face || typeof face !== "string") return null;
+    const suit = face.charAt(0);
+    const valueStr = face.slice(1);
+    const value = parseInt(valueStr, 10);
+    if (Number.isNaN(value)) return null;
+    return { suit, value };
+}
+
+// Update local hand from server array of faces
+function setLocalHandFromFaces(faces = []) {
+    playerCards.value = faces.map((f) => {
+        const c = faceToCard(f);
+        return c || { suit: "c", value: 2 };
+    });
+}
+
+// Play card clicked by user
 const handleCardPlayed = (card) => {
-    // Set the played card to show in the table area
-    playerPlayedCard.value = card;
+    if (!gameId.value) {
+        console.warn("No gameId set, cannot play card");
+        return;
+    }
 
-    // Remove card from player's hand
+    // Optimistic UI: show played card and remove from hand locally
+    playerPlayedCard.value = card;
     const cardIndex = playerCards.value.findIndex(
         (c) => c.suit === card.suit && c.value === card.value,
     );
@@ -215,11 +233,127 @@ const handleCardPlayed = (card) => {
         playerCards.value.splice(cardIndex, 1);
     }
 
-    // After 4 seconds, clear the played card (simulate round end)
+    // Emit play to server using the face format expected by server
+    const cardFace = `${card.suit}${card.value}`;
+    socketService.playCard({ gameId: gameId.value, playerName, cardFace });
+
+    // If server doesn't respond, we will refresh state on 'gameStateUpdate' or 'gameError'
+    // Clear played card after a short animation/window; real clearing should follow server round end
     setTimeout(() => {
         playerPlayedCard.value = null;
     }, 4000);
 };
+
+// Lifecycle: connect and register listeners
+onMounted(() => {
+    // Initialize and connect socket service
+    socketService.init({ playerName });
+
+    // Listen for gameStarted -> populate state and save gameId
+    socketService.on("gameStarted", (payload) => {
+        if (!payload) return;
+        if (payload.gameId) {
+            gameId.value = payload.gameId;
+            socketService.setCurrentGameId(gameId.value);
+        }
+        // Parse state to get player hand (server sends state.hands or state.playerCards)
+        const state = payload.state || {};
+        if (Array.isArray(state.playerCards)) {
+            setLocalHandFromFaces(state.playerCards);
+        } else if (state.hands && typeof state.hands === "object") {
+            const faces = state.hands[playerName] || [];
+            setLocalHandFromFaces(faces);
+        } else {
+            // fallback: try to read deck or other fields
+            playerCards.value = [];
+        }
+    });
+
+    // Listen for cardPlayed events to update UI (others' plays or server confirmations)
+    socketService.on("cardPlayed", (data) => {
+        if (!data) return;
+        // If the card played is ours and server confirms, ensure it's removed (idempotent)
+        const { player, card } = data;
+        if (!card) return;
+        if (player === playerName) {
+            // Remove card from local hand if still present
+            const parsed = faceToCard(card);
+            if (parsed) {
+                const idx = playerCards.value.findIndex(
+                    (c) => c.suit === parsed.suit && c.value === parsed.value,
+                );
+                if (idx !== -1) playerCards.value.splice(idx, 1);
+                // show played card (server may confirm)
+                playerPlayedCard.value = parsed;
+                setTimeout(() => {
+                    playerPlayedCard.value = null;
+                }, 4000);
+            }
+        } else {
+            // Opponent (bot) played; you may display it on the table (not modeled here)
+            // Optionally handle bot-specific event 'botCardPlayed'
+        }
+    });
+
+    // When roundResult includes dealtCards, add the dealt card to player's hand
+    socketService.on("roundResult", (result) => {
+        if (!result) return;
+        if (result.dealtCards && result.dealtCards[playerName]) {
+            const face = result.dealtCards[playerName];
+            const c = faceToCard(face);
+            if (c) playerCards.value.push(c);
+        }
+        // Optionally update scores / deckSize from result.scores / result.nextTurn
+        if (typeof result.scores === "object") {
+            // update UI scoreboard if needed
+        }
+    });
+
+    // Full state synchronization
+    socketService.on("gameStateUpdate", (payload) => {
+        if (!payload || !payload.state) return;
+        const s = payload.state;
+        if (Array.isArray(s.playerCards)) {
+            setLocalHandFromFaces(s.playerCards);
+        } else if (s.hands && typeof s.hands === "object") {
+            const faces = s.hands[playerName] || [];
+            setLocalHandFromFaces(faces);
+        }
+        if (s.remaining !== undefined) {
+            deckSize.value = s.remaining;
+        }
+    });
+
+    // Recovery: server fixed a distribution and sent full hands
+    socketService.on("gameRecovered", (data) => {
+        if (!data) return;
+        if (data.hands && data.hands[playerName]) {
+            setLocalHandFromFaces(data.hands[playerName]);
+        }
+    });
+
+    // If server sends gameStateResponse (on explicit request)
+    socketService.on("gameStateResponse", (resp) => {
+        if (!resp || !resp.state) return;
+        const s = resp.state;
+        if (Array.isArray(s.playerCards)) {
+            setLocalHandFromFaces(s.playerCards);
+        } else if (s.hands && s.hands[playerName]) {
+            setLocalHandFromFaces(s.hands[playerName]);
+        }
+    });
+
+    // Start a singleplayer game automatically when component mounts
+    // This will cause the server to emit 'gameStarted' which we handle above
+    socketService.startSingleplayerGame(30);
+});
+
+// Cleanup listeners (lightweight)
+onBeforeUnmount(() => {
+    // Do not destroy the entire socket to allow other views to reuse connection;
+    // simply remove the listeners we added via socketService by re-creating a fresh service or leaving them.
+    // For simplicity we will not call socketService.destroy() here.
+});
 </script>
 
 <style scoped>

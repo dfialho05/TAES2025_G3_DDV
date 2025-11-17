@@ -4,6 +4,8 @@ websockets/node_modules/
 websockets/package-lock.json
 code.zip
 code/
+frontend_web/node_modules/
+frontend_web/package-lock.json
 
 # Android
 android/.gradle/
