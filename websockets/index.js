@@ -213,6 +213,7 @@ io.on("connection", (socket) => {
         players: game.players,
         isBot: true,
         gameType: "singleplayer",
+        turnTime: game.turnTime,
       });
 
       // Start timer for the first player's turn
@@ -387,162 +388,177 @@ io.on("connection", (socket) => {
   // Game play handlers
 
   // Play card (universal handler for both single and multiplayer)
-  socket.on("playCard", async ({ gameId, playerName, cardFace }) => {
-    try {
-      connectionManager.updateActivity(socket.id);
+socket.on("playCard", async ({ gameId, playerName, cardFace }) => {
+  try {
+    connectionManager.updateActivity(socket.id);
 
-      const game = manager.activeGames.get(gameId);
-      if (!game) {
-        safeEmit(socket, "gameError", {
-          message: "Jogo não encontrado",
-          recovered: false,
-        });
-        return;
-      }
+    const game = manager.activeGames.get(gameId);
+    if (!game) {
+      safeEmit(socket, "gameError", {
+        message: "Jogo não encontrado",
+        recovered: false,
+      });
+      return;
+    }
 
-      // Check if multiplayer game
-      if (game.roomInfo && game.roomInfo.gameStarted) {
-        // Handle multiplayer card play
-        const result = await handleMultiplayerCardPlay(
-          game,
-          playerName,
-          cardFace,
-          io,
-          gameId,
-        );
-
-        if (!result.success) {
-          safeEmit(socket, "gameError", {
-            message: result.error,
-            recovered: result.recovered || false,
-          });
-        } else if (result.gameFinished) {
-          await handleGameEnd(game, io, gameId, manager);
-        }
-        return;
-      }
-
-      // Handle singleplayer card play
-      const playResult = await handleCardPlay(
+    // ---------------------------
+    // MULTIPLAYER
+    // ---------------------------
+    if (game.roomInfo && game.roomInfo.gameStarted) {
+      const result = await handleMultiplayerCardPlay(
         game,
         playerName,
         cardFace,
         io,
-        gameId,
+        gameId
       );
 
-      if (!playResult.success) {
+      if (!result.success) {
         safeEmit(socket, "gameError", {
-          message: playResult.error,
-          recovered: playResult.recovered || false,
+          message: result.error,
+          recovered: result.recovered || false,
         });
-        // Restart timer if play failed and not recovered
-        if (game.currentTurn === playerName && !playResult.recovered) {
-          await startPlayerTimer(gameId, playerName, io, game, manager);
+      } else {
+        // -----------------------------
+        // 🔥 INSERIDO AQUI (MULTIPLAYER)
+        // A jogada foi validada com sucesso
+        // -----------------------------
+        safeEmitToRoom(io, gameId, "cardPlayed", {
+          player: playerName,
+          card: cardFace,
+        });
+
+        if (result.gameFinished) {
+          await handleGameEnd(game, io, gameId, manager);
         }
-        return;
       }
+      return;
+    }
 
-      // If it's against bot and player just played
-      if (game.bot && game.playedCards.length === 1) {
-        const botResult = await handleBotTurn(
-          game,
-          playResult.playedCard,
-          io,
-          gameId,
-        );
+    // ---------------------------
+    // SINGLEPLAYER
+    // ---------------------------
+    const playResult = await handleCardPlay(
+      game,
+      playerName,
+      cardFace,
+      io,
+      gameId
+    );
 
-        if (botResult.success) {
-          // Resolve round
-          const roundResult = await resolveRound(
-            game,
-            playResult.playedCard,
-            botResult.botCard,
-            playerName,
-            game.bot,
-            io,
-            gameId,
-          );
+    if (!playResult.success) {
+      safeEmit(socket, "gameError", {
+        message: playResult.error,
+        recovered: playResult.recovered || false,
+      });
 
-          if (roundResult.success && roundResult.gameFinished) {
-            await handleGameEnd(game, io, gameId, manager);
-          } else if (roundResult.success && game.currentTurn === game.bot) {
-            // If bot won the round and should lead, make bot play first card
-            setTimeout(async () => {
-              await handleBotTurn(game, null, io, gameId);
-            }, 1000); // Small delay for better UX
-          } else if (roundResult.success && game.currentTurn === playerName) {
-            // Start timer for player's next turn after bot play
-            setTimeout(async () => {
-              await startPlayerTimer(gameId, playerName, io, game, manager);
-            }, 1500);
-          }
-        }
-      } else if (game.bot && game.playedCards.length === 2) {
-        // Player responded to bot's lead - resolve the round
-        const [botPlay, playerPlay] = game.playedCards;
+      if (game.currentTurn === playerName && !playResult.recovered) {
+        await startPlayerTimer(gameId, playerName, io, game, manager);
+      }
+      return;
+    }
 
+    // --------------------------------------
+    // 🔥 INSERIDO AQUI (SINGLEPLAYER)
+    // A jogada do jogador foi aceite pelo servidor
+    // --------------------------------------
+    safeEmitToRoom(io, gameId, "cardPlayed", {
+      player: playerName,
+      card: cardFace,
+    });
+
+    // ---------------------------
+    // BOT LOGIC (igual ao teu)
+    // ---------------------------
+    if (game.bot && game.playedCards.length === 1) {
+      const botResult = await handleBotTurn(game, playResult.playedCard, io, gameId);
+
+      if (botResult.success) {
         const roundResult = await resolveRound(
           game,
-          botPlay.card,
-          playerPlay.card,
-          game.bot,
+          playResult.playedCard,
+          botResult.botCard,
           playerName,
+          game.bot,
           io,
-          gameId,
+          gameId
         );
 
         if (roundResult.success && roundResult.gameFinished) {
           await handleGameEnd(game, io, gameId, manager);
         } else if (roundResult.success && game.currentTurn === game.bot) {
-          // If bot won the round and should lead, make bot play first card
           setTimeout(async () => {
             await handleBotTurn(game, null, io, gameId);
           }, 1000);
         } else if (roundResult.success && game.currentTurn === playerName) {
-          // Start timer for player's next turn after round resolution
-          setTimeout(async () => {
-            await startPlayerTimer(gameId, playerName, io, game, manager);
-          }, 1500);
-        }
-      } else {
-        // Check if it's bot's turn to lead a new round
-        if (game.currentTurn === game.bot && game.playedCards.length === 0) {
-          setTimeout(async () => {
-            await handleBotTurn(game, null, io, gameId);
-          }, 1000);
-        } else if (game.currentTurn === playerName) {
-          // Start timer for player's turn when bot leads new round
           setTimeout(async () => {
             await startPlayerTimer(gameId, playerName, io, game, manager);
           }, 1500);
         }
       }
+    } else if (game.bot && game.playedCards.length === 2) {
+      const [botPlay, playerPlay] = game.playedCards;
 
-      // Update game state
-      safeEmitToRoom(io, gameId, "gameStateUpdate", {
-        state: game.getState(),
-        lastPlay: { player: playerName, card: cardFace },
-      });
-
-      // Start timer for next turn if it's player's turn
-      setTimeout(async () => {
-        if (game.currentTurn === playerName && game.playedCards.length === 0) {
-          await startPlayerTimer(gameId, playerName, io, game, manager);
-        }
-      }, 2000);
-    } catch (error) {
-      errorHandler.handleError(error, "playCardHandler", {
-        gameId,
+      const roundResult = await resolveRound(
+        game,
+        botPlay.card,
+        playerPlay.card,
+        game.bot,
         playerName,
-        cardFace,
-      });
-      safeEmit(socket, "gameError", {
-        message: "Erro ao processar jogada. O jogo continua.",
-        recovered: true,
-      });
+        io,
+        gameId
+      );
+
+      if (roundResult.success && roundResult.gameFinished) {
+        await handleGameEnd(game, io, gameId, manager);
+      } else if (roundResult.success && game.currentTurn === game.bot) {
+        setTimeout(async () => {
+          await handleBotTurn(game, null, io, gameId);
+        }, 1000);
+      } else if (roundResult.success && game.currentTurn === playerName) {
+        setTimeout(async () => {
+          await startPlayerTimer(gameId, playerName, io, game, manager);
+        }, 1500);
+      }
+    } else {
+      if (game.currentTurn === game.bot && game.playedCards.length === 0) {
+        setTimeout(async () => {
+          await handleBotTurn(game, null, io, gameId);
+        }, 1000);
+      } else if (game.currentTurn === playerName) {
+        setTimeout(async () => {
+          await startPlayerTimer(gameId, playerName, io, game, manager);
+        }, 1500);
+      }
     }
-  });
+
+    // ---------------------------
+    // GAME STATE UPDATE (igual)
+    // ---------------------------
+    safeEmitToRoom(io, gameId, "gameStateUpdate", {
+      state: game.getState(),
+      lastPlay: { player: playerName, card: cardFace },
+    });
+
+    setTimeout(async () => {
+      if (game.currentTurn === playerName && game.playedCards.length === 0) {
+        await startPlayerTimer(gameId, playerName, io, game, manager);
+      }
+    }, 2000);
+
+  } catch (error) {
+    errorHandler.handleError(error, "playCardHandler", {
+      gameId,
+      playerName,
+      cardFace,
+    });
+    safeEmit(socket, "gameError", {
+      message: "Erro ao processar jogada. O jogo continua.",
+      recovered: true,
+    });
+  }
+});
+
 
   // Chat handlers
 

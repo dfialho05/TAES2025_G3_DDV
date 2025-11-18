@@ -10,7 +10,7 @@ const {
   gameInfoVisible, scoresVisible, roundCardsVisible, formattedTime
 } = storeToRefs(store)
 
-const { connect, startGame, playCard } = store
+const { connect, startSingleplayerGame, playCard } = store
 </script>
 
 
@@ -22,15 +22,25 @@ const { connect, startGame, playCard } = store
     <div :class="['status text-lg', statusClass]">{{ statusMessage }}</div>
 
     <!-- Conexão e início -->
-    <div class="text-center my-8">
-      <input v-model="playerName" @keypress.enter="connect" placeholder="O teu nome"
-        class="border-2 rounded-lg px-4 py-2 mr-3 text-lg" />
-      <button @click="connect" class="btn-primary text-lg">Conectar</button>
-      <button @click="startGame" :disabled="!canStart" class="btn-primary ml-4 text-lg">
-        Novo Jogo
-      </button>
-    </div>
-
+    <!-- Conexão e início -->
+<div class="text-center my-8">
+  <input 
+    v-model="playerName" 
+    @keypress.enter="connect()" 
+    placeholder="O teu nome"
+    class="border-2 rounded-lg px-4 py-2 mr-3 text-lg" 
+  />
+  <button @click="connect()" class="btn-primary text-lg">
+    Conectar
+  </button>
+  <button 
+    @click="startSingleplayerGame()" 
+    :disabled="!canStart" 
+    class="btn-primary ml-4 text-lg"
+  >
+    Novo Jogo
+  </button>
+</div>
     <!-- Timer da vez -->
     <div v-if="gameId && currentTurn === playerName" class="text-center my-6">
       <div class="text-4xl font-bold text-red-600 animate-pulse">

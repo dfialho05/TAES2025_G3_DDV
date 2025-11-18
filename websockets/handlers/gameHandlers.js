@@ -451,6 +451,11 @@ export const handleCardPlay = (game, playerName, cardFace, io, gameId) => {
       remainingCards: playerHand.length,
     });
 
+    io.to(gameId).emit("gameStateUpdate", {
+  state: game.getState(),
+  lastPlay: { player: playerName, card: cardFace }
+});
+
     // Emit bot's current card if it's a bot game and bot is playing next
     if (game.bot && game.currentTurn === game.bot && config.bot.showCard) {
       io.to(gameId).emit("botTurnStarted", {
@@ -623,6 +628,12 @@ export const handleBotTurn = (game, playerCard, io, gameId) => {
       remainingCards: botHand.length,
     });
 
+    io.to(gameId).emit("gameStateUpdate", {
+  state: game.getState(),
+  lastPlay: { player: game.bot, card: botCard.getFace() }
+});
+
+
     // Emit bot's played card for display if enabled
     if (config.bot.showCard) {
       io.to(gameId).emit("botCardPlayed", {
@@ -691,6 +702,11 @@ export const resolveRound = (
       nextTurn: game.currentTurn,
       dealtCards,
     });
+
+    io.to(gameId).emit("gameStateUpdate", {
+  state: game.getState()
+});
+
 
     // Clear bot card display after round ends
     io.to(gameId).emit("roundEnded", {
@@ -930,6 +946,11 @@ export const handleNewGameInMatch = (game, io, gameId, manager) => {
       gameNumber: game.gameNumber,
       matchMarks: { ...game.marks },
     });
+
+    io.to(gameId).emit("gameStateUpdate", {
+  state: newGameState
+});
+
 
     // Start timer for the first player's turn (first player defined by game's currentTurn)
     const firstPlayer = game.currentTurn;

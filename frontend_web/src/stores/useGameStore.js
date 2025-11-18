@@ -1,182 +1,255 @@
-// src/stores/useGameStore.js
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { io } from 'socket.io-client'
+// stores/useGameStore.js
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import { io } from "socket.io-client";
 
-export const useGameStore = defineStore('game', () => {
+export const useGameStore = defineStore("gameStore", () => {
   // Estado
-  const socket = ref(null)
-  const playerName = ref('Jogador')
-  const gameId = ref(null)
-  const playerCards = ref([])
-  const trumpSuit = ref('')
-  const currentTurn = ref('')
-  const deckCount = ref('-')
-  const playerScore = ref(0)
-  const botScore = ref(0)
-  const playerRoundCard = ref(null)
-  const botRoundCard = ref(null)
-  const roundWinner = ref(null)
-  const statusMessage = ref('Desconectado')
-  const logContent = ref('')
-  const timeRemaining = ref(0)  // ← Timer do turno
+  const socket = ref(null);
+  const isConnected = ref(false);
+  const statusMessage = ref("Desconectado");
+  const playerName = ref("");
+  const gameId = ref(null);
+  const playerCards = ref([]);
+  const trumpSuit = ref("");
+  const currentTurn = ref(null);
+  const deckCount = ref(0);
+  const timeRemaining = ref(120000); // ms
+  const logMessages = ref([]);
+  const gameState = ref({});
+  const canStart = ref(false);
 
-  // Flags
-  const isConnected = ref(false)
-  const canStart = ref(false)
+  // Timer local
+  let localTimerInterval = null;
 
-  // Log
+  // -----------------------------------------------------------------
+  // Utilitários
+  // -----------------------------------------------------------------
   const log = (msg) => {
-    const t = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    logContent.value += `[${t}] ${msg}<br>`
-  }
+    logMessages.value.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+  };
 
-  // ============== CONECTAR ==============
+  const updateGameState = (state) => {
+    gameState.value = state;
+    trumpSuit.value = state.trump || "";
+    currentTurn.value = state.currentTurn;
+    deckCount.value = state.remaining || 0;
+
+    if (state.hands && playerName.value && state.hands[playerName.value]) {
+      playerCards.value = [...state.hands[playerName.value]];
+    }
+  };
+
+  // -----------------------------------------------------------------
+  // Inicialização do Socket
+  // -----------------------------------------------------------------
+  const initializeSocket = () => {
+    if (socket.value) return;
+
+    socket.value = io("http://localhost:3000", {
+      autoConnect: false,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+      transports: ["websocket", "polling"],
+    });
+
+    // Eventos do socket
+    socket.value.on("connect", () => {
+      isConnected.value = true;
+      statusMessage.value = "Conectado";
+      log("Ligação ao servidor estabelecida");
+    });
+
+    socket.value.on("disconnect", () => {
+      isConnected.value = false;
+      statusMessage.value = "Desconectado";
+      log("Desligado do servidor");
+      if (localTimerInterval) clearInterval(localTimerInterval);
+    });
+
+    socket.value.on("reconnecting", () => {
+      statusMessage.value = "A reconectar...";
+      log("Tentativa de reconexão...");
+    });
+
+    socket.value.on("authSuccess", (data) => {
+      playerName.value = data.playerName;
+      statusMessage.value = `Conectado como ${playerName.value}`;
+      isConnected.value = true;
+      canStart.value = true;
+      log("Autenticado com sucesso");
+    });
+
+    socket.value.on("authError", (data) => {
+      log(`Erro de autenticação: ${data.message}`);
+      statusMessage.value = "Erro ao autenticar";
+      isConnected.value = false;
+      canStart.value = false;
+    });
+
+    socket.value.on("gameStarted", (data) => {
+      gameId.value = data.gameId;
+      updateGameState(data.state);
+
+      const raw = data.turnTime ?? 30;
+      timeRemaining.value = raw > 1000 ? raw : raw * 1000;
+
+      if (localTimerInterval) clearInterval(localTimerInterval);
+      localTimerInterval = setInterval(() => {
+        if (timeRemaining.value > 0) timeRemaining.value -= 1000;
+      }, 1000);
+
+      log("JOGO INICIADO – Boa sorte!");
+      statusMessage.value = "Jogo a decorrer";
+    });
+
+    socket.value.on("playerTimer", (data) => {
+      if (typeof data.timeLeft === "number") {
+        timeRemaining.value = data.timeLeft > 1000 ? data.timeLeft : data.timeLeft * 1000;
+      }
+    });
+
+    socket.value.on("cardPlayed", (data) => {
+      const who = data.player === playerName.value ? "Tu" : data.player;
+      const cardFace = typeof data.card === "object" ? data.card.face : data.card;
+      log(`${who} jogou → ${cardFace}`);
+
+      if (data.player === playerName.value) {
+        playerCards.value = playerCards.value.filter((c) => {
+          const face = typeof c === "object" ? c.face : c;
+          return face !== cardFace;
+        });
+      }
+    });
+
+    socket.value.on("turnChanged", (data) => {
+      currentTurn.value = data.currentTurn;
+      log(`Vez de: ${data.currentTurn}`);
+    });
+
+    socket.value.on("gameStateUpdate", (data) => {
+      updateGameState(data.state);
+    });
+
+    socket.value.on("gameEnded", (data) => {
+      log(`FIM DO JOGO! Vencedor: ${data.winner}`);
+      statusMessage.value = "Jogo terminado";
+      gameId.value = null;
+      canStart.value = true;
+      if (localTimerInterval) {
+        clearInterval(localTimerInterval);
+        localTimerInterval = null;
+      }
+    });
+
+    socket.value.on("gameError", (data) => {
+      log(`Erro: ${data.message}`);
+    });
+  };
+
+  // -----------------------------------------------------------------
+  // Conectar (CORRIGIDO)
+  // -----------------------------------------------------------------
   const connect = () => {
-    if (socket.value?.connected) return
-
-    if (!playerName.value.trim()) {
-      alert('Escreve o teu nome!')
-      return
+    const nome = playerName.value?.trim();
+    if (!nome) {
+      log("Escreve um nome primeiro!");
+      return;
     }
 
-    log('A conectar ao servidor...')
-    statusMessage.value = 'A conectar...'
+    // Inicializa e conecta
+    initializeSocket();
+    socket.value.connect();
 
-    socket.value = io('ws://localhost:3000', {
-      autoConnect: false,
-      transports: ['websocket']
-    })
+    // Autentica
+    socket.value.emit("auth", { playerName: nome });
+    log(`A conectar como ${nome}...`);
+  };
 
-    // Todos os listeners (ANTES de conectar!)
-    socket.value.on('connect', () => {
-      log('Conectado! A autenticar...')
-      socket.value.emit('auth', { playerName: playerName.value })
-    })
+  // -----------------------------------------------------------------
+  // Iniciar jogo singleplayer
+  // -----------------------------------------------------------------
+  const startSingleplayerGame = () => {
+    if (!socket.value || !isConnected.value) {
+      log("Não estás conectado ao servidor");
+      return;
+    }
 
-    socket.value.on('authSuccess', () => {
-      isConnected.value = true
-      canStart.value = true
-      statusMessage.value = `Conectado como ${playerName.value}`
-      log('Autenticado com sucesso!')
-    })
-
-    socket.value.on('authError', (err) => {
-      log(`Erro: ${err.message || 'Autenticação falhou'}`)
-      statusMessage.value = 'Erro ao autenticar'
-    })
-
-    socket.value.on('gameStarted', (data) => {
-      gameId.value = data.gameId
-      updateGameState(data.state)
-      timeRemaining.value = (data.turnTime || 120) * 1000
-      log('JOGO INICIADO! Boa sorte!')
-      statusMessage.value = 'Jogo a decorrer...'
-    })
-
-    socket.value.on('playerTimer', (data) => {
-      timeRemaining.value = data.timeLeft
-    })
-
-    socket.value.on('timerWarning', () => log('⏰ Tempo a acabar!'))
-    socket.value.on('playerTimeout', () => log('⏰ Tempo esgotado! Perdeu a vez.'))
-
-    socket.value.on('cardPlayed', (data) => {
-      log(`${data.player === playerName.value ? 'Tu' : 'Bot'} jogou → ${data.card}`)
-      if (data.player === playerName.value) {
-        playerCards.value = playerCards.value.filter(c => c !== data.card)
-      }
-    })
-
-    socket.value.on('roundResult', (data) => {
-      playerRoundCard.value = data.playerCard
-      botRoundCard.value = data.botCard
-      roundWinner.value = data.winner
-      updateScores(data.scores)
-      log(`Rodada ganha por: ${data.winner}`)
-
-      setTimeout(() => {
-        playerRoundCard.value = null
-        botRoundCard.value = null
-        roundWinner.value = null
-      }, 4000)
-    })
-
-    socket.value.on('gameEnded', (data) => {
-      log(`FIM DO JOGO! Vencedor: ${data.winner}`)
-      statusMessage.value = 'Jogo terminado'
-      gameId.value = null
-      canStart.value = true
-    })
-
-    socket.value.on('gameStateUpdate', (data) => updateGameState(data.state))
-
-    // Conecta agora
-    socket.value.connect()
-  }
-
-  // ============== INICIAR JOGO ==============
-  const startGame = () => {
-    if (!isConnected.value) return log('Ainda não conectado!')
-    log('A pedir novo jogo...')
-    socket.value.emit('startSingleplayerGame', {
+    canStart.value = false;
+    socket.value.emit("startSingleplayerGame", {
       playerName: playerName.value,
-      turnTime: 120
-    })
-    canStart.value = false
-  }
+      turnTime: 30,
+    });
+    log("Pedido de jogo singleplayer enviado...");
+  };
 
-  // ============== JOGAR CARTA ==============
-  const playCard = (card) => {
-    if (!gameId.value) return log('Nenhum jogo ativo')
-    socket.value.emit('playCard', {
+  // -----------------------------------------------------------------
+  // Jogar carta
+  // -----------------------------------------------------------------
+  const playCard = (cardFace) => {
+    if (!socket.value || !gameId.value) return;
+    if (currentTurn.value !== playerName.value) {
+      log("Não é a tua vez!");
+      return;
+    }
+
+    socket.value.emit("playCard", {
       gameId: gameId.value,
       playerName: playerName.value,
-      cardFace: card
-    })
-  }
+      cardFace,
+    });
 
-  // ============== UTILIDADES ==============
-  const updateGameState = (state) => {
-    trumpSuit.value = state.trump.charAt(0).toUpperCase()
-    currentTurn.value = state.currentTurn
-    deckCount.value = state.remaining
-    if (state.hands?.[playerName.value]) {
-      playerCards.value = [...state.hands[playerName.value]]
-    }
-  }
+    log(`Jogaste → ${cardFace}`);
+  };
 
-  const updateScores = (scores) => {
-    playerScore.value = scores[playerName.value] || 0
-    botScore.value = scores['Bot'] || 0
-  }
-
-  // ============== COMPUTEDS ==============
-  const gameInfoVisible = computed(() => !!gameId.value)
-  const scoresVisible = computed(() => !!gameId.value)
-  const roundCardsVisible = computed(() => !!playerRoundCard.value || !!botRoundCard.value)
-  const statusClass = computed(() => {
-    if (isConnected.value && gameId.value) return 'connected'
-    if (isConnected.value) return 'waiting'
-    return 'disconnected'
-  })
-
+  // -----------------------------------------------------------------
+  // Computed
+  // -----------------------------------------------------------------
+  const logContent = computed(() => logMessages.value.join("<br>"));
   const formattedTime = computed(() => {
-    const s = Math.max(0, Math.floor(timeRemaining.value / 1000))
-    return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
-  })
+    const segundos = Math.ceil(timeRemaining.value / 1000);
+    return `${segundos}s`;
+  });
 
+  const playerScore = ref(0);
+  const botScore = ref(0);
+  const playerRoundCard = ref(null);
+  const botRoundCard = ref(null);
+  const roundWinner = ref(null);
+  const statusClass = ref("disconnected");
+
+  const gameInfoVisible = computed(() => !!gameId.value);
+  const scoresVisible = computed(() => !!gameId.value);
+  const roundCardsVisible = computed(() => !!playerRoundCard.value || !!botRoundCard.value);
+
+  // Return da store
   return {
-    // Estado
-    playerName, playerCards, trumpSuit, currentTurn, deckCount,
-    playerScore, botScore, playerRoundCard, botRoundCard, roundWinner,
-    statusMessage, logContent, timeRemaining, formattedTime,
+    // Estado reativo
+    playerName,
+    playerCards,
+    trumpSuit,
+    currentTurn,
+    deckCount,
+    playerScore,
+    botScore,
+    playerRoundCard,
+    botRoundCard,
+    roundWinner,
+    statusMessage,
+    statusClass,
+    canStart,
+    logContent,
+    gameId,
+    gameInfoVisible,
+    scoresVisible,
+    roundCardsVisible,
+    formattedTime,
 
-    // Flags
-    isConnected, canStart,
-    gameInfoVisible, scoresVisible, roundCardsVisible, statusClass,
-
-    // Ações
-    connect, startGame, playCard, log
-  }
-})
+    // Métodos
+    connect,
+    startSingleplayerGame,
+    playCard,
+  };
+});
