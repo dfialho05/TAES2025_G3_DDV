@@ -2,9 +2,9 @@
   <Toaster />
   <nav class="max-w-full p-5 flex flex-row justify-between align-middle">
     <div class="align-middle text-xl">
-      <RouterLink to="/"> 🧠 Memory Game </RouterLink>
-      <span class="text-xs" v-if="authStore.currentUser">&nbsp;&nbsp;&nbsp;
-            ({{ authStore.currentUser?.name }})
+      <RouterLink to="/"> 🧠 Bisca Game </RouterLink>
+      <span class="text-xs" v-if="authStore.currentUser"
+        >&nbsp;&nbsp;&nbsp; ({{ authStore.currentUser?.name }})
       </span>
     </div>
     <NavigationMenu>
@@ -30,6 +30,11 @@
         <NavigationMenuItem v-if="!authStore.isLoggedIn">
           <NavigationMenuLink>
             <RouterLink to="/login">Login</RouterLink>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+        <NavigationMenuItem v-if="!authStore.isLoggedIn">
+          <NavigationMenuLink>
+            <RouterLink to="/register">Register</RouterLink>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem v-else>
@@ -70,8 +75,8 @@ import {
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'vue-sonner'
 import 'vue-sonner/style.css'
-import { RouterLink, RouterView } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { RouterLink, RouterView } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 const authStore = useAuthStore()
 
 const logout = () => {
@@ -83,7 +88,6 @@ const logout = () => {
     error: (data) => `[API] Error saving game - ${data?.response?.data?.message}`,
   })
 }
-
 </script>
 
 <style></style>
