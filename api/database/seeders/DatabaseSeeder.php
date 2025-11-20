@@ -2,97 +2,83 @@
 
 namespace Database\Seeders;
 
-use App\Models\Game;
 use App\Models\User;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
+    use WithoutModelEvents;
+
+    public static $startDate;
+    public static $dbInsertBlockSize = 500;
+
+    // public static $seedType = "small";
+    //public static $seedType = "full";
+    //public static $seedLanguage = "pt_PT";
+    public static $seedLanguage = "en_US";
+
     public function run(): void
     {
-        $this->command->info('Seeding database...');
-        $this->command->newLine();
+        $this->command->info("-----------------------------------------------");
+        $this->command->info("START of database seeder");
+        $this->command->info("-----------------------------------------------");
 
-        // Create default users
-        $this->command->info('Creating default users...');
+        self::$startDate = Carbon::now()->subMonths(14);
+        self::$seedLanguage = $this->command->choice('What is the language for users\' names?', ['pt_PT', 'en_US'], 0);
 
-        $example = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = OFF');
+        } else {
+            DB::statement('SET foreign_key_checks=0');
+            // No permissions to change global setting. Change the session setting only
+            //DB::statement("SET @@global.time_zone = '+00:00'");
+            DB::statement("SET time_zone = '+00:00'");
+        }
 
-        $user1 = User::factory()->create([
-            'name' => 'DAD User 1',
-            'email' => 'dad_user1@example.com',
-        ]);
+        DB::table('users')->delete();
+        DB::table('matches')->delete();
+        DB::table('games')->delete();
+        DB::table('coin_purchases')->delete();
+        DB::table('coin_transactions')->delete();
+        DB::table('coin_transaction_types')->delete();
 
-        $user2 = User::factory()->create([
-            'name' => 'DAD User 2',
-            'email' => 'dad_user2@example.com',
-        ]);
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement("DELETE FROM sqlite_sequence WHERE name = 'users'");
+            DB::statement("DELETE FROM sqlite_sequence WHERE name = 'matches'");
+            DB::statement("DELETE FROM sqlite_sequence WHERE name = 'games'");
+            DB::statement("DELETE FROM sqlite_sequence WHERE name = 'coin_purchases'");
+            DB::statement("DELETE FROM sqlite_sequence WHERE name = 'coin_transactions'");
+            DB::statement("DELETE FROM sqlite_sequence WHERE name = 'coin_transaction_types'");
+        } else {
+            DB::statement('ALTER TABLE users AUTO_INCREMENT = 0');
+            DB::statement('ALTER TABLE matches AUTO_INCREMENT = 0');
+            DB::statement('ALTER TABLE games AUTO_INCREMENT = 0');
+            DB::statement('ALTER TABLE coin_purchases AUTO_INCREMENT = 0');
+            DB::statement('ALTER TABLE coin_transactions AUTO_INCREMENT = 0');
+            DB::statement('ALTER TABLE coin_transaction_types AUTO_INCREMENT = 0');
+        }
 
-        $admin = User::factory()->admin()->create([
-            'name' => 'DAD Admin',
-            'email' => 'dad_admin@example.com',
-        ]);
+        $this->command->info("-----------------------------------------------");
 
-        $this->command->line("  Created user - example: {$example->email}");
-        $this->command->line("  Created user - player 1: {$user1->email}");
-        $this->command->line("  Created user - player 2: {$user2->email}");
-        $this->command->line("  Created admin: {$admin->email}");
-        $this->command->newLine();
+        $this->call(TransactionTypesSeeder::class);
+        $this->call(UsersSeeder::class);
+        $this->call(InitialTransactionsSeeder::class);
+        $this->call(GamesSeeder::class);
+        $this->call(GamesTransactionsSeeder::class);
 
-        $this->command->info('Creating regular users...');
-        $userCount = 40;
-        User::factory()->count($userCount)->create();
-        $this->command->line("  Created {$userCount} regular users");
-        $this->command->line('  Total users: '.User::count());
-        $this->command->newLine();
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON');
+        } else {
+            DB::statement('SET foreign_key_checks=1');
+        }
 
-        $this->command->info('Creating games...');
 
-        $gameCount = 500;
-        Game::factory()->count($gameCount)->create();
-        $this->command->line("  Created {$gameCount} random games");
 
-        // Examples of specific game type creation
-        Game::factory()
-            ->singleplayer()
-            ->count(10)
-            ->create();
-
-        Game::factory()
-            ->multiplayer()
-            ->count(10)
-            ->create();
-
-        // Examples of specific game status creation
-        Game::factory()->pending()->create();
-        Game::factory()->playing()->create();
-        Game::factory()->interrupted()->create();
-        Game::factory()->ended()->create();
-
-        // Show breakdown by type
-        $singleplayerCount = Game::where('type', 'S')->count();
-        $multiplayerCount = Game::where('type', 'M')->count();
-        $this->command->line("      Singleplayer: {$singleplayerCount}");
-        $this->command->line("      Multiplayer: {$multiplayerCount}");
-
-        // Show breakdown by status
-        $pendingCount = Game::where('status', 'PE')->count();
-        $playingCount = Game::where('status', 'PL')->count();
-        $endedCount = Game::where('status', 'E')->count();
-        $interruptedCount = Game::where('status', 'I')->count();
-
-        $this->command->line("      Pending: {$pendingCount}");
-        $this->command->line("      Playing: {$playingCount}");
-        $this->command->line("      Ended: {$endedCount}");
-        $this->command->line("      Interrupted: {$interruptedCount}");
-
-        $this->command->newLine();
-        $this->command->info('Database seeded successfully!');
+        $this->command->info("-----------------------------------------------");
+        $this->command->info("END of database seeder");
+        $this->command->info("-----------------------------------------------");
     }
 }
