@@ -2,21 +2,23 @@
 
 namespace App\Models;
 
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
+    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int,string>
+     * @var list<string>
      */
     protected $fillable = [
         "name",
@@ -33,14 +35,14 @@ class User extends Authenticatable
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var array<int,string>
+     * @var list<string>
      */
     protected $hidden = ["password", "remember_token"];
 
     /**
-     * The attributes that should be cast.
+     * Get the attributes that should be cast.
      *
-     * @var array<string,string>
+     * @return array<string, string>
      */
     protected $casts = [
         "email_verified_at" => "datetime",
@@ -51,57 +53,40 @@ class User extends Authenticatable
         "blocked" => "boolean",
     ];
 
-    /**
-     * Return true if user is blocked.
-     */
     public function isBlocked(): bool
     {
         return (bool) $this->blocked;
     }
 
-    /**
-     * Check user type (e.g. 'A' for admin, 'P' for player).
-     */
     public function isType(string $type): bool
     {
         return $this->type === $type;
     }
 
-    /**
-     * Get the user's coin balance as integer.
-     */
     public function getBalance(): int
     {
         return (int) $this->coins_balance;
     }
 
-    // estas tavam no template da aula depois temos de implementar
-    //
-    // /**
-    //  * Relationships with games.
-    //  */
     // public function gamesAsPlayer1(): HasMany
     // {
-    //     return $this->hasMany(Game::class, "player1_user_id");
+    //     return $this->hasMany(Game::class, "player1_id");
     // }
 
     // public function gamesAsPlayer2(): HasMany
     // {
-    //     return $this->hasMany(Game::class, "player2_user_id");
+    //     return $this->hasMany(Game::class, "player2_id");
     // }
 
     // public function gamesWon(): HasMany
     // {
-    //     return $this->hasMany(Game::class, "winner_user_id");
+    //     return $this->hasMany(Game::class, "winner_id");
     // }
 
-    // /**
-    //  * Helper to build a games query involving this user (player1 or player2).
-    //  */
     // public function gamesQuery(): \Illuminate\Database\Eloquent\Builder
     // {
-    //     return Game::where("player1_user_id", $this->id)->orWhere(
-    //         "player2_user_id",
+    //     return Game::where("player1_id", $this->id)->orWhere(
+    //         "player2_id",
     //         $this->id,
     //     );
     // }

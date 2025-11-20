@@ -11,10 +11,35 @@ use App\Models\User;
 
 class AuthController extends Controller
 {
-    /**
-     * Register a new user and return an auth token.
-     * Adds a welcome bonus of 10 coins to the created user (stored on the user record).
-     */
+    public function login(Request $request)
+    {
+        $request->validate([
+            "email" => "required|email",
+            "password" => "required",
+        ]);
+
+        if (!Auth::attempt($request->only("email", "password"))) {
+            throw ValidationException::withMessages([
+                "email" => ["The provided credentials are incorrect."],
+            ]);
+        }
+
+        $user = Auth::user();
+        $token = $user->createToken("auth-token")->plainTextToken;
+
+        return response()->json([
+            "token" => $token,
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+        return response()->json([
+            "message" => "Logged out successfully",
+        ]);
+    }
+
     public function register(Request $request)
     {
         $data = $request->validate([
@@ -57,32 +82,6 @@ class AuthController extends Controller
         );
     }
 
-    public function login(Request $request)
-    {
-        $request->validate([
-            "email" => "required|email",
-            "password" => "required",
-        ]);
-
-        if (!Auth::attempt($request->only("email", "password"))) {
-            throw ValidationException::withMessages([
-                "email" => ["The provided credentials are incorrect."],
-            ]);
-        }
-
-        $user = Auth::user();
-        $token = $user->createToken("auth-token")->plainTextToken;
-
-        return response()->json([
-            "token" => $token,
-        ]);
-    }
-
-    /**
-     * Update authenticated user's profile.
-     * - email and nickname uniqueness ignore current user ID
-     * - password is optional; if present it will be hashed
-     */
     public function updateProfile(Request $request)
     {
         $user = $request->user();
@@ -123,10 +122,6 @@ class AuthController extends Controller
         return response()->json($user);
     }
 
-    /**
-     * Delete authenticated user's account.
-     * Requires current password confirmation and prevents administrators from self-deleting.
-     */
     public function deleteAccount(Request $request)
     {
         $user = $request->user();
@@ -162,14 +157,6 @@ class AuthController extends Controller
 
         return response()->json([
             "message" => "Account deleted successfully.",
-        ]);
-    }
-
-    public function logout(Request $request)
-    {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json([
-            "message" => "Logged out successfully",
         ]);
     }
 }
