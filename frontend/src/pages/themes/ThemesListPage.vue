@@ -62,12 +62,12 @@ import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
-import { useGameStore } from '@/stores/game'
+import { useBiscaStore } from '@/stores/biscaStore'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const apiStore = useAPIStore()
-const gameStore = useGameStore()
+const gameStore = useBiscaStore()
 
 const serverBaseURL = inject("serverBaseURL")
 

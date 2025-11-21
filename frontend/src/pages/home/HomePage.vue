@@ -11,10 +11,10 @@ import {
 
 import { useRouter } from 'vue-router'
 
-import { useGameStore } from '@/stores/game'
+import { useBiscaStore } from '@/stores/biscaStore'
 import { useAPIStore } from '@/stores/api'
 
-const gameStore = useGameStore()
+const gameStore = useBiscaStore()
 const apiStore = useAPIStore()
 
 const router = useRouter()
