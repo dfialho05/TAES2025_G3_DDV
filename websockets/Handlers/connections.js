@@ -34,7 +34,7 @@ export const connectionsHandlers = (io) => {
 
         // Agenda a resposta do Bot
         setTimeout(() => {
-            handleBotTurn(socket);
+            handleBotLoop(socket);
         }, 1000);
       }
     });
@@ -49,23 +49,40 @@ export const connectionsHandlers = (io) => {
 
 // --- FUNÇÕES AUXILIARES DO HANDLER ---
 
-function handleBotTurn(socket) {
+function handleBotLoop(socket) {
     const game = games.get(socket.id);
-    if (!game) return;
+    // Verificação extra: se game não existe (user saiu) ou jogo acabou, pára.
+    if (!game || game.gameOver) return;
 
-    // Bot joga
-    game.playBotCard();
-    const winner = game.resolveRound(); // Calcula quem ganhou
-    emitGameState(socket); // Mostra as duas cartas na mesa e o resultado
+    // 1. O Bot joga se a mesa AINDA NÃO estiver cheia
+    if (game.tableCards.length < 2) {
+        game.playBotCard();
+        emitGameState(socket); // Envia estado logo após bot jogar
+    }
 
-    // Limpa a mesa após 1.5s
-    setTimeout(() => {
-        // Verificação extra caso o jogador tenha saído entretanto
-        if (!games.has(socket.id)) return;
+    // 2. Verificamos se a ronda acabou (já há 2 cartas na mesa?)
+    if (game.tableCards.length === 2) {
         
-        game.cleanupRound(winner);
-        emitGameState(socket);
-    }, 1500);
+        // 3. Resolve a vaza
+        const winner = game.resolveRound();
+        emitGameState(socket); // Mostra o resultado da vaza (quem ganhou)
+
+        // 4. Limpeza e Próximo Turno
+        setTimeout(() => {
+            // Segurança: User pode ter desconectado durante o delay
+            if (!games.has(socket.id)) return;
+            
+            game.cleanupRound(winner);
+            emitGameState(socket); // Mesa limpa, novas cartas
+
+            // 5. LOOP: Se o Bot ganhou a vaza, ele joga outra vez!
+            if (game.turn === 'bot' && !game.gameOver) {
+                setTimeout(() => {
+                    handleBotLoop(socket);
+                }, 1000);
+            }
+        }, 1500);
+    }
 }
 
 function emitGameState(socket) {

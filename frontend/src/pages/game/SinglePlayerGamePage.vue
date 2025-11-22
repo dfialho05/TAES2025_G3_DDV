@@ -7,7 +7,7 @@ const store = useBiscaStore();
 // Extrair refs para usar no template
 const {
   playerHand, botCardCount, trunfo, tableCards,
-  score, logs, currentTurn, isGameOver, isConnected
+  score, logs, currentTurn, isGameOver, isConnected, cardsLeft,
 } = storeToRefs(store);
 
 onMounted(() => {
@@ -36,6 +36,10 @@ onUnmounted(() => {
     </div>
 
     <div class="table-area">
+
+      <div v-if="cardsLeft > 0" class="card-back deck-pile">
+          <span class="deck-count">{{ cardsLeft }}</span>
+        </div>
 
       <div class="trunfo-area" v-if="trunfo">
         <span>Trunfo:</span>
