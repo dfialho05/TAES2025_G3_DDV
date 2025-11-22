@@ -1,22 +1,36 @@
-// Constantes do Jogo
 import { Bot } from "./Bot.js";
 
-const NAIPES = ['♥', '♦', '♣', '♠'];
-const RANKS = ['2', '3', '4', '5', '6', 'Q', 'J', 'K', '7', 'A'];
-const VALORES = { 'A': 11, '7': 10, 'K': 4, 'J': 3, 'Q': 2, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 };
+const NAIPES = ["♥", "♦", "♣", "♠"];
+const RANKS = ["2", "3", "4", "5", "6", "Q", "J", "K", "7", "A"];
+const VALORES = {
+  A: 11,
+  7: 10,
+  K: 4,
+  J: 3,
+  Q: 2,
+  2: 0,
+  3: 0,
+  4: 0,
+  5: 0,
+  6: 0,
+};
 
 export class BiscaGame {
   constructor() {
     this.deck = this.createDeck();
     this.trunfo = this.deck.pop();
-    this.trunfoNaipe = this.trunfo.naipe; 
-    this.botAI = new Bot('normal');
+
+    // CRUCIAL: Guardar o naipe para quando a carta física for pescada
+    this.trunfoNaipe = this.trunfo.naipe;
+
+    this.botAI = new Bot("normal");
     this.playerHand = this.deck.splice(0, 9);
     this.botHand = this.deck.splice(0, 9);
     this.tableCards = [];
     this.score = { user: 0, bot: 0 };
-    this.turn = 'user';
-    this.logs = "Jogo iniciado! Trunfo: " + this.trunfo.rank + this.trunfo.naipe;
+    this.turn = "user";
+    this.logs =
+      "Jogo iniciado! Trunfo: " + this.trunfo.rank + this.trunfo.naipe;
     this.gameOver = false;
   }
 
@@ -29,20 +43,47 @@ export class BiscaGame {
           naipe,
           value: VALORES[rank],
           id: `${rank}-${naipe}`,
-          color: (naipe === '♥' || naipe === '♦') ? 'red' : 'black'
+          color: naipe === "♥" || naipe === "♦" ? "red" : "black",
         });
       }
     }
     return deck.sort(() => Math.random() - 0.5);
   }
 
+  // Helper para saber se estamos na Fase 2 (Sem baralho -> Obrigatório Assistir)
+  isFinalPhase() {
+    return this.deck.length === 0 && this.trunfo === null;
+  }
+
   playUserCard(index) {
-    if (this.gameOver || this.turn !== 'user') return false;
+    // 1. Validações Básicas
+    if (this.gameOver || this.turn !== "user") return false;
     if (index < 0 || index >= this.playerHand.length) return false;
 
-    const card = this.playerHand.splice(index, 1)[0];
-    this.tableCards.push({ card, player: 'user' });
-    this.turn = 'bot';
+    const cardToPlay = this.playerHand[index];
+
+    // 2. REGRA DO PROFESSOR: VALIDAÇÃO DA FASE FINAL
+    // Se o Bot jogou primeiro E estamos na fase final (sem baralho)
+    if (this.tableCards.length > 0 && this.isFinalPhase()) {
+      const botMove = this.tableCards[0]; // A carta que o bot jogou
+      const suitToFollow = botMove.card.naipe;
+
+      // Verifica se o jogador tem cartas desse naipe na mão
+      const hasSuit = this.playerHand.some((c) => c.naipe === suitToFollow);
+
+      // Se tem o naipe e tentou jogar outro, BLOQUEIA a jogada
+      if (hasSuit && cardToPlay.naipe !== suitToFollow) {
+        this.logs = `⚠️ Regra: É obrigatório assistir ao naipe (${suitToFollow})!`;
+        return false; // O servidor recusa a jogada e o frontend não mexe
+      }
+    }
+
+    // 3. Executa a jogada
+    this.playerHand.splice(index, 1);
+    this.tableCards.push({ card: cardToPlay, player: "user" });
+
+    // Passa a vez ao bot e avisa o user
+    this.turn = "bot";
     this.logs = "Bot a pensar...";
     return true;
   }
@@ -50,114 +91,135 @@ export class BiscaGame {
   playBotCard() {
     if (this.botHand.length === 0) return;
 
-    // --- CORREÇÃO ANTI-CRASH DO BOT ---
-    // Se trunfo for null (já pescado), passamos um objeto falso apenas com o naipe
-    const trunfoInfo = this.trunfo ? this.trunfo : { naipe: this.trunfoNaipe, value: 0, rank: '' };
+    // Prepara info do trunfo (caso a carta seja null)
+    const trunfoInfo = this.trunfo
+      ? this.trunfo
+      : { naipe: this.trunfoNaipe, value: 0, rank: "" };
 
-    const selectedIndex = this.botAI.makeMove(this.botHand, this.tableCards, trunfoInfo);
+    // Verifica se o Bot é obrigado a assistir ao naipe (Fase 2)
+    const mustFollow = this.isFinalPhase();
+
+    // Pede ao Bot para decidir (passando a flag de obrigação)
+    const selectedIndex = this.botAI.makeMove(
+      this.botHand,
+      this.tableCards,
+      trunfoInfo,
+      mustFollow
+    );
 
     const card = this.botHand.splice(selectedIndex, 1)[0];
-    
-    this.tableCards.push({ card, player: 'bot' });
+    this.tableCards.push({ card, player: "bot" });
 
-    this.turn = 'user';
+    // Devolve o turno ao user para ele poder responder
+    this.turn = "user";
     this.logs = "Sua vez...";
   }
 
-resolveRound() {
-    // Verificar se ambos jogaram (segurança)
+  resolveRound() {
     if (this.tableCards.length < 2) return null;
 
-    // Identificar as cartas jogadas
-    // A primeira carta jogada (base) define o naipe a assistir
     const firstMove = this.tableCards[0];
     const secondMove = this.tableCards[1];
-    
+
     const c1 = firstMove.card;
     const c2 = secondMove.card;
-    
-    // --- CORREÇÃO: Usar a string guardada no construtor ---
-    const trunfoNaipe = this.trunfoNaipe; 
-    let winnerPlayer = '';
+    const trunfoNaipe = this.trunfoNaipe;
+    let winnerPlayer = "";
 
+    // Lógica de Vencedor da Vaza
     if (c2.naipe === c1.naipe) {
-        // Mesmo naipe: ganha o maior valor ou rank
-        if (c2.value > c1.value) winnerPlayer = secondMove.player;
-        else if (c1.value > c2.value) winnerPlayer = firstMove.player;
-        else {
-             // Desempate por rank (ex: 6 ganha a 5)
-             const r1 = RANKS.indexOf(c1.rank);
-             const r2 = RANKS.indexOf(c2.rank);
-             winnerPlayer = r2 > r1 ? secondMove.player : firstMove.player;
-        }
+      // Mesmo naipe: ganha valor maior
+      if (c2.value > c1.value) winnerPlayer = secondMove.player;
+      else if (c1.value > c2.value) winnerPlayer = firstMove.player;
+      else {
+        // Desempate por rank (ex: 6 ganha a 5)
+        const r1 = RANKS.indexOf(c1.rank);
+        const r2 = RANKS.indexOf(c2.rank);
+        winnerPlayer = r2 > r1 ? secondMove.player : firstMove.player;
+      }
     } else {
-        // Naipes diferentes. O segundo cortou com trunfo?
-        if (c2.naipe === trunfoNaipe) {
-            winnerPlayer = secondMove.player;
-        } else {
-            // Se não cortou, ganha quem jogou primeiro
-            winnerPlayer = firstMove.player;
-        }
+      // Naipes diferentes
+      if (c2.naipe === trunfoNaipe) {
+        // O segundo jogador cortou com trunfo -> Ganha o segundo
+        winnerPlayer = secondMove.player;
+      } else {
+        // O segundo não tem o naipe e não cortou -> Ganha o primeiro
+        winnerPlayer = firstMove.player;
+      }
     }
 
     const points = c1.value + c2.value;
     this.score[winnerPlayer] += points;
-    this.logs = winnerPlayer === 'user' ? `Ganhaste a vaza! (+${points} pts)` : `Bot ganhou a vaza.`;
+    this.logs =
+      winnerPlayer === "user"
+        ? `Ganhaste a vaza! (+${points} pts)`
+        : `Bot ganhou a vaza.`;
 
-    // --- PESCAR CARTAS ---
+    // Tenta pescar cartas (só acontece se houver baralho)
     this.drawCards(winnerPlayer);
 
     return winnerPlayer;
   }
 
-  // --- NOVA FUNÇÃO DE PESCAR ---
   drawCards(winner) {
-    // Se já não há deck nem trunfo, ninguém pesca
+    // Se o baralho acabou E o trunfo já foi pescado, não faz nada
     if (this.deck.length === 0 && !this.trunfo) return;
 
-    // Função auxiliar para tirar a próxima carta disponível
     const pullCard = () => {
-        if (this.deck.length > 0) {
-            return this.deck.pop(); // Tira do baralho normal
-        } else if (this.trunfo) {
-            // Se o baralho acabou, a última carta é o trunfo
-            const finalCard = this.trunfo;
-            this.trunfo = null; // O trunfo sai da mesa e vai para a mão de alguém
-            return finalCard;
-        }
-        return null;
+      if (this.deck.length > 0) return this.deck.pop();
+      if (this.trunfo) {
+        const t = this.trunfo;
+        this.trunfo = null;
+        return t;
+      }
+      return null;
     };
-    // 1. O Vencedor pesca primeiro
+
     const winnerCard = pullCard();
-    
-    // 2. O Perdedor pesca depois
     const loserCard = pullCard();
 
-    // Adiciona às mãos corretas
-    if (winner === 'user') {
-        if (winnerCard) this.playerHand.push(winnerCard);
-        if (loserCard) this.botHand.push(loserCard);
+    if (winner === "user") {
+      if (winnerCard) this.playerHand.push(winnerCard);
+      if (loserCard) this.botHand.push(loserCard);
     } else {
-        if (winnerCard) this.botHand.push(winnerCard);
-        if (loserCard) this.playerHand.push(loserCard);
+      if (winnerCard) this.botHand.push(winnerCard);
+      if (loserCard) this.playerHand.push(loserCard);
     }
   }
 
- cleanupRound(winner) {
+  cleanupRound(winner) {
     this.tableCards = [];
-    
-    // Verifica se ambos estão sem cartas
-    if (this.playerHand.length === 0 && this.botHand.length === 0) {
+
+    // REGRA DO PROFESSOR: Condições de Fim de Jogo
+    // 1. Acabaram as cartas nas mãos
+    // 2. Alguém atingiu 61 pontos (Maioria matemática)
+    const handsEmpty =
+      this.playerHand.length === 0 && this.botHand.length === 0;
+    const userWon = this.score.user > 60; // > 60 é 61 ou mais
+    const botWon = this.score.bot > 60;
+
+    if (handsEmpty || userWon || botWon) {
       this.gameOver = true;
-      const result = this.score.user > this.score.bot ? "GANHASTE O JOGO!" : "PERDESTE!";
-      this.logs = `Fim. ${result}`;
+
+      let result = "";
+      if (this.score.user > 60)
+        result = "PARABÉNS! JÁ TENS 61+ PONTOS! GANHASTE!";
+      else if (this.score.bot > 60)
+        result = "PERDESTE! O BOT ATINGIU 61 PONTOS.";
+      else if (this.score.user === this.score.bot) result = "EMPATE TÉCNICO!";
+      else
+        result =
+          this.score.user > this.score.bot
+            ? "FIM! GANHASTE NOS PONTOS!"
+            : "FIM! PERDESTE NOS PONTOS!";
+
+      this.logs = result;
       this.turn = null;
     } else {
-      // --- LÓGICA DE QUEM MANDA NA MESA ---
-      // O vencedor da vaza anterior joga primeiro na próxima
-      this.turn = winner; 
-      
-      if (winner === 'user') {
+      // Regra Base: Quem ganha a vaza joga primeiro na próxima
+      this.turn = winner;
+
+      if (winner === "user") {
         this.logs += " Sua vez de jogar.";
       } else {
         this.logs += " Vez do Bot jogar.";
@@ -165,20 +227,19 @@ resolveRound() {
     }
   }
 
-  // Formata os dados para enviar ao frontend
   getState() {
     return {
-      playerHand: this.playerHand,
-      botHand: this.botHand, // Mantemos o botHand aqui para o debug que pediste
-      botCardCount: this.botHand.length,
-      trunfo: this.trunfo,
-      trunfoNaipe: this.trunfoNaipe,
-      tableCards: this.tableCards,
-      score: this.score,
-      turn: this.turn,
-      logs: this.logs,
-      gameOver: this.gameOver,
-      cardsLeft: this.deck.length
+      playerHand: this.playerHand, // Envia a mão do jogador
+      botHand: this.botHand, // Apenas para debug no frontend
+      botCardCount: this.botHand.length, // Nº de cartas do bot
+      trunfo: this.trunfo, // Carta de trunfo (pode ser null)
+      trunfoNaipe: this.trunfoNaipe, // Naipe do trunfo
+      tableCards: this.tableCards, // Cartas na mesa
+      score: this.score, // Pontuação atual
+      turn: this.turn, // De quem é a vez
+      logs: this.logs, // Mensagem de status
+      gameOver: this.gameOver, // Estado do jogo
+      cardsLeft: this.deck.length, // Cartas restantes no baralho
     };
   }
 }
