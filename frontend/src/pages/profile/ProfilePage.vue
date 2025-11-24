@@ -168,7 +168,7 @@ const confirmDelete = async () => {
 
   try {
     // call API with the provided password
-    await apiStore.deleteAccount(currentPassword)
+    await authStore.deleteAccount(currentPassword)
 
     // After account deletion the current token may be invalidated.
     // Attempt to logout, but ignore 401 (token already revoked) so the UX is smooth.

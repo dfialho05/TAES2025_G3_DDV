@@ -29,9 +29,6 @@ if (token) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 }
 
-app.mount('#app')
-
-// After mounting, attempt to get the current user to repopulate auth store.
 // If it fails (token expired/invalid), clear the session token and headers.
 const authStore = useAuthStore()
 if (token) {
@@ -41,3 +38,5 @@ if (token) {
     delete axios.defaults.headers.common['Authorization']
   })
 }
+
+app.mount('#app')

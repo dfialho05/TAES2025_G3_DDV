@@ -8,6 +8,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -42,6 +43,8 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        // TODO: perguntar ao stor a melhor abordagem em questao ao registrar um usuario ja apagado
+        // TODO: nao faz sentido o nickname poder ser igual a outro usuario mesmo que apagado
         $data = $request->validate([
             "name" => ["required", "string", "max:255"],
             "email" => [
@@ -49,7 +52,9 @@ class AuthController extends Controller
                 "string",
                 "email",
                 "max:255",
-                "unique:users,email",
+                Rule::unique("users", "email")->where(function ($query) {
+                    $query->whereNull("deleted_at");
+                }),
             ],
             "password" => ["required", "string", "min:3"],
             "nickname" => [
@@ -58,10 +63,30 @@ class AuthController extends Controller
                 "string",
                 "max:20",
                 "unique:users,nickname",
+                // Rule::unique("users", "nickname")->where(function ($query) {
+                //     $query->whereNull("deleted_at");
+                // }),
             ],
             "photo_avatar_filename" => ["sometimes", "nullable", "string"],
         ]);
 
+        // Transação: se já existir um user soft-deleted com o mesmo email,
+        // marca-o adicionando "?deleted" ao email antes do create, evitando conflito UNIQUE.
+        $result = DB::transaction(function () use ($data) {
+            // procura um utilizador soft-deleted com este email
+            $trashed = User::withTrashed()
+                ->where("email", $data["email"])
+                ->whereNotNull("deleted_at")
+                ->first();
+
+            if ($trashed) {
+                // adiciona o sufixo "?deleted" mantendo o resto do email igual
+                $trashed->email = $trashed->email . "?deleted";
+                $trashed->save();
+            }
+        });
+
+        // cria o novo utilizador
         $user = User::create([
             "name" => $data["name"],
             "email" => $data["email"],
@@ -82,7 +107,7 @@ class AuthController extends Controller
         );
     }
 
-    public function updateProfile(Request $request)
+    public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
 

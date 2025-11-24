@@ -77,7 +77,10 @@ import { toast } from 'vue-sonner'
 import 'vue-sonner/style.css'
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
+
 const authStore = useAuthStore()
+const router = useRouter()
 
 const logout = async () => {
   try {

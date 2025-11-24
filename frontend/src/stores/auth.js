@@ -46,6 +46,27 @@ export const useAuthStore = defineStore('auth', () => {
     return response
   }
 
+  // NEW: centraliza deleteAccount no auth store, delegando para apiStore
+  const deleteAccount = async (current_password) => {
+    // chama o endpoint que faz soft-delete no backend
+    const response = await apiStore.postDeleteAccount(current_password)
+
+    // após apagar, tenta efetuar logout localmente;
+    // se o logout falhar com 401 (token já revogado) ignora, senão propaga.
+    try {
+      await logout()
+    } catch (err) {
+      const status = err?.response?.status
+      if (status === 401) {
+        console.warn('Logout retornou 401 após remoção de conta — ignorando.')
+      } else {
+        throw err
+      }
+    }
+
+    return response
+  }
+
   return {
     currentUser,
     isLoggedIn,
@@ -53,5 +74,6 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     getUser,
     register,
+    deleteAccount,
   }
 })

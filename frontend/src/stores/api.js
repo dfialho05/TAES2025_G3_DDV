@@ -63,7 +63,7 @@ export const useAPIStore = defineStore('api', () => {
   }
 
   // Deactivate current user's account (expects { current_password })
-  const deleteAccount = (current_password) => {
+  const postDeleteAccount = (current_password) => {
     return axios.patch(`${API_BASE_URL}/users/me/deactivate`, { current_password })
   }
 
@@ -91,7 +91,7 @@ export const useAPIStore = defineStore('api', () => {
     getAuthUser,
     putUser,
     patchUserPhoto,
-    deleteAccount,
+    postDeleteAccount,
     uploadProfilePhoto,
   }
 })
