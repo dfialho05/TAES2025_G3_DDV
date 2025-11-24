@@ -15,10 +15,10 @@ export const useBiscaStore = defineStore('bisca', () => {
   const logs = ref("A conectar...");
   const currentTurn = ref(null);
   const isGameOver = ref(false);
-  const botHand = ref([]);
   const cardsLeft = ref(0);
   const trunfoNaipe = ref(null);
 
+  let contadorLogs = 0;
   // Ligar ao servidor
   const connect = () => {
     if (socket.value) return;
@@ -29,7 +29,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     socket.value.on('connect', () => {
       isConnected.value = true;
       console.log("Conectado ao servidor!");
-      startGame(); // Auto-start ao conectar
+      startGame();
     });
 
     socket.value.on('disconnect', () => {
@@ -39,9 +39,9 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     // Receber atualizações do servidor
     socket.value.on('game_state', (data) => {
-
+      contadorLogs++;
       // --- LOGS NA CONSOLA (DEBUG) ---
-      console.group("📦 PACOTE RECEBIDO DO SOCKET - USER:", data.score.user, " | BOT: ", data.score.bot);
+      console.group(contadorLogs, " - PACOTE RECEBIDO DO SOCKET - USER:", data.score.user, " | BOT: ", data.score.bot);
       console.log("Estado Completo:", data);
       console.log("Cartas na Mesa:", data.tableCards);
       console.groupEnd();
@@ -68,7 +68,6 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   };
 
-  // Ações de Jogo
   const startGame = () => {
     if (socket.value) socket.value.emit('join_game');
   };
@@ -85,7 +84,6 @@ export const useBiscaStore = defineStore('bisca', () => {
     startGame,
     playCard,
     isConnected,
-    botHand,
     playerHand,
     botCardCount,
     trunfo,

@@ -29,8 +29,7 @@ export class BiscaGame {
     this.tableCards = [];
     this.score = { user: 0, bot: 0 };
     this.turn = "user";
-    this.logs =
-      "Jogo iniciado!";
+    this.logs = "Jogo iniciado!";
     this.gameOver = false;
   }
 
@@ -147,6 +146,7 @@ export class BiscaGame {
         winnerPlayer = firstMove.player;
       }
     }
+    
 
     const points = c1.value + c2.value;
     this.score[winnerPlayer] += points;
@@ -230,7 +230,7 @@ export class BiscaGame {
   getState() {
     return {
       playerHand: this.playerHand, // Envia a mão do jogador
-      botHand: this.botHand, // Apenas para debug no frontend
+      //botHand: this.botHand,  //apenas para debug
       botCardCount: this.botHand.length, // Nº de cartas do bot
       trunfo: this.trunfo, // Carta de trunfo (pode ser null)
       trunfoNaipe: this.trunfoNaipe, // Naipe do trunfo

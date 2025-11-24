@@ -39,7 +39,7 @@ onMounted(async () => {
     }))
     .sort((a, b) => a.time - b.time == 0 ? a.moves - b.moves : a.time - b.time)
     .slice(0, 3)
-})
+  })
 </script>
 
 <template>
