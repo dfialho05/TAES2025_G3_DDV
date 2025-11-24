@@ -79,14 +79,21 @@ import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 const authStore = useAuthStore()
 
-const logout = () => {
-  toast.promise(authStore.logout(), {
-    loading: 'Calling API',
-    success: () => {
-      return 'Logout Sucessfull '
-    },
-    error: (data) => `[API] Error saving game - ${data?.response?.data?.message}`,
-  })
+const logout = async () => {
+  try {
+    await toast.promise(authStore.logout(), {
+      loading: 'Calling API',
+      success: () => {
+        return 'Logout Successful'
+      },
+      error: (data) => `[API] Error logging out - ${data?.response?.data?.message}`,
+    })
+  } catch (e) {
+    // Even on error, continue to redirect and clear UI
+    console.warn('Logout flow encountered an error (redirecting anyway):', e)
+  } finally {
+    router.push('/')
+  }
 }
 </script>
 

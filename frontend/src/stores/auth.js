@@ -17,8 +17,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = async () => {
+    // postLogout limpa sessionStorage (no api store) mesmo que a chamada ao servidor falhe
     await apiStore.postLogout()
     currentUser.value = undefined
+
+    // Emit logout event to other tabs/windows (storage events only fire on other tabs)
+    try {
+      localStorage.setItem('logout', Date.now().toString())
+    } catch (e) {
+      // ignore storage errors
+    }
   }
 
   const getUser = async () => {
@@ -27,12 +35,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const register = async (payload) => {
-    // payload expected to match AuthController::register:
-    // { name, email, password, nickname?, photo_avatar_filename? }
     const response = await apiStore.postRegister(payload)
 
-    // If the register endpoint returns the created user, set currentUser directly.
-    // Otherwise, attempt to fetch the authenticated user.
     if (response?.data?.user) {
       currentUser.value = response.data.user
     } else {
@@ -40,10 +44,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     return response
-  }
-
-  const deleteAccount = async () => {
-    return axios.patch(`${API_BASE_URL}/users/me/deactivate`)
   }
 
   return {
