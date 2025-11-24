@@ -57,7 +57,7 @@ Route::middleware("auth:sanctum")->group(function () {
 
 Route::get("/metadata", function (Request $request) {
     return [
-        "name" => "DAD 2025/26 Worksheet API",
+        "name" => "DAD 2025/26 Projeto",
         "version" => "0.0.1",
     ];
 });

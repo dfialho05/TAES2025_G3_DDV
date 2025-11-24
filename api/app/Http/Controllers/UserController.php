@@ -55,14 +55,22 @@ class UserController extends Controller
 
 public function patchPhotoURL(Request $request, User $user)
 {
-    $data = $request->validate(['photo_url' => 'required|string']);
-    if ($user->photo_url) {
-        if (Storage::disk('public')->exists('photos/' . $user->photo_url)) {
-            Storage::disk('public')->delete('photos/' . $user->photo_url);
-        }
+    $data = $request->validate([
+        'photo_url' => 'required|string'
+    ]);
+
+    // Deleta foto antiga se existir
+    if ($user->photo_url && Storage::disk('public')->exists('photos/' . $user->photo_url)) {
+        Storage::disk('public')->delete('photos/' . $user->photo_url);
     }
+
+    // Salva o novo nome do arquivo
     $user->photo_url = basename($data['photo_url']);
     $user->save();
-    return new UserResource($user);
+
+    return response()->json([
+        'success' => true,
+        'user' => $user
+    ]);
 }
 }
