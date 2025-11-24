@@ -6,6 +6,8 @@ export const useAuthStore = defineStore('auth', () => {
   const apiStore = useAPIStore()
 
   const currentUser = ref(undefined)
+  const initialized = ref(false)
+  let initPromise = Promise.resolve()
 
   const isLoggedIn = computed(() => {
     return currentUser.value !== undefined
@@ -67,9 +69,40 @@ export const useAuthStore = defineStore('auth', () => {
     return response
   }
 
+  // init: tenta repor sessão a partir do token em sessionStorage (se existir)
+  // e marca initialized=true quando terminar (sucesso ou falha).
+  const init = async () => {
+    if (initialized.value) return
+    if (initPromise) return initPromise
+
+    initPromise = (async () => {
+      const SESSION_TOKEN_KEY = 'apiToken'
+      const token = sessionStorage.getItem(SESSION_TOKEN_KEY)
+      if (token) {
+        try {
+          await getUser()
+        } catch (e) {
+          // token inválido / expirado -> limpa sessão local
+          try {
+            await apiStore.postLogout()
+          } catch (e) {
+            // ignore
+          }
+          currentUser.value = undefined
+        }
+      }
+      initialized.value = true
+      initPromise = null
+    })()
+
+    return initPromise
+  }
+
   return {
     currentUser,
     isLoggedIn,
+    initialized,
+    init,
     login,
     logout,
     getUser,

@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import axios from 'axios'
 
 import AboutPage from '@/pages/about/AboutPage.vue'
 import HomePage from '@/pages/home/HomePage.vue'
@@ -70,14 +71,39 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+// Async guard: if a route needs auth, try to restore the user from token before redirecting.
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
-  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-    next({ name: 'login' })
-  } else {
-    next()
+  if (to.meta.requiresAuth) {
+    // If already logged in, allow
+    if (authStore.isLoggedIn) {
+      return next()
+    }
+
+    // If not logged in but there's a token in sessionStorage, set axios header and try to fetch user
+    const SESSION_TOKEN_KEY = 'apiToken'
+    const token = sessionStorage.getItem(SESSION_TOKEN_KEY)
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      try {
+        await authStore.getUser()
+        // success — allow navigation
+        return next()
+      } catch (err) {
+        // token invalid/expired -> clear sessionStorage and axios header and redirect to login
+        sessionStorage.removeItem(SESSION_TOKEN_KEY)
+        delete axios.defaults.headers.common['Authorization']
+        return next({ name: 'login' })
+      }
+    }
+
+    // no token -> go to login
+    return next({ name: 'login' })
   }
+
+  // route doesn't require auth
+  return next()
 })
 
 export default router

@@ -81,7 +81,8 @@ class AuthController extends Controller
 
             if ($trashed) {
                 // adiciona o sufixo "?deleted" mantendo o resto do email igual
-                $trashed->email = $trashed->email . "?deleted";
+                $trashed->email =
+                    $trashed->email . "?deleted_newAccount:" . $trashed->id;
                 $trashed->save();
             }
         });
