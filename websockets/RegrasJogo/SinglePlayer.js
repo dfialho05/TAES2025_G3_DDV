@@ -1,6 +1,6 @@
 import { Bot } from "./Bot.js";
 
-const NAIPES = ["♥", "♦", "♣", "♠"];
+const NAIPES = ["c", "o", "p", "e"];
 const RANKS = ["2", "3", "4", "5", "6", "Q", "J", "K", "7", "A"];
 const VALORES = {
   A: 11,
@@ -30,7 +30,7 @@ export class BiscaGame {
     this.score = { user: 0, bot: 0 };
     this.turn = "user";
     this.logs =
-      "Jogo iniciado! Trunfo: " + this.trunfo.rank + this.trunfo.naipe;
+      "Jogo iniciado!";
     this.gameOver = false;
   }
 
@@ -43,7 +43,7 @@ export class BiscaGame {
           naipe,
           value: VALORES[rank],
           id: `${rank}-${naipe}`,
-          color: naipe === "♥" || naipe === "♦" ? "red" : "black",
+          color: naipe === "c" || naipe === "o" ? "red" : "black",
         });
       }
     }
