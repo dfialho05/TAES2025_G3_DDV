@@ -1,16 +1,36 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue'; // <--- ADICIONEI 'ref' AQUI
 import { useBiscaStore } from '@/stores/biscaStore';
 import { storeToRefs } from 'pinia';
 import Card from '@/components/game/Card.vue';
+import { useRoute } from 'vue-router';
 
+const route = useRoute();
 const store = useBiscaStore();
 const {
   playerHand, botCardCount, trunfo, tableCards,
   score, logs, currentTurn, isGameOver, isConnected, cardsLeft,
 } = storeToRefs(store);
 
-onMounted(() => { store.connect(); });
+// Controla se estamos no Menu ou no Jogo
+const gameStarted = ref(false);
+
+// Função central para iniciar o jogo (chamada pelo URL ou pelos botões)
+const chooseGameMode = (type) => {
+  store.startGame(type);
+  gameStarted.value = true; // Esconde menu, mostra mesa
+};
+
+onMounted(() => {
+  store.connect();
+
+  // Se viemos da Home Page com ?mode=9, iniciamos logo
+  if (route.query.mode) {
+    const modeFromUrl = parseInt(route.query.mode);
+    chooseGameMode(modeFromUrl);
+  }
+});
+
 onUnmounted(() => { store.disconnect(); });
 </script>
 
@@ -26,12 +46,7 @@ onUnmounted(() => { store.disconnect(); });
     <div class="bot-area">
       <div class="avatar">🤖 Bot</div>
       <div class="bot-hand">
-        <Card
-          v-for="n in botCardCount"
-          :key="n"
-          :face-down="true"
-          class="small-card"
-        />
+        <Card v-for="n in botCardCount" :key="n" :face-down="true" class="small-card" />
       </div>
       <div class="score-badge">Pontos: {{ score.bot }}</div>
     </div>
@@ -41,8 +56,8 @@ onUnmounted(() => { store.disconnect(); });
 
       <!-- Baralho -->
       <div v-if="cardsLeft > 0" class="deck-pile">
-          <Card :face-down="true" />
-          <span class="deck-count">{{ cardsLeft }}</span>
+        <Card :face-down="true" />
+        <span class="deck-count">{{ cardsLeft }}</span>
       </div>
 
       <!-- Trunfo -->
@@ -75,14 +90,8 @@ onUnmounted(() => { store.disconnect(); });
 
       <!-- MÃO DO JOGADOR (Com Animação) -->
       <TransitionGroup name="hand-anim" tag="div" class="player-hand">
-        <Card
-          v-for="(card, index) in playerHand"
-          :key="card.id"
-          :card="card"
-          :interactable="currentTurn === 'user'"
-          :class="{ 'disabled': currentTurn !== 'user' }"
-          @click="store.playCard(index)"
-        />
+        <Card v-for="(card, index) in playerHand" :key="card.id" :card="card" :interactable="currentTurn === 'user'"
+          :class="{ 'disabled': currentTurn !== 'user' }" @click="store.playCard(index)" />
       </TransitionGroup>
     </div>
 
@@ -103,8 +112,11 @@ onUnmounted(() => { store.disconnect(); });
 
 .overlay {
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.85);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -113,7 +125,8 @@ onUnmounted(() => { store.disconnect(); });
 }
 
 /* ÁREAS */
-.bot-area, .player-area {
+.bot-area,
+.player-area {
   padding: 15px;
   display: flex;
   flex-direction: column;
@@ -123,7 +136,7 @@ onUnmounted(() => { store.disconnect(); });
 
 .table-area {
   flex: 1;
-  background: rgba(0,0,0,0.1);
+  background: rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -132,32 +145,47 @@ onUnmounted(() => { store.disconnect(); });
 }
 
 /* Tamanhos de cartas especiais */
-.small-card { width: 50px; height: 75px; }
-.mini-card { width: 60px; height: 85px; }
+.small-card {
+  width: 50px;
+  height: 75px;
+}
+
+.mini-card {
+  width: 60px;
+  height: 85px;
+}
 
 /* Mãos */
-.player-hand, .bot-hand {
+.player-hand,
+.bot-hand {
   display: flex;
   gap: 5px;
   justify-content: center;
-  min-height: 100px; /* Garante altura para a animação não cortar */
+  min-height: 100px;
+  /* Garante altura para a animação não cortar */
 }
 
-.bot-hand { margin-bottom: 5px; }
+.bot-hand {
+  margin-bottom: 5px;
+}
 
 /* Disabled state */
 .disabled {
   filter: grayscale(0.6);
   cursor: not-allowed !important;
 }
-.disabled:hover { transform: none !important; }
+
+.disabled:hover {
+  transform: none !important;
+}
 
 /* Mesa */
 .played-cards {
   display: flex;
   gap: 40px;
   margin: 20px 0;
-  min-height: 120px; /* Espaço reservado para evitar pulos de layout */
+  min-height: 120px;
+  /* Espaço reservado para evitar pulos de layout */
   align-items: flex-end;
 }
 
@@ -168,7 +196,10 @@ onUnmounted(() => { store.disconnect(); });
   gap: 5px;
 }
 
-.label { font-size: 0.8rem; opacity: 0.8; }
+.label {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
 
 /* Deck e Trunfo */
 .deck-pile {
@@ -180,7 +211,8 @@ onUnmounted(() => { store.disconnect(); });
 
 .deck-count {
   position: absolute;
-  top: 50%; left: 50%;
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
   font-weight: bold;
   font-size: 1.5rem;
@@ -190,7 +222,8 @@ onUnmounted(() => { store.disconnect(); });
 
 .trunfo-area {
   position: absolute;
-  top: 20px; left: 20px;
+  top: 20px;
+  left: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -198,7 +231,7 @@ onUnmounted(() => { store.disconnect(); });
 
 /* UI */
 .game-log {
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   color: white;
   font-weight: bold;
   padding: 8px 20px;
@@ -220,9 +253,20 @@ onUnmounted(() => { store.disconnect(); });
   color: #333;
 }
 
-.score-badge { font-weight: bold; font-size: 1.1rem; }
-.active-turn { color: #ffeb3b; text-shadow: 0 0 5px rgba(255,235,59,0.5); }
-.turn-text { font-size: 0.9rem; margin-left: 5px; }
+.score-badge {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.active-turn {
+  color: #ffeb3b;
+  text-shadow: 0 0 5px rgba(255, 235, 59, 0.5);
+}
+
+.turn-text {
+  font-size: 0.9rem;
+  margin-left: 5px;
+}
 
 /* =========================================
    ANIMAÇÕES (CSS Mágico)
@@ -256,7 +300,8 @@ onUnmounted(() => { store.disconnect(); });
 
 /* --- ANIMAÇÃO DA MESA (table-anim) --- */
 .table-anim-enter-active {
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efeito elástico */
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Efeito elástico */
 }
 
 .table-anim-enter-from {
