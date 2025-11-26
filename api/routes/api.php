@@ -6,6 +6,7 @@ use App\Http\Controllers\CardFaceController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\CoinPurchaseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +54,8 @@ Route::middleware("auth:sanctum")->group(function () {
         UserController::class,
         "patchPhotoURL",
     ]);
+
+    Route::post("/purchases/", [CoinPurchaseController::class, "initiate"]);
 });
 
 Route::get("/metadata", function (Request $request) {
