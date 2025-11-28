@@ -22,6 +22,13 @@
             </li>
           </NavigationMenuContent>
         </NavigationMenuItem>
+
+        <NavigationMenuItem>
+          <NavigationMenuLink>
+            <RouterLink to="/purchase">Purchase</RouterLink>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+
         <NavigationMenuItem>
           <NavigationMenuLink>
             <RouterLink to="/about">About</RouterLink>
