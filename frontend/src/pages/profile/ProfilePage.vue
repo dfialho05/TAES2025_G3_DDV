@@ -13,8 +13,8 @@
             <div class="flex-shrink-0">
               <Avatar class="w-32 h-32">
                 <AvatarImage
-                  v-if="authStore.currentUser.photo_url"
-                  :src="`${serverBaseURL}/storage/photos/${authStore.currentUser.photo_url}`"
+                  v-if="authStore.currentUser.photo_avatar_filename"
+                  :src="`${serverBaseURL}/storage/photos_avatars/${authStore.currentUser.photo_avatar_filename}`"
                   :alt="authStore.currentUser.name"
                 />
                 <AvatarFallback class="text-4xl">
@@ -121,17 +121,24 @@ const uploadPhoto = async () => {
   try {
     const response = await apiStore.uploadProfilePhoto(files.value[0])
 
-    if (response.data && response.data.photo_url) {
-      await apiStore.patchUserPhoto(authStore.currentUser.id, response.data.photo_url)
+    // ADICIONA ISTO PARA DEBUG
+    console.log('Resposta do Upload:', response.data)
+
+    // Tenta capturar o nome corretamente.
+    // Se a resposta for { "location": "photos/abc.jpg" }, tens de usar .location
+    const uploadedFilename = response.data.filename || response.data.location || response.data
+
+    console.log('Nome do ficheiro a enviar:', uploadedFilename) // ISTO NÃO PODE SER UNDEFINED
+
+    if (uploadedFilename) {
+      await apiStore.patchUserPhoto(authStore.currentUser.id, uploadedFilename)
       await authStore.getUser()
-
       toast.success('Profile photo updated successfully')
-
       reset()
     }
   } catch (error) {
-    console.error('Failed to upload photo:', error)
-    toast.success('Failed to upload photo. Please try again.')
+    ;+console.error('Failed to upload photo:', error)
+    toast.error('Failed to upload photo. Please try again.')
   }
 }
 

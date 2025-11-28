@@ -53,16 +53,35 @@ class UserController extends Controller
         //
     }
 
-public function patchPhotoURL(Request $request, User $user)
-{
-    $data = $request->validate(['photo_url' => 'required|string']);
-    if ($user->photo_url) {
-        if (Storage::disk('public')->exists('photos/' . $user->photo_url)) {
-            Storage::disk('public')->delete('photos/' . $user->photo_url);
+    public function patchPhotoURL(Request $request, User $user)
+    {
+        $data = $request->validate([
+            "photo_url" => "required|string", // O Vue vai enviar o nome do ficheiro aqui
+        ]);
+
+        // 1. Define a pasta correta
+        $folder = "photos_avatars";
+
+        // 2. Verifica se existe foto antiga na pasta correta e apaga
+        // Nota: usa 'photo_avatar_filename' que é o nome real da tua coluna na BD
+        if (
+            $user->photo_avatar_filename &&
+            Storage::disk("public")->exists(
+                $folder . "/" . $user->photo_avatar_filename,
+            )
+        ) {
+            Storage::disk("public")->delete(
+                $folder . "/" . $user->photo_avatar_filename,
+            );
         }
+
+        // 3. Salva apenas o nome do ficheiro na coluna correta
+        $user->photo_avatar_filename = basename($data["photo_url"]);
+        $user->save();
+
+        return response()->json([
+            "success" => true,
+            "user" => new UserResource($user),
+        ]);
     }
-    $user->photo_url = basename($data['photo_url']);
-    $user->save();
-    return new UserResource($user);
-}
 }
