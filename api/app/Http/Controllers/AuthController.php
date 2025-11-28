@@ -70,24 +70,25 @@ class AuthController extends Controller
             "photo_avatar_filename" => ["sometimes", "nullable", "string"],
         ]);
 
+        // TODO: Se tiver tempo mudar esta estrutura para recuperar a conta soft deleted
         // Transação: se já existir um user soft-deleted com o mesmo email,
         // marca-o adicionando "?deleted" ao email antes do create, evitando conflito UNIQUE.
         $result = DB::transaction(function () use ($data) {
-            // procura um utilizador soft-deleted com este email
+            // finds a soft-deleted user with this email
             $trashed = User::withTrashed()
                 ->where("email", $data["email"])
                 ->whereNotNull("deleted_at")
                 ->first();
 
             if ($trashed) {
-                // adiciona o sufixo "?deleted" mantendo o resto do email igual
+                // adds the "?deleted" suffix, keeping the rest of the email the same
                 $trashed->email =
                     $trashed->email . "?deleted_newAccount:" . $trashed->id;
                 $trashed->save();
             }
         });
 
-        // cria o novo utilizador
+        // creates the new user
         $user = User::create([
             "name" => $data["name"],
             "email" => $data["email"],
@@ -178,7 +179,7 @@ class AuthController extends Controller
             );
         }
 
-        // isto é um soft delete bacalhau, não te stresses
+        // This is a soft delete, don't worry.
         $user->delete();
 
         return response()->json([

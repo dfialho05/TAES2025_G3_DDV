@@ -9,6 +9,7 @@ import RegisterPage from '@/pages/register/RegisterPage.vue'
 import ProfilePage from '@/pages/profile/ProfilePage.vue'
 import ThemesListPage from '@/pages/themes/ThemesListPage.vue'
 import ThemeEditorPage from '@/pages/themes/ThemeEditorPage.vue'
+import PurchasePage from '@/pages/purchase/PurchasePage.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -66,6 +67,12 @@ const router = createRouter({
       path: '/themes/edit/:id',
       name: 'themes-edit',
       component: ThemeEditorPage,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/purchase',
+      name: 'purchase',
+      component: PurchasePage,
       meta: { requiresAuth: true },
     },
   ],

@@ -22,6 +22,8 @@ class CoinTransaction extends Model
         "coins" => "integer",
     ];
 
+    public $timestamps = false;
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -34,7 +36,7 @@ class CoinTransaction extends Model
 
     public function game()
     {
-        return $this->belongsTo(Game::class); // ajusta conforme necessário
+        return $this->belongsTo(Game::class);
     }
 
     public function purchase()

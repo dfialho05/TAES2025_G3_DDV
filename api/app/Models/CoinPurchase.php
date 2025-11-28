@@ -22,6 +22,8 @@ class CoinPurchase extends Model
         "custom" => "array",
     ];
 
+    public $timestamps = false;
+
     public const PAYMENT_MBWAY = "MBWAY";
     public const PAYMENT_IBAN = "IBAN";
     public const PAYMENT_MB = "MB";
@@ -46,6 +48,6 @@ class CoinPurchase extends Model
 
     public function coinTransaction()
     {
-        return $this->belongsTo(CoinTransaction::class);
+        return $this->belongsTo(CoinTransaction::class, "coin_transaction_id");
     }
 }
