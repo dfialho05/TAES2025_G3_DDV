@@ -1,0 +1,33 @@
+{
+  "name": "bisca-websockets",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "WebSocket server for Bisca card game platform",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js",
+    "test": "node tests/test-bisca.js",
+    "test:bot": "node tests/testBot.js",
+    "test:integration": "node tests/integration-test.js",
+    "test:cards": "node tests/test-card-distribution.js",
+    "test:errors": "node tests/test-error-protection.js",
+    "test:quick": "node tests/test-quick.js",
+    "test:bot-confirm": "node tests/test-bot-confirmation.js",
+    "test:all": "npm run test && npm run test:cards && npm run test:errors && npm run test:quick"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  },
+  "keywords": [
+    "websocket",
+    "socket.io",
+    "card-game",
+    "bisca"
+  ],
+  "author": "TAES2025_G3_DDV",
+  "license": "ISC"
+}
