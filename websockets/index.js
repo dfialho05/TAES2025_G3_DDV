@@ -10,7 +10,7 @@ const io = new Server(3000, {
   }
 });
 
-// 2. Iniciar os Handlers
+
 connectionsHandlers(io);
 
-console.log("🚀 Servidor de Bisca a correr na porta 3000...");
+console.log("Servidor de Bisca a correr na porta 3000...");
