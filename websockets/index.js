@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { connectionsHandlers } from "./Handlers/connections.js";
+import { connectionsHandlers } from "./events/connections.js";
 
 
 // 1. Configuração do Servidor

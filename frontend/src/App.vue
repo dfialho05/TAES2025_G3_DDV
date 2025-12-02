@@ -26,7 +26,7 @@
                 <RouterLink to="/games/singleplayer">SinglePlayer</RouterLink>
               </NavigationMenuLink>
               <NavigationMenuLink as-child>
-                <RouterLink to="/">MultiPlayer</RouterLink>
+                <RouterLink to="/games/multiplayer">MultiPlayer</RouterLink>
               </NavigationMenuLink>
             </li>
           </NavigationMenuContent>

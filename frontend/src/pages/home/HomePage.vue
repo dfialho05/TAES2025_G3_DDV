@@ -23,10 +23,16 @@ const selectedDifficulty = ref('')
 
 const highScores = ref([])
 
-const startGame = (tipo) => {
-gameStore.difficulty = selectedDifficulty.value
+const startGameSingleplayer = (tipo) => {
  router.push({
     name: 'singleplayer',
+    query: { mode: tipo }
+  })
+}
+
+const startGameMultiplayer = (tipo) => {
+ router.push({
+    name: 'multiplayer',
     query: { mode: tipo }
   })
 }
@@ -59,17 +65,7 @@ onMounted(async () => {
             </CardHeader>
 
             <CardContent class="space-y-6 flex-1 flex flex-col">
-                <div class="space-y-2">
-                    <div class="grid grid-cols-3 gap-2">
-                        <Button v-for="level in gameStore.difficulties" :key="level.value" size="sm"
-                            :variant="selectedDifficulty === level.value ? 'default' : 'outline'"
-                            class="flex flex-col py-3 h-16 transition-all hover:scale-105"
-                            @click="selectedDifficulty = level.value">
-                            <span class="font-semibold">{{ level.label }} </span>
-                            <span class="text-xs opacity-70">{{ level.description}}</span>
-                        </Button>
-                    </div>
-                </div>
+
 
                 <div class="space-y-2 flex-1">
                     <label class="text-sm font-medium">High Scores (local)</label>
@@ -104,7 +100,7 @@ onMounted(async () => {
 
                 <div class="grid grid-cols-2 gap-3 pt-2">
                     <Button
-                        @click="startGame(3)"
+                        @click="startGameSingleplayer(3)"
                         variant="outline"
                         class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all group"
                     >
@@ -113,7 +109,7 @@ onMounted(async () => {
                     </Button>
 
                     <Button
-                        @click="startGame(9)"
+                        @click="startGameSingleplayer(9)"
                         variant="outline"
                         class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all group"
                     >
@@ -135,7 +131,13 @@ onMounted(async () => {
                 </CardDescription>
             </CardHeader>
             <CardContent class="flex items-center justify-center h-64">
-                 <span class="text-4xl">🚧</span>
+                 <Button
+                        @click="startGameMultiplayer(3)"
+                        variant="outline"
+                        class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all group">
+                        <span class="text-lg font-bold group-hover:text-green-600 dark:group-hover:text-green-400">Bisca de 3</span>
+                        <span class="text-xs text-muted-foreground font-normal">Modo Clássico</span>
+                    </Button>
             </CardContent>
         </Card>
     </div>
