@@ -33,7 +33,6 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   let contadorLogs = 0
 
-
   // Ligar ao servidor
 
   const connect = () => {
@@ -114,7 +113,6 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   const startGame = (type = 3) => {
     if (socket.value) {
-
       // Envia o tipo escolhido para o backend
       socket.value.emit('join_game', type)
 
