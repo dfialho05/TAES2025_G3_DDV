@@ -11,30 +11,36 @@ class Game extends Model
     use HasFactory;
 
     protected $fillable = [
-        'player1_id',
-        'player2_id',
-        'winner_id',
-        'type',
-        'status',
-        'began_at',
-        'ended_at',
-        'total_time',
-        'player1_moves',
-        'player2_moves',
+        "match_id",
+        "player1_id",
+        "player2_id",
+        "winner_id",
+        "type",
+        "status",
+        "began_at",
+        "ended_at",
+        "total_time",
+        "player1_moves",
+        "player2_moves",
     ];
 
     public function player1(): HasOne
     {
-        return $this->hasOne(User::class, 'id', 'player1_id');
+        return $this->hasOne(User::class, "id", "player1_id");
     }
 
     public function player2(): HasOne
     {
-        return $this->hasOne(User::class, 'id', 'player2_id');
+        return $this->hasOne(User::class, "id", "player2_id");
     }
 
     public function winner(): HasOne
     {
-        return $this->hasOne(User::class, 'id', 'winner_id');
+        return $this->hasOne(User::class, "id", "winner_id");
+    }
+
+    public function match()
+    {
+        return $this->belongsTo(Matches::class, "match_id");
     }
 }

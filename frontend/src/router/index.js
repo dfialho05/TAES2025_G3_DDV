@@ -45,12 +45,31 @@ const router = createRouter({
       name: 'register',
       component: RegisterPage,
     },
+
+    // --- ALTERAÇÃO: Rota de Perfil Genérica (Redirecionamento) ---
     {
       path: '/profile',
+      name: 'profile-redirect',
+      beforeEnter: (to, from, next) => {
+        const authStore = useAuthStore()
+        if (authStore.user?.id) {
+          // Se estiver logado, manda para o perfil dele com ID explícito
+          next({ name: 'profile', params: { id: authStore.user.id } })
+        } else {
+          // Se não estiver logado, manda fazer login
+          next({ name: 'login' })
+        }
+      },
+    },
+
+    // --- ALTERAÇÃO: Rota de Perfil Pública (com ID) ---
+    {
+      path: '/profile/:id',
       name: 'profile',
       component: ProfilePage,
-      meta: { requiresAuth: true },
+      // Nota: Removemos o meta: { requiresAuth: true } para ser público
     },
+
     {
       path: '/themes',
       name: 'themes',

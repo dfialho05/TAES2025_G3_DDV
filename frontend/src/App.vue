@@ -7,6 +7,7 @@
         >&nbsp;&nbsp;&nbsp; ({{ authStore.currentUser?.name }})
       </span>
     </div>
+
     <NavigationMenu>
       <NavigationMenuList class="justify-around gap-20">
         <NavigationMenuItem>
@@ -34,6 +35,7 @@
             <RouterLink to="/about">About</RouterLink>
           </NavigationMenuLink>
         </NavigationMenuItem>
+
         <NavigationMenuItem v-if="!authStore.isLoggedIn">
           <NavigationMenuLink>
             <RouterLink to="/login">Login</RouterLink>
@@ -44,16 +46,21 @@
             <RouterLink to="/register">Register</RouterLink>
           </NavigationMenuLink>
         </NavigationMenuItem>
+
         <NavigationMenuItem v-else>
           <NavigationMenuTrigger>Account</NavigationMenuTrigger>
           <NavigationMenuContent>
             <li>
               <NavigationMenuLink as-child>
-                <RouterLink to="/profile">Profile</RouterLink>
+                <RouterLink :to="{ name: 'profile', params: { id: authStore.currentUser?.id } }">
+                  Profile
+                </RouterLink>
               </NavigationMenuLink>
+
               <NavigationMenuLink as-child>
                 <RouterLink to="/themes">My Themes</RouterLink>
               </NavigationMenuLink>
+
               <NavigationMenuLink as-child>
                 <a @click.prevent="logout" class="cursor-pointer">Logout</a>
               </NavigationMenuLink>
@@ -63,6 +70,7 @@
       </NavigationMenuList>
     </NavigationMenu>
   </nav>
+
   <div>
     <main>
       <RouterView />
@@ -81,7 +89,7 @@ import {
 } from '@/components/ui/navigation-menu'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'vue-sonner'
-import 'vue-sonner/style.css'
+import 'vue-sonner/style.css' // Certifica-te que este CSS é necessário aqui ou no main.js
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
