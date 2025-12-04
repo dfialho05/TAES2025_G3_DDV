@@ -1,101 +1,328 @@
 <template>
-  <div class="max-w-6xl mx-auto p-6">
-    <div v-if="loadingUser" class="text-center py-12">
+  <div class="max-w-7xl mx-auto p-6">
+    <!-- Loading State -->
+    <div v-if="loadingUser" class="text-center py-20">
       <div
-        class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"
+        class="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"
       ></div>
-      <p class="text-lg text-gray-500">A carregar perfil...</p>
+      <p class="text-lg text-gray-500 font-medium">A carregar perfil...</p>
     </div>
 
-    <div v-else-if="displayedUser" class="space-y-8">
-      <div class="flex flex-col md:flex-row gap-8 items-center md:items-start mb-8">
-        <div class="flex-shrink-0 relative group">
-          <Avatar class="w-32 h-32 border-4 border-white shadow-lg">
-            <AvatarImage
-              v-if="displayedUser.photo_avatar_filename"
-              :src="`${serverBaseURL}/storage/photos_avatars/${displayedUser.photo_avatar_filename}`"
-              :alt="displayedUser.name"
-              class="object-cover"
-            />
-            <AvatarFallback class="text-4xl bg-slate-200 text-slate-600">
-              {{ displayedUser.name?.charAt(0).toUpperCase() }}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+    <!-- User Profile Content -->
+    <div v-else-if="displayedUser" class="space-y-8 animate-in fade-in duration-500">
+      <!-- 1. HEADER DO UTILIZADOR -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <div class="flex flex-col md:flex-row gap-8 items-center md:items-start">
+          <div class="shrink-0 relative group">
+            <Avatar class="w-32 h-32 border-4 border-white shadow-lg ring-1 ring-slate-100">
+              <AvatarImage
+                v-if="displayedUser.photo_avatar_filename"
+                :src="`${serverBaseURL}/storage/photos_avatars/${displayedUser.photo_avatar_filename}`"
+                :alt="displayedUser.name"
+                class="object-cover"
+              />
+              <AvatarFallback class="text-4xl bg-slate-100 text-slate-500 font-bold">
+                {{ displayedUser.name?.charAt(0).toUpperCase() }}
+              </AvatarFallback>
+            </Avatar>
+          </div>
 
-        <div class="flex-1 text-center md:text-left space-y-2 pt-2">
-          <h1 class="text-3xl font-bold tracking-tight">{{ displayedUser.name }}</h1>
-          <p class="text-gray-500 font-mono">{{ displayedUser.email }}</p>
-
-          <div v-if="isOwner" class="pt-2">
-            <div v-if="!files" class="inline-block">
-              <Button @click="open" variant="outline" size="sm" class="bg-white">
-                Alterar Foto
-              </Button>
+          <div class="flex-1 text-center md:text-left space-y-2 pt-2">
+            <div>
+              <h1 class="text-3xl font-bold tracking-tight text-slate-900">
+                {{ displayedUser.name }}
+              </h1>
+              <p v-if="displayedUser.nickname" class="text-lg text-primary font-semibold">
+                @{{ displayedUser.nickname }}
+              </p>
             </div>
+            <p class="text-gray-500 font-mono text-sm bg-slate-50 inline-block px-2 py-1 rounded">
+              {{ displayedUser.email }}
+            </p>
 
-            <div v-else class="flex flex-wrap gap-2 justify-center md:justify-start">
-              <Button @click="uploadPhoto" size="sm">Guardar</Button>
-              <Button
-                @click="reset"
-                variant="ghost"
-                size="sm"
-                class="text-red-500 hover:text-red-700 hover:bg-red-50"
-              >
-                Cancelar
-              </Button>
+            <!-- Botões de Edição (Apenas Dono) -->
+            <div v-if="isOwner" class="pt-4 flex flex-wrap gap-3 justify-center md:justify-start">
+              <div v-if="!files">
+                <Button
+                  @click="open"
+                  variant="outline"
+                  size="sm"
+                  class="bg-white border-slate-300 hover:bg-slate-50 text-slate-700"
+                >
+                  📷 Alterar Foto
+                </Button>
+              </div>
+              <div v-else class="flex gap-2">
+                <Button @click="uploadPhoto" size="sm">Guardar Foto</Button>
+                <Button
+                  @click="reset"
+                  variant="ghost"
+                  size="sm"
+                  class="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  >Cancelar</Button
+                >
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        <div :class="isOwner ? 'md:col-span-1' : 'md:col-span-2 max-w-3xl mx-auto w-full'">
-          <div class="bg-card rounded-xl border shadow-sm overflow-hidden">
-            <div class="p-6 border-b bg-slate-50/50">
-              <h3 class="font-semibold text-lg leading-none tracking-tight">
-                Histórico de Partidas
-              </h3>
-              <p class="text-sm text-muted-foreground mt-1">Jogos recentes</p>
-            </div>
-
-            <div class="p-6">
-              <div v-if="matchesStore.loading" class="text-center py-8 text-gray-400">
-                A atualizar histórico...
-              </div>
-
-              <div
-                v-else-if="!matchesStore.hasMatches"
-                class="text-center py-10 border-2 border-dashed rounded-lg text-gray-400"
-              >
-                Nenhuma partida registada.
-              </div>
-
-              <div v-else class="space-y-4">
-                <div
-                  v-for="match in matchesStore.matches"
-                  :key="match.id"
-                  class="flex items-center justify-between p-4 rounded-lg border bg-white shadow-sm hover:shadow-md transition-all duration-200"
+      <!-- 2. GRELHA DE CONTEÚDO (Jogos + Partidas + Edição) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- COLUNA ESQUERDA: HISTÓRICOS (Ocupa 8 colunas ou 12 se não for owner) -->
+        <div :class="isOwner ? 'lg:col-span-8' : 'lg:col-span-12'" class="space-y-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- BLOCO A: ÚLTIMOS 10 JOGOS (Lista Simples) -->
+            <div class="bg-white rounded-xl border shadow-sm h-full">
+              <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2">🎲 Últimos Jogos</h3>
+                <span
+                  class="text-xs font-medium text-slate-500 bg-white border px-2 py-0.5 rounded-full"
+                  >Top 10</span
                 >
-                  <div class="flex flex-col">
+              </div>
+
+              <div class="divide-y divide-slate-50">
+                <div
+                  v-if="gamesStore.loadingRecentGames"
+                  class="p-8 text-center text-gray-400 text-sm"
+                >
+                  <div
+                    class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"
+                  ></div>
+                  A carregar jogos...
+                </div>
+
+                <div
+                  v-else-if="gamesStore.errors.recentGames"
+                  class="p-8 text-center text-red-400 text-sm"
+                >
+                  <div class="mb-2">⚠️ {{ gamesStore.errors.recentGames }}</div>
+                  <button @click="loadProfileData" class="text-xs underline hover:no-underline">
+                    Tentar novamente
+                  </button>
+                </div>
+
+                <div
+                  v-else-if="gamesStore.recentGames.length === 0"
+                  class="p-8 text-center text-gray-400 text-sm"
+                >
+                  <div class="mb-2">🎮</div>
+                  <div class="font-medium">Nenhum jogo encontrado</div>
+                  <div class="text-xs mt-1 text-gray-300">
+                    Este utilizador ainda não jogou jogos individuais
+                  </div>
+                </div>
+
+                <div
+                  v-for="game in gamesStore.recentGames"
+                  :key="game.id"
+                  class="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                >
+                  <div class="flex items-center gap-3">
+                    <!-- Status Dot -->
                     <span
-                      class="font-bold text-sm uppercase tracking-wider mb-1"
-                      :class="isWinner(match) ? 'text-green-600' : 'text-red-500'"
-                    >
-                      {{ isWinner(match) ? 'VITÓRIA' : 'DERROTA' }}
-                    </span>
-                    <span class="text-xs text-gray-500"> vs {{ getOpponentName(match) }} </span>
+                      class="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-sm"
+                      :class="game.status === 'Ended' ? 'bg-emerald-500' : 'bg-amber-400'"
+                      :title="game.status"
+                    ></span>
+                    <div class="flex flex-col">
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-700">#{{ game.id }}</span>
+                        <span
+                          class="text-[10px] text-slate-400 uppercase bg-slate-100 px-1 rounded"
+                          >{{ game.type || 'Standard' }}</span
+                        >
+                      </div>
+                      <div class="text-[10px] text-slate-400 mt-0.5">
+                        <span v-if="game.opponent"
+                          >vs {{ game.opponent.nickname || game.opponent.name }}</span
+                        >
+                        <span v-else>vs Desconhecido</span>
+                      </div>
+                      <div class="text-[9px] text-slate-300" v-if="game.began_at">
+                        {{ formatDate(game.began_at) }}
+                      </div>
+                    </div>
                   </div>
 
                   <div class="text-right">
                     <span
-                      class="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full"
+                      class="text-xs font-bold px-2 py-1 rounded border"
+                      :class="
+                        game.is_winner === true
+                          ? 'bg-green-50 text-green-700 border-green-100'
+                          : game.is_winner === false
+                            ? 'bg-red-50 text-red-700 border-red-100'
+                            : 'bg-slate-50 text-slate-500 border-slate-100'
+                      "
                     >
-                      {{ match.type || 'Jogo' }}
+                      {{
+                        game.is_winner === true
+                          ? 'VITÓRIA'
+                          : game.is_winner === false
+                            ? 'DERROTA'
+                            : 'EMPATE'
+                      }}
                     </span>
-                    <span class="block text-xs text-gray-400 mt-1">
-                      {{ formatDate(match.began_at) }}
-                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- BLOCO B: ÚLTIMAS 5 PARTIDAS (Acordeão) -->
+            <div class="bg-white rounded-xl border shadow-sm h-full">
+              <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2">🏆 Últimas Partidas</h3>
+                <span
+                  class="text-xs font-medium text-slate-500 bg-white border px-2 py-0.5 rounded-full"
+                  >Top 5</span
+                >
+              </div>
+
+              <div class="p-4 space-y-3">
+                <div
+                  v-if="matchesStore.loadingRecentMatches"
+                  class="text-center text-gray-400 text-sm py-4"
+                >
+                  <div
+                    class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"
+                  ></div>
+                  A carregar partidas...
+                </div>
+
+                <div
+                  v-else-if="matchesStore.errors.recentMatches"
+                  class="text-center text-red-400 text-sm py-4"
+                >
+                  <div class="mb-2">⚠️ {{ matchesStore.errors.recentMatches }}</div>
+                  <button @click="loadProfileData" class="text-xs underline hover:no-underline">
+                    Tentar novamente
+                  </button>
+                </div>
+
+                <div
+                  v-else-if="matchesStore.recentMatches.length === 0"
+                  class="text-center text-gray-400 text-sm py-4"
+                >
+                  <div class="mb-2">🏆</div>
+                  <div class="font-medium">Nenhuma partida encontrada</div>
+                  <div class="text-xs mt-1 text-gray-300">
+                    Este utilizador ainda não participou em partidas completas
+                  </div>
+                </div>
+
+                <!-- Lista de Matches -->
+                <div
+                  v-for="match in matchesStore.recentMatches"
+                  :key="match.id"
+                  class="border rounded-lg bg-white overflow-hidden transition-all duration-200 hover:shadow-sm"
+                  :class="
+                    expandedMatchId === match.id
+                      ? 'ring-1 ring-primary/20 border-primary/30'
+                      : 'border-slate-200'
+                  "
+                >
+                  <!-- Cabeçalho (Clicável) -->
+                  <div
+                    class="flex items-center justify-between p-3 cursor-pointer bg-white"
+                    @click="toggleMatch(match.id)"
+                  >
+                    <div class="flex items-center gap-3">
+                      <!-- Seta -->
+                      <div
+                        class="text-slate-400 transition-transform duration-200"
+                        :class="{ 'rotate-180': expandedMatchId === match.id }"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </div>
+
+                      <div class="flex flex-col">
+                        <div class="flex items-center gap-2">
+                          <span
+                            class="font-bold text-xs uppercase tracking-wider"
+                            :class="isWinner(match) ? 'text-green-600' : 'text-red-500'"
+                          >
+                            {{ isWinner(match) ? 'VITÓRIA' : 'DERROTA' }}
+                          </span>
+                          <span
+                            class="text-[10px] text-slate-400 bg-slate-50 px-1 rounded border"
+                            >{{ match.type || 'Standard' }}</span
+                          >
+                        </div>
+                        <div class="text-xs text-slate-600 mt-1 flex items-center gap-1">
+                          <span class="text-slate-400">vs</span>
+                          <span class="font-medium">{{ getOpponentName(match) }}</span>
+                        </div>
+                        <div class="text-[9px] text-slate-300 mt-0.5" v-if="match.began_at">
+                          {{ formatDate(match.began_at) }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="text-right">
+                      <p class="text-[10px] text-slate-400">{{ formatDate(match.began_at) }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Detalhes (Jogos dentro do Match) -->
+                  <div
+                    v-if="expandedMatchId === match.id"
+                    class="bg-slate-50/80 border-t border-slate-100 p-3 space-y-2 animate-in slide-in-from-top-1 duration-200"
+                  >
+                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      Detalhes dos Jogos
+                    </h4>
+
+                    <div v-if="match.games && match.games.length > 0" class="space-y-1.5">
+                      <div
+                        v-for="g in match.games"
+                        :key="g.id"
+                        class="flex justify-between items-center text-xs bg-white p-2 rounded border border-slate-200 shadow-sm"
+                      >
+                        <div class="flex items-center gap-2">
+                          <span class="text-slate-500 font-mono">#{{ g.id }}</span>
+                          <span class="text-slate-300">|</span>
+                          <span class="text-slate-600">{{ g.type || 'Standard' }}</span>
+                          <span class="text-[9px] text-slate-400" v-if="g.began_at">
+                            {{ formatDate(g.began_at) }}
+                          </span>
+                        </div>
+                        <span
+                          class="font-semibold"
+                          :class="
+                            g.is_winner === true
+                              ? 'text-green-600'
+                              : g.is_winner === false
+                                ? 'text-red-500'
+                                : 'text-slate-500'
+                          "
+                        >
+                          {{
+                            g.is_winner === true
+                              ? 'Venceu'
+                              : g.is_winner === false
+                                ? 'Perdeu'
+                                : 'Empate'
+                          }}
+                        </span>
+                      </div>
+                    </div>
+                    <div v-else class="text-center text-xs text-gray-400 italic py-1">
+                      Sem detalhes disponíveis.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -103,36 +330,46 @@
           </div>
         </div>
 
-        <div v-if="isOwner" class="md:col-span-1">
-          <div class="bg-card rounded-xl border shadow-sm">
-            <div class="p-6 border-b bg-slate-50/50">
-              <h3 class="font-semibold text-lg leading-none tracking-tight">Editar Dados</h3>
-              <p class="text-sm text-muted-foreground mt-1">
-                Atualiza as tuas informações pessoais
-              </p>
+        <!-- COLUNA DIREITA: EDITAR (Apenas Dono) -->
+        <div v-if="isOwner" class="lg:col-span-4 space-y-6">
+          <div class="bg-white rounded-xl border shadow-sm sticky top-6">
+            <div class="p-5 border-b bg-slate-50/50">
+              <h3 class="font-semibold text-lg text-slate-800">Editar Dados</h3>
+              <p class="text-sm text-slate-500 mt-0.5">Atualiza as tuas informações</p>
             </div>
 
-            <div class="p-6 space-y-4">
-              <div class="space-y-2">
-                <Label for="name">Nome</Label>
+            <div class="p-5 space-y-4">
+              <div class="space-y-1.5">
+                <Label
+                  for="name"
+                  class="text-xs uppercase text-slate-500 font-semibold tracking-wider"
+                  >Nome</Label
+                >
                 <Input id="name" v-model="formData.name" class="bg-white" />
               </div>
 
-              <div class="space-y-2">
-                <Label for="email">Email</Label>
+              <div class="space-y-1.5">
+                <Label
+                  for="email"
+                  class="text-xs uppercase text-slate-500 font-semibold tracking-wider"
+                  >Email</Label
+                >
                 <Input id="email" v-model="formData.email" type="email" class="bg-white" />
               </div>
 
               <div class="pt-4 space-y-3">
-                <Button @click="saveProfile" class="w-full font-semibold">
+                <Button @click="saveProfile" class="w-full font-semibold shadow-sm">
                   Guardar Alterações
                 </Button>
 
-                <div v-if="authStore.currentUser?.type !== 'A'" class="pt-2">
+                <div
+                  v-if="authStore.currentUser?.type !== 'A'"
+                  class="pt-2 border-t border-slate-100"
+                >
                   <Button
                     @click="confirmDelete"
                     variant="ghost"
-                    class="w-full text-red-500 hover:text-red-700 hover:bg-red-50"
+                    class="w-full text-red-500 hover:text-red-600 hover:bg-red-50 text-sm h-9"
                   >
                     Eliminar Conta
                   </Button>
@@ -144,9 +381,12 @@
       </div>
     </div>
 
+    <!-- Error State -->
     <div v-else class="text-center py-20">
       <h2 class="text-2xl font-bold text-gray-800">Utilizador não encontrado</h2>
-      <Button @click="router.push('/')" variant="link" class="mt-4">Voltar à Home</Button>
+      <Button @click="router.push('/')" variant="link" class="mt-4 text-primary"
+        >Voltar à Home</Button
+      >
     </div>
   </div>
 </template>
@@ -157,11 +397,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
 import { useMatchesStore } from '@/stores/matches'
+import { useGamesStore } from '@/stores/games'
 import { useFileDialog } from '@vueuse/core'
 import { toast } from 'vue-sonner'
+import { getErrorMessage, errorLogger, safeAsync } from '@/utils/errorHandling'
 import axios from 'axios'
 
-// Componentes UI (ajusta os caminhos se necessário)
+// Componentes UI
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -172,13 +414,16 @@ const router = useRouter()
 const authStore = useAuthStore()
 const apiStore = useAPIStore()
 const matchesStore = useMatchesStore()
+const gamesStore = useGamesStore()
 
 const serverBaseURL = inject('serverBaseURL')
+const apiBaseURL = inject('apiBaseURL')
 
 // --- Estados ---
 const displayedUser = ref(null)
 const loadingUser = ref(true)
 const formData = ref({ name: '', email: '' })
+const expandedMatchId = ref(null)
 
 // --- Computed ---
 const isOwner = computed(() => {
@@ -189,7 +434,101 @@ const isOwner = computed(() => {
   )
 })
 
-// --- Carregamento de Dados ---
+// --- Ação Acordeão ---
+const toggleMatch = (matchId) => {
+  expandedMatchId.value = expandedMatchId.value === matchId ? null : matchId
+}
+
+// --- Função para carregar dados do perfil ---
+const loadProfileData = async () => {
+  const userId = route.params.id
+  if (!userId) return
+
+  errorLogger.info('Iniciando carregamento dos dados do perfil', { userId })
+
+  // Limpar erros anteriores
+  gamesStore.clearErrors()
+  matchesStore.clearErrors()
+
+  // Usar safeAsync para tratamento robusto de erros
+  const [gamesError] = await safeAsync(
+    () => gamesStore.fetchRecentGames(userId),
+    'Fetch recent games',
+  )
+
+  const [matchesError] = await safeAsync(
+    () => matchesStore.fetchRecentMatches(userId),
+    'Fetch recent matches',
+  )
+
+  // Verificar se conseguiu carregar pelo menos alguns dados
+  const hasGames = Array.isArray(gamesStore.recentGames) && gamesStore.recentGames.length > 0
+  const hasMatches =
+    Array.isArray(matchesStore.recentMatches) && matchesStore.recentMatches.length > 0
+
+  if (!hasGames && !hasMatches) {
+    if (gamesError || matchesError) {
+      // Houve erros - mostrar toast de erro
+      const primaryError = gamesError || matchesError
+      toast.error(getErrorMessage(primaryError.original))
+    } else {
+      // Não há dados mas também não houve erros
+      errorLogger.info('Nenhum dado encontrado para o utilizador', { userId })
+    }
+  } else {
+    // Sucesso - fazer logs detalhados
+    errorLogger.success('Dados do perfil carregados com sucesso', {
+      userId,
+      gamesCount: gamesStore.recentGames.length,
+      matchesCount: matchesStore.recentMatches.length,
+    })
+
+    // --- LOGS DETALHADOS DOS OBJETOS ---
+    console.log('📊 [ProfilePage] Dados carregados para userId:', userId)
+
+    if (hasGames) {
+      console.log('🎮 [ProfilePage] JOGOS RECENTES (Objetos completos):')
+      console.table(gamesStore.recentGames)
+
+      // Log individual de cada jogo
+      console.log('🔍 [ProfilePage] ANÁLISE INDIVIDUAL DOS JOGOS:')
+      gamesStore.recentGames.forEach((game, index) => {
+        console.log(`🎯 [ProfilePage] Jogo ${index + 1} (ID: ${game?.id || 'N/A'}):`, game)
+        console.log(`   ├─ Tipo: ${game?.type || 'Standard'}`)
+        console.log(`   ├─ Status: ${game?.status || 'N/A'}`)
+        console.log(`   ├─ Vencedor ID: ${game?.winner_id || 'N/A'}`)
+        console.log(`   ├─ É vencedor: ${game?.is_winner}`)
+        console.log(`   ├─ Oponente: ${game?.opponent?.name || 'Não encontrado'}`)
+        console.log(`   ├─ Data: ${game?.began_at || 'N/A'}`)
+        console.log(`   └─ Match ID: ${game?.match_id || 'N/A'}`)
+      })
+    } else {
+      console.log('📭 [ProfilePage] Nenhum jogo encontrado')
+    }
+
+    if (hasMatches) {
+      console.log('🏆 [ProfilePage] PARTIDAS RECENTES (Objetos completos):')
+      console.table(matchesStore.recentMatches)
+
+      // Log individual de cada partida
+      console.log('🔍 [ProfilePage] ANÁLISE INDIVIDUAL DAS PARTIDAS:')
+      matchesStore.recentMatches.forEach((match, index) => {
+        console.log(`🏅 [ProfilePage] Partida ${index + 1} (ID: ${match?.id || 'N/A'}):`, match)
+        console.log(`   ├─ Tipo: ${match?.type || 'Standard'}`)
+        console.log(`   ├─ Status: ${match?.status || 'N/A'}`)
+        console.log(`   ├─ Vencedor ID: ${match?.winner_user_id || 'N/A'}`)
+        console.log(`   ├─ É vencedor: ${match?.is_winner}`)
+        console.log(`   ├─ Oponente: ${match?.opponent?.name || 'Não encontrado'}`)
+        console.log(`   ├─ Total de jogos: ${match?.games_count || match?.games?.length || 0}`)
+        console.log(`   └─ Jogos detalhados:`, match?.games || [])
+      })
+    } else {
+      console.log('📭 [ProfilePage] Nenhuma partida encontrada')
+    }
+  }
+}
+
+// --- Carregamento Principal ---
 watch(
   () => route.params.id,
   async (newId) => {
@@ -197,18 +536,19 @@ watch(
 
     loadingUser.value = true
     displayedUser.value = null
-    matchesStore.matches = [] // Limpa visualmente antes de carregar
+    expandedMatchId.value = null
 
     try {
-      // 1. Identificar o User
+      // 1. Carregar User
       if (authStore.currentUser && authStore.currentUser.id == newId) {
         displayedUser.value = authStore.currentUser
       } else {
-        const response = await axios.get(`/users/${newId}`)
+        const url = apiBaseURL ? `${apiBaseURL}/users/${newId}` : `/users/${newId}`
+        const response = await axios.get(url)
         displayedUser.value = response.data.data || response.data
       }
 
-      // 2. Preencher form se for dono
+      // 2. Preencher Form
       if (isOwner.value) {
         formData.value = {
           name: displayedUser.value.name,
@@ -216,12 +556,11 @@ watch(
         }
       }
 
-      // 3. Buscar Jogos (Ordenados pelo Backend)
-      // Chama a store que criaste anteriormente
-      await matchesStore.fetchMatchesByUser(newId)
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error)
-      toast.error('Não foi possível carregar o perfil.')
+      // 3. Carregar Históricos (Jogos e Partidas) de forma assíncrona
+      loadProfileData()
+    } catch (err) {
+      console.error('Erro profile:', err)
+      toast.error('Erro ao carregar perfil.')
     } finally {
       loadingUser.value = false
     }
@@ -229,84 +568,100 @@ watch(
   { immediate: true },
 )
 
-// --- Helpers Visuais ---
+// --- Helpers ---
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  const d = new Date(dateStr)
+  return (
+    d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }) +
+    ' ' +
+    d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+  )
 }
 
 const getOpponentName = (match) => {
   if (!displayedUser.value) return '...'
-  const myId = displayedUser.value.id
 
-  // Lógica para encontrar o nome do oponente
-  // O backend envia player1_user_id e os objetos player1/player2
-  if (match.player1_user_id === myId) {
-    return match.player2 ? match.player2.name : 'Desconhecido'
+  // Usar os dados pré-processados da store se disponíveis
+  if (match.opponent) {
+    return match.opponent.nickname || match.opponent.name
   }
-  return match.player1 ? match.player1.name : 'Desconhecido'
+
+  // Fallback para o método original (compatibilidade)
+  const myId = displayedUser.value.id
+  const op = match.layer1_user_id === myId ? match.player2 : match.player1
+  return op ? op.nickname || op.name : 'Desconhecido'
 }
 
 const isWinner = (match) => {
-  if (!match.winner_user_id && !match.winner) return false
+  // Usar dados pré-processados se disponíveis
+  if (typeof match.is_winner !== 'undefined') {
+    return match.is_winner
+  }
 
-  // Verifica pelo ID do vencedor
-  // Suporta tanto se o backend enviar objeto 'winner' ou apenas 'winner_user_id'
+  // Fallback para o método original
   const winnerId = match.winner_user_id || match.winner?.id
-  return winnerId === displayedUser.value.id
+  return winnerId === displayedUser.value?.id
 }
 
-// --- Funções de Edição ---
+// --- Edição ---
 const { files, open, reset } = useFileDialog({ accept: 'image/*', multiple: false })
 
 const uploadPhoto = async () => {
   if (!files.value || !isOwner.value) return
-  try {
+
+  const [error] = await safeAsync(async () => {
     const response = await apiStore.uploadProfilePhoto(files.value[0])
     const filename = response.data.filename || response.data.location || response.data
-
     if (filename) {
       await apiStore.patchUserPhoto(authStore.currentUser.id, filename)
-      await authStore.getUser() // Atualiza store global
-      displayedUser.value = authStore.currentUser // Atualiza local
-      toast.success('Foto atualizada!')
+      await authStore.getUser()
+      displayedUser.value = authStore.currentUser
       reset()
     }
-  } catch (error) {
-    toast.error('Erro no upload.')
+  }, 'Upload profile photo')
+
+  if (error) {
+    toast.error(getErrorMessage(error.original))
+  } else {
+    toast.success('Foto atualizada!')
   }
 }
 
 const saveProfile = async () => {
   if (!isOwner.value) return
-  try {
+
+  const [error] = await safeAsync(async () => {
     const userToUpdate = { ...authStore.currentUser, ...formData.value }
     await apiStore.putUser(userToUpdate)
     await authStore.getUser()
     displayedUser.value = authStore.currentUser
+  }, 'Save profile')
+
+  if (error) {
+    toast.error(getErrorMessage(error.original))
+  } else {
     toast.success('Perfil guardado!')
-  } catch (error) {
-    toast.error('Erro ao guardar.')
   }
 }
 
 const confirmDelete = async () => {
-  if (!confirm('Tem a certeza que deseja eliminar a conta?')) return
-  const pwd = prompt('Confirme a sua password:')
+  if (!confirm('Eliminar conta?')) return
+  const pwd = prompt('Password:')
   if (!pwd) return
-  try {
+
+  const [error] = await safeAsync(async () => {
     await authStore.deleteAccount(pwd)
     try {
       await authStore.logout()
-    } catch (e) {}
+    } catch {
+      // Silently ignore logout errors during account deletion
+    }
     router.push('/')
-    toast.success('Conta eliminada.')
-  } catch (error) {
-    toast.error('Erro ao eliminar conta.')
+  }, 'Delete account')
+
+  if (error) {
+    toast.error(getErrorMessage(error.original))
   }
 }
 </script>
