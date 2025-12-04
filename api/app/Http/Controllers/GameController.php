@@ -43,7 +43,10 @@ class GameController extends Controller
                 "winner:id,name,nickname",
             ])
                 ->where(function ($q) use ($id) {
-                    $q->where("player1_id", $id)->orWhere("player2_id", $id);
+                    $q->where("player1_user_id", $id)->orWhere(
+                        "player2_user_id",
+                        $id,
+                    );
                 })
                 ->orderBy("began_at", "desc")
                 ->limit(10) // OTIMIZAÇÃO: Limitar a 10 registos
@@ -51,9 +54,9 @@ class GameController extends Controller
                 ->map(function ($game) use ($id) {
                     // Determinar oponente baseado no ID do utilizador
                     $opponent = null;
-                    if ($game->player1_id == $id && $game->player2) {
+                    if ($game->player1_user_id == $id && $game->player2) {
                         $opponent = $game->player2;
-                    } elseif ($game->player2_id == $id && $game->player1) {
+                    } elseif ($game->player2_user_id == $id && $game->player1) {
                         $opponent = $game->player1;
                     }
 
@@ -61,9 +64,9 @@ class GameController extends Controller
                     Log::info(
                         "🎮 [GameController] Processing Game ID: {$game->id}",
                         [
-                            "player1_id" => $game->player1_id,
-                            "player2_id" => $game->player2_id,
-                            "winner_id" => $game->winner_id,
+                            "player1_user_id" => $game->player1_user_id,
+                            "player2_user_id" => $game->player2_user_id,
+                            "winner_user_id" => $game->winner_user_id,
                             "user_id" => $id,
                             "opponent_found" => $opponent
                                 ? $opponent->name
@@ -77,10 +80,10 @@ class GameController extends Controller
                         "status" => $game->status,
                         "began_at" => $game->began_at,
                         "ended_at" => $game->ended_at,
-                        "winner_id" => $game->winner_id,
+                        "winner_id" => $game->winner_user_id,
                         "winner" => $game->winner,
-                        "player1_id" => $game->player1_id,
-                        "player2_id" => $game->player2_id,
+                        "player1_id" => $game->player1_user_id,
+                        "player2_id" => $game->player2_user_id,
                         "opponent" => $opponent
                             ? [
                                 "id" => $opponent->id,
@@ -90,7 +93,7 @@ class GameController extends Controller
                                     $opponent->photo_avatar_filename,
                             ]
                             : null,
-                        "is_winner" => $game->winner_id == $id,
+                        "is_winner" => $game->winner_user_id == $id,
                         "match_id" => $game->match_id,
                     ];
                 });
@@ -182,7 +185,7 @@ class GameController extends Controller
 
             // Verificar permissões (admin ou participante)
             $isParticipant =
-                $match->layer1_user_id === $user->id ||
+                $match->player1_user_id === $user->id ||
                 $match->player2_user_id === $user->id;
             $isAdmin = $user->type === "A";
 
@@ -233,13 +236,19 @@ class GameController extends Controller
             }
 
             $totalGames = Game::where(function ($q) use ($id) {
-                $q->where("player1_id", $id)->orWhere("player2_id", $id);
+                $q->where("player1_user_id", $id)->orWhere(
+                    "player2_user_id",
+                    $id,
+                );
             })->count();
 
             $wonGames = Game::where(function ($q) use ($id) {
-                $q->where("player1_id", $id)->orWhere("player2_id", $id);
+                $q->where("player1_user_id", $id)->orWhere(
+                    "player2_user_id",
+                    $id,
+                );
             })
-                ->where("winner_id", $id)
+                ->where("winner_user_id", $id)
                 ->count();
 
             $lostGames = $totalGames - $wonGames;
@@ -247,7 +256,10 @@ class GameController extends Controller
                 $totalGames > 0 ? round(($wonGames / $totalGames) * 100, 2) : 0;
 
             $lastGame = Game::where(function ($q) use ($id) {
-                $q->where("player1_id", $id)->orWhere("player2_id", $id);
+                $q->where("player1_user_id", $id)->orWhere(
+                    "player2_user_id",
+                    $id,
+                );
             })
                 ->orderBy("began_at", "desc")
                 ->first(["id", "began_at", "status"]);

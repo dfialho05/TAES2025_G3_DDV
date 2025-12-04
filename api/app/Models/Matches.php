@@ -15,7 +15,7 @@ class Matches extends Model
 
     protected $fillable = [
         "type",
-        "layer1_user_id", // CORREÇÃO: Nome real da coluna na DB (erro de escrita original)
+        "player1_user_id",
         "player2_user_id",
         "winner_user_id",
         "loser_user_id",
@@ -37,12 +37,11 @@ class Matches extends Model
     ];
 
     /**
-     * Relação com o Player 1 (usando a coluna com erro de escrita)
-     * IMPORTANTE: A coluna real na BD é 'layer1_user_id' devido ao erro original
+     * Relação com o Player 1
      */
     public function player1(): BelongsTo
     {
-        return $this->belongsTo(User::class, "layer1_user_id", "id");
+        return $this->belongsTo(User::class, "player1_user_id", "id");
     }
 
     /**
@@ -83,7 +82,7 @@ class Matches extends Model
     public function scopeForUser($query, $userId)
     {
         return $query->where(function ($q) use ($userId) {
-            $q->where("layer1_user_id", $userId)->orWhere(
+            $q->where("player1_user_id", $userId)->orWhere(
                 "player2_user_id",
                 $userId,
             );
@@ -111,7 +110,7 @@ class Matches extends Model
      */
     public function hasPlayer($userId): bool
     {
-        return $this->layer1_user_id == $userId ||
+        return $this->player1_user_id == $userId ||
             $this->player2_user_id == $userId;
     }
 
@@ -120,7 +119,7 @@ class Matches extends Model
      */
     public function getOpponent($userId)
     {
-        if ($this->layer1_user_id == $userId) {
+        if ($this->player1_user_id == $userId) {
             return $this->player2;
         } elseif ($this->player2_user_id == $userId) {
             return $this->player1;

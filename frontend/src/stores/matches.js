@@ -319,8 +319,8 @@ export const useMatchesStore = defineStore('matches', {
       // Se já tem dados do oponente processados
       if (match.opponent) return match.opponent
 
-      // Determina quem é o oponente baseado no layer1_user_id e player2_user_id
-      if (match.layer1_user_id == userId && match.player2) {
+      // Determina quem é o oponente baseado no player1_user_id e player2_user_id
+      if (match.player1_user_id == userId && match.player2) {
         return {
           id: match.player2.id,
           name: match.player2.name,

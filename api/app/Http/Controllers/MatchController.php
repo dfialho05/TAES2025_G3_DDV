@@ -41,7 +41,7 @@ class MatchController extends Controller
             "games",
         ])
             ->where(function ($q) use ($user) {
-                $q->where("layer1_user_id", $user->id)->orWhere(
+                $q->where("player1_user_id", $user->id)->orWhere(
                     "player2_user_id",
                     $user->id,
                 );
@@ -73,7 +73,7 @@ class MatchController extends Controller
                 "games.winner:id,name,nickname",
             ])
                 ->where(function ($q) use ($id) {
-                    $q->where("layer1_user_id", $id)->orWhere(
+                    $q->where("player1_user_id", $id)->orWhere(
                         "player2_user_id",
                         $id,
                     );
@@ -124,7 +124,7 @@ class MatchController extends Controller
                 },
             ])
                 ->where(function ($q) use ($id) {
-                    $q->where("layer1_user_id", $id)->orWhere(
+                    $q->where("player1_user_id", $id)->orWhere(
                         "player2_user_id",
                         $id,
                     );
@@ -136,7 +136,7 @@ class MatchController extends Controller
                 ->map(function ($match) use ($id) {
                     // Determinar oponente baseado no ID do utilizador
                     $opponent = null;
-                    if ($match->layer1_user_id == $id && $match->player2) {
+                    if ($match->player1_user_id == $id && $match->player2) {
                         $opponent = $match->player2;
                     } elseif (
                         $match->player2_user_id == $id &&
@@ -149,7 +149,7 @@ class MatchController extends Controller
                     Log::info(
                         "🏆 [MatchController] Processing Match ID: {$match->id}",
                         [
-                            "layer1_user_id" => $match->layer1_user_id,
+                            "player1_user_id" => $match->player1_user_id,
                             "player2_user_id" => $match->player2_user_id,
                             "winner_user_id" => $match->winner_user_id,
                             "user_id" => $id,
@@ -171,7 +171,7 @@ class MatchController extends Controller
                         "player2_marks" => $match->player2_marks,
                         "winner_user_id" => $match->winner_user_id,
                         "winner" => $match->winner,
-                        "layer1_user_id" => $match->layer1_user_id,
+                        "player1_user_id" => $match->player1_user_id,
                         "player2_user_id" => $match->player2_user_id,
                         "opponent" => $opponent
                             ? [
@@ -192,11 +192,11 @@ class MatchController extends Controller
                                 "status" => $game->status,
                                 "began_at" => $game->began_at,
                                 "ended_at" => $game->ended_at,
-                                "winner_id" => $game->winner_id,
+                                "winner_id" => $game->winner_user_id,
                                 "winner" => $game->winner,
-                                "player1_id" => $game->player1_id,
-                                "player2_id" => $game->player2_id,
-                                "is_winner" => $game->winner_id == $id,
+                                "player1_id" => $game->player1_user_id,
+                                "player2_id" => $game->player2_user_id,
+                                "is_winner" => $game->winner_user_id == $id,
                             ];
                         }),
                         "games_count" => $match->games->count(),
@@ -277,7 +277,7 @@ class MatchController extends Controller
     {
         $validated = $request->validate([
             "type" => "required|string",
-            "layer1_user_id" => "required|integer|exists:users,id",
+            "player1_user_id" => "required|integer|exists:users,id",
             "player2_user_id" => "required|integer|exists:users,id",
             "stake" => "nullable|numeric|min:0",
         ]);
@@ -368,14 +368,14 @@ class MatchController extends Controller
             }
 
             $totalMatches = Matches::where(function ($q) use ($id) {
-                $q->where("layer1_user_id", $id)->orWhere(
+                $q->where("player1_user_id", $id)->orWhere(
                     "player2_user_id",
                     $id,
                 );
             })->count();
 
             $wonMatches = Matches::where(function ($q) use ($id) {
-                $q->where("layer1_user_id", $id)->orWhere(
+                $q->where("player1_user_id", $id)->orWhere(
                     "player2_user_id",
                     $id,
                 );
@@ -390,7 +390,7 @@ class MatchController extends Controller
                     : 0;
 
             $lastMatch = Matches::where(function ($q) use ($id) {
-                $q->where("layer1_user_id", $id)->orWhere(
+                $q->where("player1_user_id", $id)->orWhere(
                     "player2_user_id",
                     $id,
                 );

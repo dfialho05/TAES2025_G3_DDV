@@ -12,23 +12,27 @@ class Game extends Model
 
     protected $fillable = [
         "match_id",
-        "player1_id",
-        "player2_id",
-        "winner_id",
+        "player1_user_id",
+        "player2_user_id",
+        "winner_user_id",
+        "loser_user_id",
         "type",
         "status",
         "began_at",
         "ended_at",
         "total_time",
-        "player1_moves",
-        "player2_moves",
+        "player1_points",
+        "player2_points",
+        "is_draw",
+        "custom",
     ];
 
     protected $casts = [
         "began_at" => "datetime",
         "ended_at" => "datetime",
-        "player1_moves" => "integer",
-        "player2_moves" => "integer",
+        "player1_points" => "integer",
+        "player2_points" => "integer",
+        "is_draw" => "boolean",
     ];
 
     /**
@@ -37,7 +41,7 @@ class Game extends Model
      */
     public function player1(): BelongsTo
     {
-        return $this->belongsTo(User::class, "player1_id", "id");
+        return $this->belongsTo(User::class, "player1_user_id", "id");
     }
 
     /**
@@ -46,7 +50,7 @@ class Game extends Model
      */
     public function player2(): BelongsTo
     {
-        return $this->belongsTo(User::class, "player2_id", "id");
+        return $this->belongsTo(User::class, "player2_user_id", "id");
     }
 
     /**
@@ -55,7 +59,7 @@ class Game extends Model
      */
     public function winner(): BelongsTo
     {
-        return $this->belongsTo(User::class, "winner_id", "id");
+        return $this->belongsTo(User::class, "winner_user_id", "id");
     }
 
     /**
@@ -72,7 +76,10 @@ class Game extends Model
     public function scopeForUser($query, $userId)
     {
         return $query->where(function ($q) use ($userId) {
-            $q->where("player1_id", $userId)->orWhere("player2_id", $userId);
+            $q->where("player1_user_id", $userId)->orWhere(
+                "player2_user_id",
+                $userId,
+            );
         });
     }
 
@@ -97,7 +104,8 @@ class Game extends Model
      */
     public function hasPlayer($userId): bool
     {
-        return $this->player1_id == $userId || $this->player2_id == $userId;
+        return $this->player1_user_id == $userId ||
+            $this->player2_user_id == $userId;
     }
 
     /**
@@ -105,9 +113,9 @@ class Game extends Model
      */
     public function getOpponent($userId)
     {
-        if ($this->player1_id == $userId) {
+        if ($this->player1_user_id == $userId) {
             return $this->player2;
-        } elseif ($this->player2_id == $userId) {
+        } elseif ($this->player2_user_id == $userId) {
             return $this->player1;
         }
         return null;
@@ -118,6 +126,6 @@ class Game extends Model
      */
     public function isWinner($userId): bool
     {
-        return $this->winner_id == $userId;
+        return $this->winner_user_id == $userId;
     }
 }
