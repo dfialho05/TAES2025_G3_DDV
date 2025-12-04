@@ -68,6 +68,7 @@ class DatabaseSeeder extends Seeder
         $this->call(InitialTransactionsSeeder::class);
         $this->call(GamesSeeder::class);
         $this->call(GamesTransactionsSeeder::class);
+        $this->call(DeckSeeder::class);
 
         if (DB::getDriverName() === 'sqlite') {
             DB::statement('PRAGMA foreign_keys = ON');

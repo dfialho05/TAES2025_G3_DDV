@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -14,6 +15,7 @@ class Game extends Model
         'player1_id',
         'player2_id',
         'winner_id',
+        'deck_id',
         'type',
         'status',
         'began_at',
@@ -22,6 +24,11 @@ class Game extends Model
         'player1_moves',
         'player2_moves',
     ];
+
+    public function deck(): BelongsTo
+    {
+        return $this->belongsTo(Deck::class);
+    }
 
     public function player1(): HasOne
     {

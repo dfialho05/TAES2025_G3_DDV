@@ -7,6 +7,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CoinPurchaseController;
+use App\Http\Controllers\StoreController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,10 @@ Route::middleware("auth:sanctum")->group(function () {
     ]);
 
     Route::post("/purchases/", [CoinPurchaseController::class, "initiate"]);
+
+    Route::get("/store/decks", [StoreController::class, "index"]);
+    Route::post("/store/buy", [StoreController::class, "buy"]);
+    Route::post("/store/equip", [StoreController::class, "toggleActive"]);
 });
 
 Route::get("/metadata", function (Request $request) {

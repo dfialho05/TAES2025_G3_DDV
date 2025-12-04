@@ -15,6 +15,23 @@ class StoreGameRequest extends FormRequest
         return true;
     }
 
+
+    protected function prepareForValidation()
+    {
+        // 1. Define o Default (Clássico = 1)
+        $deckIdToUse = 1;
+
+        // 2. Se for um User Autenticado, tenta buscar a preferência dele
+        if ($this->user()) {
+            $deckIdToUse = $this->user()->custom['active_deck_id'] ?? 1;
+        }
+
+        // 3. Injeta no pedido (sobrescreve qualquer coisa que venha do frontend)
+        $this->merge([
+            'deck_id' => $deckIdToUse,
+        ]);
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -27,6 +44,12 @@ class StoreGameRequest extends FormRequest
                 'sometimes',
                 'integer',
                 'exists:users,id',
+                
+            ],
+            'deck_id' => [
+                'required', 
+                'integer',
+                'exists:decks,id'
             ],
             'type' => ['required', Rule::in(['S', 'M'])],
             'status' => ['required', Rule::in(['PE', 'PL', 'E', 'I'])],
@@ -61,6 +84,7 @@ class StoreGameRequest extends FormRequest
             'player2_id.required_if' => 'Player 2 is required for multiplayer games.',
             'player2_id.exists' => 'The selected player does not exist.',
             'player2_id.different' => 'Player 2 must be different from the creator.',
+            'deck_id.exists' => 'The selected deck does not exist.',
         ];
     }
 }
