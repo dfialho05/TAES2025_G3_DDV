@@ -26,11 +26,9 @@ export const useAPIStore = defineStore('api', () => {
   }
 
   const postLogout = async () => {
-    // Try to notify the backend (optional). Always clear local session state afterwards.
     try {
       await axios.post(`${API_BASE_URL}/logout`)
     } catch (err) {
-      // Não impedimos a limpeza local se o logout no servidor falhar.
       console.warn('API logout failed (continuing local cleanup):', err)
     } finally {
       token.value = undefined
@@ -62,7 +60,6 @@ export const useAPIStore = defineStore('api', () => {
     return axios.patch(`${API_BASE_URL}/users/${id}/photo-url`, { photo_url })
   }
 
-  // Deactivate current user's account (expects { current_password })
   const postDeleteAccount = (current_password) => {
     return axios.patch(`${API_BASE_URL}/users/me/deactivate`, { current_password })
   }
@@ -84,6 +81,12 @@ export const useAPIStore = defineStore('api', () => {
     return uploadPromise
   }
 
+  // --- GAMES (Correção do erro "apiStore.getGames is not a function") ---
+  const getGames = async () => {
+    // Chama a rota pública de jogos que tens no api.php
+    return axios.get(`${API_BASE_URL}/games`)
+  }
+
   return {
     postLogin,
     postLogout,
@@ -93,5 +96,6 @@ export const useAPIStore = defineStore('api', () => {
     patchUserPhoto,
     postDeleteAccount,
     uploadProfilePhoto,
+    getGames, // <--- Exportar a nova função
   }
 })
