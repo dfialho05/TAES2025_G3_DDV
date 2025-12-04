@@ -52,7 +52,10 @@
           <NavigationMenuContent>
             <li>
               <NavigationMenuLink as-child>
-                <RouterLink :to="{ name: 'profile', params: { id: authStore.currentUser?.id } }">
+                <RouterLink
+                  v-if="authStore.currentUser?.id"
+                  :to="{ name: 'profile', params: { id: authStore.currentUser.id } }"
+                >
                   Profile
                 </RouterLink>
               </NavigationMenuLink>

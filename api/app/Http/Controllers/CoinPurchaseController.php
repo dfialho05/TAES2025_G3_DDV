@@ -66,9 +66,12 @@ class CoinPurchaseController extends Controller
             );
         }
 
-        // --- LÓGICA SIMPLIFICADA AQUI ---
+        // Payment Gateway Logic
         try {
-            $response = Http::timeout(10)->post($paymentsUrl, $payload);
+            $response = Http::timeout(10)->post(
+                $paymentsUrl . "/api/debit",
+                $payload,
+            );
             $providerResponse = $response->json();
 
             // Verificação Unificada:
@@ -81,7 +84,6 @@ class CoinPurchaseController extends Controller
                 Log::warning(
                     "Payment Rejected: " . json_encode($providerResponse),
                 );
-                // Retorna sempre 422 com a mensagem padrão
                 return response()->json(
                     [
                         "message" => "Saldo ou Método de pagamento inválido",
@@ -93,7 +95,6 @@ class CoinPurchaseController extends Controller
             // Se houver erro de conexão (Timeout, DNS), apanhamos aqui
             Log::error("Payment connection error: " . $e->getMessage());
 
-            // Retornamos também "Saldo ou Método de pagamento inválido" (422) para o frontend mostrar a mensagem de erro bonita
             return response()->json(
                 [
                     "message" => "Saldo ou Método de pagamento inválido",
@@ -101,7 +102,6 @@ class CoinPurchaseController extends Controller
                 422,
             );
         }
-        // --------------------------------
 
         // 3. Sucesso - Gravação na BD
         try {

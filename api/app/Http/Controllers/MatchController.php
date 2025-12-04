@@ -83,7 +83,7 @@ class MatchController extends Controller
 
             return response()->json($matches);
         } catch (\Exception $e) {
-            Log::error("❌ [MatchController] Error in matchesByUser", [
+            Log::error("[MatchController] Error in matchesByUser", [
                 "user_id" => $id,
                 "error" => $e->getMessage(),
             ]);
@@ -99,7 +99,7 @@ class MatchController extends Controller
     }
 
     /**
-     * NOVO MÉTODO OTIMIZADO: Últimas 5 partidas para o perfil
+     * NOVO MÉTODO OTIMIZADO: Últimas 8 partidas para o perfil
      * Endpoint: GET /users/{id}/matches/recent
      *
      * Este método é otimizado para a página de perfil com dados essenciais
@@ -131,7 +131,7 @@ class MatchController extends Controller
                 })
                 ->where("status", "Ended") // Apenas partidas terminadas
                 ->orderBy("began_at", "desc") // Mais recentes primeiro
-                ->limit(5) // OTIMIZAÇÃO: Apenas as 5 mais recentes
+                ->limit(8) // OTIMIZAÇÃO: Apenas as 8 mais recentes
                 ->get()
                 ->map(function ($match) use ($id) {
                     // Determinar oponente baseado no ID do utilizador
@@ -147,7 +147,7 @@ class MatchController extends Controller
 
                     // Log detalhado da partida processada
                     Log::info(
-                        "🏆 [MatchController] Processing Match ID: {$match->id}",
+                        "[MatchController] Processing Match ID: {$match->id}",
                         [
                             "player1_user_id" => $match->player1_user_id,
                             "player2_user_id" => $match->player2_user_id,
@@ -183,9 +183,27 @@ class MatchController extends Controller
                             ]
                             : null,
                         "is_winner" => $match->winner_user_id == $id,
+                        "match_result" => $this->calculateMatchResult(
+                            $match->games,
+                            $id,
+                        ),
                         "games" => $match->games->map(function ($game) use (
                             $id,
                         ) {
+                            // Determinar oponente para o jogo
+                            $gameOpponent = null;
+                            if (
+                                $game->player1_user_id == $id &&
+                                $game->player2
+                            ) {
+                                $gameOpponent = $game->player2;
+                            } elseif (
+                                $game->player2_user_id == $id &&
+                                $game->player1
+                            ) {
+                                $gameOpponent = $game->player1;
+                            }
+
                             return [
                                 "id" => $game->id,
                                 "type" => $game->type ?? "Standard",
@@ -196,7 +214,21 @@ class MatchController extends Controller
                                 "winner" => $game->winner,
                                 "player1_id" => $game->player1_user_id,
                                 "player2_id" => $game->player2_user_id,
-                                "is_winner" => $game->winner_user_id == $id,
+                                "player1_points" => $game->player1_points,
+                                "player2_points" => $game->player2_points,
+                                "opponent" => $gameOpponent
+                                    ? [
+                                        "id" => $gameOpponent->id,
+                                        "name" => $gameOpponent->name,
+                                        "nickname" => $gameOpponent->nickname,
+                                        "photo_avatar_filename" =>
+                                            $gameOpponent->photo_avatar_filename,
+                                    ]
+                                    : null,
+                                "is_winner" =>
+                                    $game->winner_user_id === null
+                                        ? null
+                                        : $game->winner_user_id == $id,
                             ];
                         }),
                         "games_count" => $match->games->count(),
@@ -204,7 +236,7 @@ class MatchController extends Controller
                 });
 
             // Log final das partidas processadas
-            Log::info("✅ [MatchController] Recent Matches processed", [
+            Log::info("[MatchController] Recent Matches processed", [
                 "user_id" => $id,
                 "total_matches" => $matches->count(),
                 "matches_with_opponents" => $matches
@@ -214,7 +246,7 @@ class MatchController extends Controller
 
             return response()->json($matches);
         } catch (\Exception $e) {
-            Log::error("❌ [MatchController] Error in recentMatches", [
+            Log::error("[MatchController] Error in recentMatches", [
                 "user_id" => $id,
                 "error" => $e->getMessage(),
             ]);
@@ -407,7 +439,7 @@ class MatchController extends Controller
                 "last_match" => $lastMatch,
             ]);
         } catch (\Exception $e) {
-            Log::error("❌ [MatchController] Error in userStats", [
+            Log::error("[MatchController] Error in userStats", [
                 "user_id" => $id,
                 "error" => $e->getMessage(),
             ]);
@@ -419,6 +451,37 @@ class MatchController extends Controller
                 ],
                 500,
             );
+        }
+    }
+
+    /**
+     * Calcular resultado da partida (ex: 2-1)
+     */
+    private function calculateMatchResult($games, $userId)
+    {
+        if (!$games || $games->count() === 0) {
+            return null;
+        }
+
+        $userWins = 0;
+        $opponentWins = 0;
+        $draws = 0;
+
+        foreach ($games as $game) {
+            if ($game->winner_user_id === null) {
+                $draws++;
+            } elseif ($game->winner_user_id == $userId) {
+                $userWins++;
+            } else {
+                $opponentWins++;
+            }
+        }
+
+        // Se houver empates, incluir no formato
+        if ($draws > 0) {
+            return "{$userWins}-{$opponentWins}-{$draws}";
+        } else {
+            return "{$userWins}-{$opponentWins}";
         }
     }
 }

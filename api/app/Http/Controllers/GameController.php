@@ -62,7 +62,7 @@ class GameController extends Controller
 
                     // Log detalhado do jogo processado
                     Log::info(
-                        "🎮 [GameController] Processing Game ID: {$game->id}",
+                        "[GameController] Processing Game ID: {$game->id}",
                         [
                             "player1_user_id" => $game->player1_user_id,
                             "player2_user_id" => $game->player2_user_id,
@@ -84,6 +84,8 @@ class GameController extends Controller
                         "winner" => $game->winner,
                         "player1_id" => $game->player1_user_id,
                         "player2_id" => $game->player2_user_id,
+                        "player1_points" => $game->player1_points,
+                        "player2_points" => $game->player2_points,
                         "opponent" => $opponent
                             ? [
                                 "id" => $opponent->id,
@@ -93,13 +95,16 @@ class GameController extends Controller
                                     $opponent->photo_avatar_filename,
                             ]
                             : null,
-                        "is_winner" => $game->winner_user_id == $id,
+                        "is_winner" =>
+                            $game->winner_user_id === null
+                                ? null
+                                : $game->winner_user_id == $id,
                         "match_id" => $game->match_id,
                     ];
                 });
 
             // Log final dos jogos processados
-            Log::info("✅ [GameController] Recent Games processed", [
+            Log::info("[GameController] Recent Games processed", [
                 "user_id" => $id,
                 "total_games" => $games->count(),
                 "games_with_opponents" => $games
@@ -109,7 +114,7 @@ class GameController extends Controller
 
             return response()->json($games);
         } catch (\Exception $e) {
-            Log::error("❌ [GameController] Error in recentGames", [
+            Log::error("[GameController] Error in recentGames", [
                 "user_id" => $id,
                 "error" => $e->getMessage(),
             ]);
@@ -209,7 +214,7 @@ class GameController extends Controller
 
             return response()->json($games);
         } catch (\Exception $e) {
-            Log::error("❌ [GameController] Error in gamesByMatch", [
+            Log::error("[GameController] Error in gamesByMatch", [
                 "match_id" => $matchId,
                 "error" => $e->getMessage(),
             ]);
@@ -273,7 +278,7 @@ class GameController extends Controller
                 "last_game" => $lastGame,
             ]);
         } catch (\Exception $e) {
-            Log::error("❌ [GameController] Error in userStats", [
+            Log::error("[GameController] Error in userStats", [
                 "user_id" => $id,
                 "error" => $e->getMessage(),
             ]);

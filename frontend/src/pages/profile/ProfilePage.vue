@@ -14,17 +14,12 @@
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
         <div class="flex flex-col md:flex-row gap-8 items-center md:items-start">
           <div class="shrink-0 relative group">
-            <Avatar class="w-32 h-32 border-4 border-white shadow-lg ring-1 ring-slate-100">
-              <AvatarImage
-                v-if="displayedUser.photo_avatar_filename"
-                :src="`${serverBaseURL}/storage/photos_avatars/${displayedUser.photo_avatar_filename}`"
-                :alt="displayedUser.name"
-                class="object-cover"
-              />
-              <AvatarFallback class="text-4xl bg-slate-100 text-slate-500 font-bold">
-                {{ displayedUser.name?.charAt(0).toUpperCase() }}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              :user="displayedUser"
+              size="xl"
+              class="border-4 border-white shadow-lg"
+              :debug="true"
+            />
           </div>
 
           <div class="flex-1 text-center md:text-left space-y-2 pt-2">
@@ -76,10 +71,6 @@
             <div class="bg-white rounded-xl border shadow-sm h-full">
               <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
                 <h3 class="font-bold text-gray-800 flex items-center gap-2">🎲 Últimos Jogos</h3>
-                <span
-                  class="text-xs font-medium text-slate-500 bg-white border px-2 py-0.5 rounded-full"
-                  >Top 10</span
-                >
               </div>
 
               <div class="divide-y divide-slate-50">
@@ -117,32 +108,87 @@
                 <div
                   v-for="game in gamesStore.recentGames"
                   :key="game.id"
-                  class="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                  class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                 >
-                  <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-4">
                     <!-- Status Dot -->
                     <span
-                      class="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-sm"
+                      class="w-3 h-3 rounded-full ring-2 ring-white shadow-sm flex-shrink-0"
                       :class="game.status === 'Ended' ? 'bg-emerald-500' : 'bg-amber-400'"
                       :title="game.status"
                     ></span>
-                    <div class="flex flex-col">
-                      <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-slate-700">#{{ game.id }}</span>
+                    <div class="flex flex-col min-w-0 flex-1">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="text-sm text-slate-800 truncate">
+                          vs
+                          <RouterLink
+                            v-if="game.opponent?.id"
+                            :to="{ name: 'profile', params: { id: game.opponent.id } }"
+                            class="font-bold text-blue-600 hover:text-blue-800 hover:underline transition-all duration-200 cursor-pointer bg-blue-50 hover:bg-blue-100 px-1 py-0.5 rounded inline-flex items-center gap-1"
+                            title="Ver perfil de {{ game.opponent.nickname || game.opponent.name }}"
+                          >
+                            {{ game.opponent.nickname || game.opponent.name }}
+                            <svg
+                              class="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                              />
+                            </svg>
+                          </RouterLink>
+                          <span v-else class="font-bold text-slate-800">
+                            {{
+                              game.opponent
+                                ? game.opponent.nickname || game.opponent.name
+                                : 'Desconhecido'
+                            }}
+                          </span>
+                        </span>
                         <span
-                          class="text-[10px] text-slate-400 uppercase bg-slate-100 px-1 rounded"
+                          class="text-[9px] text-slate-400 uppercase bg-slate-100 px-1.5 py-0.5 rounded flex-shrink-0"
                           >{{ game.type || 'Standard' }}</span
                         >
                       </div>
-                      <div class="text-[10px] text-slate-400 mt-0.5">
-                        <span v-if="game.opponent"
-                          >vs {{ game.opponent.nickname || game.opponent.name }}</span
-                        >
-                        <span v-else>vs Desconhecido</span>
-                      </div>
-                      <div class="text-[9px] text-slate-300" v-if="game.began_at">
+                      <div class="text-xs text-slate-500 mb-1">
                         {{ formatDate(game.began_at) }}
                       </div>
+                      <div
+                        class="text-xs flex items-center gap-2"
+                        v-if="getGamePoints(game).hasPoints"
+                      >
+                        <span class="flex items-center gap-1">
+                          <span
+                            class="w-2 h-2 rounded-full"
+                            :class="game.is_winner === null ? 'bg-amber-500' : 'bg-blue-500'"
+                          ></span>
+                          <span
+                            class="font-semibold"
+                            :class="game.is_winner === null ? 'text-amber-700' : 'text-blue-700'"
+                            >{{ getGamePoints(game).userPoints }}</span
+                          >
+                          <span class="text-slate-600">pts</span>
+                        </span>
+                        <span class="text-slate-400">•</span>
+                        <span class="flex items-center gap-1">
+                          <span
+                            class="w-2 h-2 rounded-full"
+                            :class="game.is_winner === null ? 'bg-amber-500' : 'bg-gray-500'"
+                          ></span>
+                          <span
+                            class="font-semibold"
+                            :class="game.is_winner === null ? 'text-amber-700' : 'text-gray-700'"
+                            >{{ getGamePoints(game).opponentPoints }}</span
+                          >
+                          <span class="text-slate-600">pts</span>
+                        </span>
+                      </div>
+                      <div v-else class="text-xs text-slate-400 italic">Pontos não disponíveis</div>
                     </div>
                   </div>
 
@@ -154,7 +200,7 @@
                           ? 'bg-green-50 text-green-700 border-green-100'
                           : game.is_winner === false
                             ? 'bg-red-50 text-red-700 border-red-100'
-                            : 'bg-slate-50 text-slate-500 border-slate-100'
+                            : 'bg-amber-50 text-amber-700 border-amber-100'
                       "
                     >
                       {{
@@ -174,10 +220,6 @@
             <div class="bg-white rounded-xl border shadow-sm h-full">
               <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
                 <h3 class="font-bold text-gray-800 flex items-center gap-2">🏆 Últimas Partidas</h3>
-                <span
-                  class="text-xs font-medium text-slate-500 bg-white border px-2 py-0.5 rounded-full"
-                  >Top 5</span
-                >
               </div>
 
               <div class="p-4 space-y-3">
@@ -253,9 +295,35 @@
                         <div class="flex items-center gap-2">
                           <span
                             class="font-bold text-xs uppercase tracking-wider"
-                            :class="isWinner(match) ? 'text-green-600' : 'text-red-500'"
+                            :class="
+                              isWinner(match) === true
+                                ? 'text-green-600'
+                                : isWinner(match) === false
+                                  ? 'text-red-500'
+                                  : 'text-amber-600'
+                            "
                           >
-                            {{ isWinner(match) ? 'VITÓRIA' : 'DERROTA' }}
+                            {{
+                              isWinner(match) === true
+                                ? 'VITÓRIA'
+                                : isWinner(match) === false
+                                  ? 'DERROTA'
+                                  : 'EMPATE'
+                            }}
+                          </span>
+                          <span
+                            v-if="match.match_result"
+                            class="text-xs font-bold px-2 py-0.5 rounded"
+                            :class="
+                              isWinner(match) === true
+                                ? 'bg-green-100 text-green-700'
+                                : isWinner(match) === false
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-amber-100 text-amber-700'
+                            "
+                            :title="getMatchResultDescription(match)"
+                          >
+                            {{ match.match_result }}
                           </span>
                           <span
                             class="text-[10px] text-slate-400 bg-slate-50 px-1 rounded border"
@@ -264,7 +332,28 @@
                         </div>
                         <div class="text-xs text-slate-600 mt-1 flex items-center gap-1">
                           <span class="text-slate-400">vs</span>
-                          <span class="font-medium">{{ getOpponentName(match) }}</span>
+                          <RouterLink
+                            v-if="match.opponent?.id"
+                            :to="{ name: 'profile', params: { id: match.opponent.id } }"
+                            class="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-all duration-200 cursor-pointer bg-blue-50 hover:bg-blue-100 px-1 py-0.5 rounded inline-flex items-center gap-1"
+                            title="Ver perfil de {{ getOpponentName(match) }}"
+                          >
+                            {{ getOpponentName(match) }}
+                            <svg
+                              class="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                              />
+                            </svg>
+                          </RouterLink>
+                          <span v-else class="font-medium">{{ getOpponentName(match) }}</span>
                         </div>
                         <div class="text-[9px] text-slate-300 mt-0.5" v-if="match.began_at">
                           {{ formatDate(match.began_at) }}
@@ -286,38 +375,114 @@
                       Detalhes dos Jogos
                     </h4>
 
-                    <div v-if="match.games && match.games.length > 0" class="space-y-1.5">
+                    <div v-if="match.games && match.games.length > 0" class="space-y-2">
                       <div
                         v-for="g in match.games"
                         :key="g.id"
-                        class="flex justify-between items-center text-xs bg-white p-2 rounded border border-slate-200 shadow-sm"
+                        class="flex items-center justify-between bg-white p-3 rounded border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
                       >
-                        <div class="flex items-center gap-2">
-                          <span class="text-slate-500 font-mono">#{{ g.id }}</span>
-                          <span class="text-slate-300">|</span>
-                          <span class="text-slate-600">{{ g.type || 'Standard' }}</span>
-                          <span class="text-[9px] text-slate-400" v-if="g.began_at">
-                            {{ formatDate(g.began_at) }}
+                        <div class="flex items-center gap-3">
+                          <!-- Status Dot -->
+                          <span
+                            class="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-sm flex-shrink-0"
+                            :class="g.status === 'Ended' ? 'bg-emerald-500' : 'bg-amber-400'"
+                            :title="g.status"
+                          ></span>
+                          <div class="flex flex-col min-w-0 flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                              <span class="text-sm text-slate-800 truncate">
+                                Bisca vs
+                                <RouterLink
+                                  v-if="g.opponent?.id"
+                                  :to="{ name: 'profile', params: { id: g.opponent.id } }"
+                                  class="font-bold text-blue-600 hover:text-blue-800 hover:underline transition-all duration-200 cursor-pointer bg-blue-50 hover:bg-blue-100 px-1 py-0.5 rounded inline-flex items-center gap-1"
+                                  title="Ver perfil de {{ g.opponent.nickname || g.opponent.name }}"
+                                >
+                                  {{ g.opponent.nickname || g.opponent.name }}
+                                  <svg
+                                    class="w-3 h-3"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                    />
+                                  </svg>
+                                </RouterLink>
+                                <span v-else class="font-bold">
+                                  {{
+                                    g.opponent
+                                      ? g.opponent.nickname || g.opponent.name
+                                      : 'Desconhecido'
+                                  }}
+                                </span>
+                              </span>
+                              <span
+                                class="text-[9px] text-slate-400 uppercase bg-slate-100 px-1.5 py-0.5 rounded flex-shrink-0"
+                              >
+                                {{ g.type || 'Standard' }}
+                              </span>
+                            </div>
+                            <div class="text-xs text-slate-500 mb-1">
+                              {{ formatDate(g.began_at) }}
+                            </div>
+                            <div
+                              class="text-xs flex items-center gap-2"
+                              v-if="getGamePoints(g).hasPoints"
+                            >
+                              <span class="flex items-center gap-1">
+                                <span
+                                  class="w-2 h-2 rounded-full"
+                                  :class="g.is_winner === null ? 'bg-amber-500' : 'bg-blue-500'"
+                                ></span>
+                                <span
+                                  class="font-semibold"
+                                  :class="g.is_winner === null ? 'text-amber-700' : 'text-blue-700'"
+                                  >{{ getGamePoints(g).userPoints }}</span
+                                >
+                                <span class="text-slate-600">pts</span>
+                              </span>
+                              <span class="text-slate-400">•</span>
+                              <span class="flex items-center gap-1">
+                                <span
+                                  class="w-2 h-2 rounded-full"
+                                  :class="g.is_winner === null ? 'bg-amber-500' : 'bg-gray-500'"
+                                ></span>
+                                <span
+                                  class="font-semibold"
+                                  :class="g.is_winner === null ? 'text-amber-700' : 'text-gray-700'"
+                                  >{{ getGamePoints(g).opponentPoints }}</span
+                                >
+                                <span class="text-slate-600">pts</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="text-right">
+                          <span
+                            class="text-xs font-bold px-2 py-1 rounded border"
+                            :class="
+                              g.is_winner === true
+                                ? 'bg-green-50 text-green-700 border-green-100'
+                                : g.is_winner === false
+                                  ? 'bg-red-50 text-red-700 border-red-100'
+                                  : 'bg-amber-50 text-amber-700 border-amber-100'
+                            "
+                          >
+                            {{
+                              g.is_winner === true
+                                ? 'VITÓRIA'
+                                : g.is_winner === false
+                                  ? 'DERROTA'
+                                  : 'EMPATE'
+                            }}
                           </span>
                         </div>
-                        <span
-                          class="font-semibold"
-                          :class="
-                            g.is_winner === true
-                              ? 'text-green-600'
-                              : g.is_winner === false
-                                ? 'text-red-500'
-                                : 'text-slate-500'
-                          "
-                        >
-                          {{
-                            g.is_winner === true
-                              ? 'Venceu'
-                              : g.is_winner === false
-                                ? 'Perdeu'
-                                : 'Empate'
-                          }}
-                        </span>
                       </div>
                     </div>
                     <div v-else class="text-center text-xs text-gray-400 italic py-1">
@@ -393,7 +558,7 @@
 
 <script setup>
 import { ref, inject, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
 import { useMatchesStore } from '@/stores/matches'
@@ -408,6 +573,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import UserAvatar from '@/components/UserAvatar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -484,16 +650,16 @@ const loadProfileData = async () => {
     })
 
     // --- LOGS DETALHADOS DOS OBJETOS ---
-    console.log('📊 [ProfilePage] Dados carregados para userId:', userId)
+    console.log('[ProfilePage] Dados carregados para userId:', userId)
 
     if (hasGames) {
-      console.log('🎮 [ProfilePage] JOGOS RECENTES (Objetos completos):')
+      console.log('[ProfilePage] JOGOS RECENTES (Objetos completos):')
       console.table(gamesStore.recentGames)
 
       // Log individual de cada jogo
-      console.log('🔍 [ProfilePage] ANÁLISE INDIVIDUAL DOS JOGOS:')
+      console.log('[ProfilePage] ANÁLISE INDIVIDUAL DOS JOGOS:')
       gamesStore.recentGames.forEach((game, index) => {
-        console.log(`🎯 [ProfilePage] Jogo ${index + 1} (ID: ${game?.id || 'N/A'}):`, game)
+        console.log(`[ProfilePage] Jogo ${index + 1} (ID: ${game?.id || 'N/A'}):`, game)
         console.log(`   ├─ Tipo: ${game?.type || 'Standard'}`)
         console.log(`   ├─ Status: ${game?.status || 'N/A'}`)
         console.log(`   ├─ Vencedor ID: ${game?.winner_id || 'N/A'}`)
@@ -503,17 +669,17 @@ const loadProfileData = async () => {
         console.log(`   └─ Match ID: ${game?.match_id || 'N/A'}`)
       })
     } else {
-      console.log('📭 [ProfilePage] Nenhum jogo encontrado')
+      console.log('[ProfilePage] Nenhum jogo encontrado')
     }
 
     if (hasMatches) {
-      console.log('🏆 [ProfilePage] PARTIDAS RECENTES (Objetos completos):')
+      console.log('[ProfilePage] PARTIDAS RECENTES (Objetos completos):')
       console.table(matchesStore.recentMatches)
 
       // Log individual de cada partida
-      console.log('🔍 [ProfilePage] ANÁLISE INDIVIDUAL DAS PARTIDAS:')
+      console.log('[ProfilePage] ANÁLISE INDIVIDUAL DAS PARTIDAS:')
       matchesStore.recentMatches.forEach((match, index) => {
-        console.log(`🏅 [ProfilePage] Partida ${index + 1} (ID: ${match?.id || 'N/A'}):`, match)
+        console.log(`[ProfilePage] Partida ${index + 1} (ID: ${match?.id || 'N/A'}):`, match)
         console.log(`   ├─ Tipo: ${match?.type || 'Standard'}`)
         console.log(`   ├─ Status: ${match?.status || 'N/A'}`)
         console.log(`   ├─ Vencedor ID: ${match?.winner_user_id || 'N/A'}`)
@@ -523,7 +689,7 @@ const loadProfileData = async () => {
         console.log(`   └─ Jogos detalhados:`, match?.games || [])
       })
     } else {
-      console.log('📭 [ProfilePage] Nenhuma partida encontrada')
+      console.log('[ProfilePage] Nenhuma partida encontrada')
     }
   }
 }
@@ -573,7 +739,7 @@ const formatDate = (dateStr) => {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
   return (
-    d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }) +
+    d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
     ' ' +
     d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
   )
@@ -603,6 +769,69 @@ const isWinner = (match) => {
   const winnerId = match.winner_user_id || match.winner?.id
   return winnerId === displayedUser.value?.id
 }
+
+const getGamePoints = (game) => {
+  if (
+    !displayedUser.value ||
+    game.player1_points === null ||
+    game.player2_points === null ||
+    game.player1_points === undefined ||
+    game.player2_points === undefined
+  ) {
+    return { userPoints: 0, opponentPoints: 0, hasPoints: false }
+  }
+
+  const isPlayer1 = game.player1_id == displayedUser.value.id
+
+  if (isPlayer1) {
+    return {
+      userPoints: game.player1_points || 0,
+      opponentPoints: game.player2_points || 0,
+      hasPoints: true,
+    }
+  } else {
+    return {
+      userPoints: game.player2_points || 0,
+      opponentPoints: game.player1_points || 0,
+      hasPoints: true,
+    }
+  }
+}
+
+const getMatchResultDescription = (match) => {
+  if (!match.match_result) return ''
+
+  const parts = match.match_result.split('-')
+  if (parts.length === 2) {
+    return `${parts[0]} vitórias, ${parts[1]} derrotas`
+  } else if (parts.length === 3) {
+    return `${parts[0]} vitórias, ${parts[1]} derrotas, ${parts[2]} empates`
+  }
+  return match.match_result
+}
+
+// // --- Debug ---
+// const testImageFetch = async () => {
+//   if (!displayedUser.value?.photo_avatar_filename) return
+
+//   const url = `${serverBaseURL}/api/avatars/${displayedUser.value.photo_avatar_filename}`
+//   console.log('Testing fetch for:', url)
+
+//   try {
+//     const response = await fetch(url)
+//     console.log('Fetch response:', response.status, response.statusText)
+//     console.log('Response headers:', [...response.headers.entries()])
+
+//     if (response.ok) {
+//       const blob = await response.blob()
+//       console.log('Blob size:', blob.size, 'type:', blob.type)
+//     } else {
+//       console.error('Fetch failed:', response.status)
+//     }
+//   } catch (error) {
+//     console.error('Fetch error:', error)
+//   }
+// }
 
 // --- Edição ---
 const { files, open, reset } = useFileDialog({ accept: 'image/*', multiple: false })

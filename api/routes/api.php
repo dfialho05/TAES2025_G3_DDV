@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\BoardThemeController;
 use App\Http\Controllers\CardFaceController;
 use App\Http\Controllers\FileController;
@@ -85,7 +86,7 @@ Route::middleware("auth:sanctum")->group(function () {
 
     // Current User Info
     Route::get("/users/me", function (Request $request) {
-        return $request->user();
+        return new \App\Http\Resources\UserResource($request->user());
     });
 
     // Profile Updates
@@ -170,6 +171,33 @@ Route::middleware("auth:sanctum")->group(function () {
 
     Route::post("/purchases/", [CoinPurchaseController::class, "initiate"]);
 });
+
+/*
+|--------------------------------------------------------------------------
+| Avatar Image Routes (Public with CORS headers)
+|--------------------------------------------------------------------------
+*/
+
+// Avatar image serving
+Route::get("/avatars/{filename}", [AvatarController::class, "show"])->where(
+    "filename",
+    "[a-zA-Z0-9_\-\.]+",
+);
+
+// CORS preflight for avatars
+Route::options("/avatars/{filename}", [
+    AvatarController::class,
+    "options",
+])->where("filename", "[a-zA-Z0-9_\-\.]+");
+
+// Avatar statistics (for debugging)
+Route::get("/avatars-stats", [AvatarController::class, "stats"]);
+
+// Avatar test endpoint (for debugging)
+Route::get("/avatars-test/{filename}", [
+    AvatarController::class,
+    "test",
+])->where("filename", "[a-zA-Z0-9_\-\.]+");
 
 /*
 |--------------------------------------------------------------------------
