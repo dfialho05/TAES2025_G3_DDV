@@ -10,6 +10,7 @@ import ProfilePage from '@/pages/profile/ProfilePage.vue'
 import ThemesListPage from '@/pages/themes/ThemesListPage.vue'
 import ThemeEditorPage from '@/pages/themes/ThemeEditorPage.vue'
 import PurchasePage from '@/pages/purchase/PurchasePage.vue'
+import ShopPage from '@/pages/shop/ShopPage.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -74,6 +75,12 @@ const router = createRouter({
       name: 'purchase',
       component: PurchasePage,
       meta: { requiresAuth: true },
+    },
+    {
+        path: '/shop',
+        name: 'Shop',
+        component: ShopPage,
+        meta: { requiresAuth: true } // Se usares proteção de rotas
     },
   ],
 })

@@ -4,13 +4,14 @@ import { computed } from 'vue';
 const props = defineProps({
   card: { type: Object, default: null },
   faceDown: { type: Boolean, default: false },
-  interactable: { type: Boolean, default: false }
+  interactable: { type: Boolean, default: false },
+  deck: {type: String, default:'default'}
 });
 
 const cardImage = computed(() => {
   // 1. Carta virada para baixo
   if (props.faceDown || !props.card) {
-    return new URL('../../assets/cards/semFace.png', import.meta.url).href;
+    return new URL(`../../assets/cards/${props.deck}/semFace.png`, import.meta.url).href;
   }
 
   // 2. NAIPE: Usar DIRETAMENTE o que vem do servidor
@@ -33,7 +34,7 @@ const cardImage = computed(() => {
   // 4. Nome final (ex: c1.png, p13.png)
   const filename = `${naipeCode}${rankCode}.png`;
 
-  return new URL(`../../assets/cards/${filename}`, import.meta.url).href;
+  return new URL(`../../assets/cards/${props.deck}/${filename}`, import.meta.url).href;
 });
 </script>
 

@@ -4,12 +4,13 @@ import { useBiscaStore } from '@/stores/biscaStore';
 import { storeToRefs } from 'pinia';
 import Card from '@/components/game/Card.vue';
 import { useRoute } from 'vue-router';
+import { watch } from 'vue';
 
 const route = useRoute();
 const store = useBiscaStore();
 const {
   playerHand, botCardCount, trunfo, tableCards,
-  score, logs, currentTurn, isGameOver, isConnected, cardsLeft,
+  score, logs, currentTurn, isGameOver, isConnected, cardsLeft, game
 } = storeToRefs(store);
 
 // Controla se estamos no Menu ou no Jogo
@@ -32,6 +33,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => { store.disconnect(); });
+
 </script>
 
 <template>
@@ -56,20 +58,20 @@ onUnmounted(() => { store.disconnect(); });
 
       <!-- Baralho -->
       <div v-if="cardsLeft > 0" class="deck-pile">
-        <Card :face-down="true" />
+        <Card :face-down="true" :deck="store.game?.deck_slug || 'default'"/>
         <span class="deck-count">{{ cardsLeft }}</span>
       </div>
 
       <!-- Trunfo -->
       <div class="trunfo-area" v-if="trunfo">
         <span>Trunfo:</span>
-        <Card :card="trunfo" class="mini-card" />
+        <Card :card="trunfo" class="mini-card" :deck="store.game?.deck_slug || 'default'" />
       </div>
 
       <!-- CARTAS JOGADAS (Com Animação) -->
       <TransitionGroup name="table-anim" tag="div" class="played-cards">
         <div v-for="move in tableCards" :key="move.player" class="move-wrapper">
-          <Card :card="move.card" />
+          <Card :card="move.card" :deck="store.game?.deck_slug || 'default'"/>
           <span class="label">{{ move.player === 'user' ? 'Tu' : 'Bot' }}</span>
         </div>
       </TransitionGroup>
@@ -91,7 +93,7 @@ onUnmounted(() => { store.disconnect(); });
       <!-- MÃO DO JOGADOR (Com Animação) -->
       <TransitionGroup name="hand-anim" tag="div" class="player-hand">
         <Card v-for="(card, index) in playerHand" :key="card.id" :card="card" :interactable="currentTurn === 'user'"
-          :class="{ 'disabled': currentTurn !== 'user' }" @click="store.playCard(index)" />
+          :class="{ 'disabled': currentTurn !== 'user' }" @click="store.playCard(index)" :deck="store.game?.deck_slug || 'default'"/>
       </TransitionGroup>
     </div>
 
