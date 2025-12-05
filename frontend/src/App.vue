@@ -3,18 +3,16 @@
   <nav class="max-w-full p-5 flex flex-row justify-between align-middle">
     <div class="align-middle text-xl">
       <RouterLink to="/"> 🧠 Bisca Game </RouterLink>
-      <span class="text-xs" style="font-weight: bold;" v-if="authStore.currentUser">
+      <span class="text-xs" style="font-weight: bold" v-if="authStore.currentUser">
         &nbsp;&nbsp;&nbsp;
         {{ authStore.currentUser?.name }}
       </span>
-
-      <span class="text-xs" style="font-weight: bold;" v-if="authStore.currentUser" >
-        &nbsp;&nbsp;&nbsp;
-        <label for="balance">Balance: </label>
-        {{ authStore.currentUser?.coins_balance }} Coins
-
-      </span>
-
+      <RouterLink to="/purchase">
+        <span class="text-xs" style="font-weight: bold" v-if="authStore.currentUser">
+          &nbsp;&nbsp;&nbsp;
+          {{ authStore.currentUser?.coins_balance }} 🪙
+        </span>
+      </RouterLink>
     </div>
 
     <NavigationMenu>
@@ -31,12 +29,6 @@
               </NavigationMenuLink>
             </li>
           </NavigationMenuContent>
-        </NavigationMenuItem>
-
-        <NavigationMenuItem>
-          <NavigationMenuLink>
-            <RouterLink to="/purchase">Purchase</RouterLink>
-          </NavigationMenuLink>
         </NavigationMenuItem>
 
         <NavigationMenuItem>
