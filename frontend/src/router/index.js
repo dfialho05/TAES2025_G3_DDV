@@ -10,6 +10,7 @@ import ProfilePage from '@/pages/profile/ProfilePage.vue'
 import ThemesListPage from '@/pages/themes/ThemesListPage.vue'
 import ThemeEditorPage from '@/pages/themes/ThemeEditorPage.vue'
 import PurchasePage from '@/pages/purchase/PurchasePage.vue'
+import LeaderboardPage from '@/pages/leaderboard/LeaderboardPage.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -19,6 +20,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomePage,
+    },
+    {
+      path: '/leaderboards',
+      name: 'leaderboards',
+      component: LeaderboardPage,
     },
     {
       path: '/games',
