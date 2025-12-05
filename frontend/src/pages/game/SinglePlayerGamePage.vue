@@ -2,52 +2,42 @@
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
-
-// Importar os DOIS stores
 import { useBiscaStore } from '@/stores/biscaStore';
-import { useSocketStore } from '@/stores/socket'; // <-- 1. Importar SocketStore
-
+import { useSocketStore } from '@/stores/socket';
 import Card from '@/components/game/Card.vue';
 
 const route = useRoute();
-
-// Instanciar os stores
 const gameStore = useBiscaStore();
-const socketStore = useSocketStore(); // <-- 2. Usar SocketStore
+const socketStore = useSocketStore();
 
-// Extrair dados do JOGO (BiscaStore)
+// Usamos alias para compatibilidade com o template antigo
 const {
-  playerHand, botCardCount, trunfo, tableCards,
-  score, logs, currentTurn, isGameOver, cardsLeft,
+  playerHand, opponentHandCount: botCardCount, trunfo, tableCards,
+  score, logs, currentTurn, isGameOver, cardsLeft, gameID
 } = storeToRefs(gameStore);
 
-// Extrair estado da CONEXÃO (SocketStore)
-// O 'isConnected' agora vem daqui, ou usamos diretamente o socket do store se preferires
-const isConnected = computed(() => socketStore.socket.connected);
-
-const gameStarted = ref(false);
-
-const chooseGameMode = (type) => {
-  gameStore.startGame(type); // Inicia os ouvintes e pede para entrar
-  gameStarted.value = true;
-};
+const isConnected = computed(() => socketStore.joined);
 
 onMounted(() => {
   socketStore.handleConnection();
 
-  // Verificamos se viemos com um modo na URL
-  if (route.query.mode) {
-    const modeFromUrl = parseInt(route.query.mode);
-    chooseGameMode(modeFromUrl);
+  // CORREÇÃO CRÍTICA:
+  // Só iniciamos um jogo novo se NÃO tivermos já um ID de jogo (vindo do Lobby)
+  if (!gameID.value && route.query.mode) {
+      console.log("Iniciando novo jogo Singleplayer...");
+      const mode = parseInt(route.query.mode);
+      // Pequeno delay para garantir que a conexão socket está pronta
+      setTimeout(() => {
+          gameStore.startGame(mode);
+      }, 100);
+  } else {
+      console.log("A entrar em jogo existente ou aguardando...", gameID.value);
   }
 });
 
 onUnmounted(() => {
-  // 4. Em vez de disconnect(), limpamos apenas os ouvintes do jogo
-  gameStore.unbindEvents();
-
-  // Opcional: Resetar o estado visual para a próxima vez
-  gameStore.resetState();
+  // Ao sair da página, saímos do jogo
+  gameStore.quitGame();
 });
 </script>
 

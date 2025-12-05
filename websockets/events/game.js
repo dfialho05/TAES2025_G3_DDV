@@ -14,19 +14,20 @@ export const gameHandlers = (io, socket) => {
         const user = ConnectionState.getUser(socket.id);
         if (!user) return;
 
-        // Cria o jogo no State (agora com ID numérico)
-        const game = GameState.createGame(gameType, user);
+        // CORREÇÃO AQUI: Adicionar o 3º parâmetro 'multiplayer'
+        // Antes estava: const game = GameState.createGame(gameType, user);
+        const game = GameState.createGame(gameType, user, 'multiplayer'); 
 
         // OBRIGATÓRIO: O socket entra na "Sala" deste jogo
-        socket.join(`game-${game.id}`); // [cite: 203]
+        socket.join(`game-${game.id}`);
 
-        console.log(`[Game] ${user.name} criou o jogo ${game.id}`);
+        console.log(`[Game] ${user.name} criou o jogo ${game.id} (Modo: ${game.mode})`);
 
-        // 1. Envia o jogo para quem criou (para mudar de ecrã)
+        // 1. Envia o jogo para quem criou
         socket.emit("game-joined", game.getState());
 
-        // 2. Avisa toda a gente no Lobby que há um jogo novo
-        io.emit("games", GameState.getGames()); // [cite: 204]
+        // 2. Avisa toda a gente no Lobby (agora vai aparecer porque é multiplayer!)
+        io.emit("games", GameState.getGames());
     });
 
     // --- LOBBY: Entrar num Jogo (Player 2) ---

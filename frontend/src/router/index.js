@@ -11,7 +11,7 @@ import ThemesListPage from '@/pages/themes/ThemesListPage.vue'
 import ThemeEditorPage from '@/pages/themes/ThemeEditorPage.vue'
 import PurchasePage from '@/pages/purchase/PurchasePage.vue'
 import { useAuthStore } from '@/stores/auth'
-import MultiPlayerGamePage from '@/pages/game/MultiPlayerGamePage.vue'
+import Lobby from '@/pages/game/Lobby.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,14 +32,10 @@ const router = createRouter({
       ],
     },
     {
-      path: '/games',
-      children: [
-        {
-          path: 'multiplayer',
-          name: 'multiplayer',
-          component: MultiPlayerGamePage,
-        },
-      ],
+      path: '/lobby',
+      name: 'Lobby',
+      component: Lobby,
+      meta: { requiresAuth: true },
     },
     {
       path: '/about',

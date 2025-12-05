@@ -1,156 +1,163 @@
 // stores/biscaStore.js
 import { defineStore } from 'pinia'
-import { ref, inject } from 'vue'
+import { ref, inject, computed } from 'vue' // <--- Importar computed
+import { useAuthStore } from './auth'
 
 export const useBiscaStore = defineStore('bisca', () => {
-  // 1. INJEÇÃO: Recuperamos o socket criado no main.js
   const socket = inject('socket')
+  const authStore = useAuthStore()
 
   // --- ESTADO (STATE) ---
-  const gameID = ref(null) // <--- NOVO: Guardamos o ID numérico do jogo
+  const gameID = ref(null)
+  const mySide = ref('player1')
 
   const playerHand = ref([])
-  const botCardCount = ref(0)
+  const opponentHandCount = ref(0) // O novo nome oficial
+
   const trunfo = ref(null)
   const trunfoNaipe = ref(null)
   const tableCards = ref([])
-  const score = ref({ user: 0, bot: 0 })
-  const logs = ref('À espera de iniciar jogo...')
+  const score = ref({ me: 0, opponent: 0 })
+  const logs = ref('À espera de jogo...')
+
   const currentTurn = ref(null)
   const isGameOver = ref(false)
   const cardsLeft = ref(0)
+  const availableGames = ref([])
 
-  // Variável auxiliar para debugging
-  let contadorLogs = 0
+  // --- COMPATIBILIDADE (O Segredo para corrigir o teu erro) ---
+  // Criamos uma referência 'botCardCount' que aponta para o mesmo valor
+  const botCardCount = computed(() => opponentHandCount.value)
 
   // --- AÇÕES (ACTIONS) ---
 
   const bindEvents = () => {
-    // Removemos listeners antigos para evitar duplicados
     socket.off('game_state')
     socket.off('game-joined')
+    socket.off('games')
 
-    // 1. RESPOSTA AO CRIAR JOGO: Recebemos o ID e o estado inicial
+    socket.on('games', (gamesList) => {
+        availableGames.value = gamesList
+    })
+
     socket.on('game-joined', (data) => {
-        console.log('[BiscaStore] Entrei na sala! ID:', data.id)
+        console.log('[Store] Entrei no jogo:', data.id)
         if (data.id) gameID.value = data.id
         processGameState(data)
     })
 
-    // 2. ATUALIZAÇÕES DO JOGO (Jogadas, Bot, etc.)
     socket.on('game_state', (data) => {
-      contadorLogs++
-      console.log(`[Update #${contadorLogs}] Estado recebido`, data)
+      // console.log('[Store] Estado recebido:', data)
       processGameState(data)
     })
   }
 
-  // Função auxiliar para traduzir os dados do Backend (P1/P2) para o Frontend (User/Bot)
   const processGameState = (data) => {
-      // Atualiza ID se vier no pacote
       if (data.id) gameID.value = data.id
 
-      // --- TRADUÇÃO DE DADOS ---
-
-      // No Singleplayer, tu és sempre o Player 1 (Criador)
-      // O Backend manda 'player1Hand' -> Frontend usa 'playerHand'
-      playerHand.value = data.player1Hand || []
-
-      // O Backend manda 'player2Hand' -> Frontend usa 'botCardCount'
-      // (Se o backend mandar botCardCount diretamente, usamos esse, senão calculamos)
-      if (data.botCardCount !== undefined) {
-          botCardCount.value = data.botCardCount
-      } else if (data.player2Hand) {
-          botCardCount.value = data.player2Hand.length
+      // 1. Mãos
+      if (mySide.value === 'player1') {
+          playerHand.value = data.player1Hand || []
+          // Calcula quantas cartas o oponente tem
+          if (data.player2Hand) {
+              opponentHandCount.value = data.player2Hand.length
+          } else if (data.botCardCount !== undefined) {
+              opponentHandCount.value = data.botCardCount
+          }
+      } else {
+          // Sou Player 2
+          playerHand.value = data.player2Hand || []
+          if (data.player1Hand) {
+              opponentHandCount.value = data.player1Hand.length
+          }
       }
 
+      // 2. Dados Comuns
       trunfo.value = data.trunfo
       trunfoNaipe.value = data.trunfoNaipe
       tableCards.value = data.tableCards
-
-      // Pontuação: Player 1 é User, Player 2 é Bot
-      score.value = {
-          user: data.score.player1 || 0,
-          bot: data.score.player2 || 0
-      }
-
+      cardsLeft.value = data.cardsLeft
+      isGameOver.value = data.gameOver
       logs.value = data.logs
 
-      // Turno: Se for 'player1' é 'user', se for 'player2' é 'bot'
-      if (data.turn === 'player1') currentTurn.value = 'user'
-      else if (data.turn === 'player2') currentTurn.value = 'bot'
-      else currentTurn.value = null // Game Over
+      // 3. Pontuação
+      const p1Score = data.score.player1 || 0
+      const p2Score = data.score.player2 || 0
 
-      isGameOver.value = data.gameOver
-      cardsLeft.value = data.cardsLeft
+      if (mySide.value === 'player1') {
+          score.value = { user: p1Score, bot: p2Score, me: p1Score, opponent: p2Score } // Compatibilidade user/bot
+      } else {
+          score.value = { user: p2Score, bot: p1Score, me: p2Score, opponent: p1Score }
+      }
+
+      // 4. Turno
+      if (data.turn === mySide.value) {
+          currentTurn.value = 'user' // Mantemos 'user' para o Singleplayer.vue não quebrar
+      } else if (data.turn) {
+          currentTurn.value = 'bot'  // Mantemos 'bot' para o Singleplayer.vue não quebrar
+      } else {
+          currentTurn.value = null
+      }
   }
 
   const unbindEvents = () => {
     if (socket) {
       socket.off('game_state')
       socket.off('game-joined')
+      socket.off('games')
     }
   }
 
+  // --- INTERAÇÕES ---
+
+  const fetchGames = () => {
+      if(socket) socket.emit('get-games')
+  }
+
   const startGame = (type = 3) => {
-    if (!socket) return console.error("Socket não encontrado!")
-
-    // 1. Ativa os ouvintes
+    if (!socket) return
     bindEvents()
-
-    // 2. Pede para criar jogo (NOVO EVENTO: create-game)
+    mySide.value = 'player1'
     socket.emit('create-game', type)
-    console.log(`[BiscaStore] A pedir criação de jogo de ${type} cartas...`)
-
-    // Reset visual imediato
     logs.value = "A criar sala..."
     isGameOver.value = false
-    gameID.value = null
+  }
+
+  const joinGame = (id) => {
+      if (!socket) return
+      bindEvents()
+      mySide.value = 'player2'
+      socket.emit('join-game', id)
+      logs.value = "A entrar..."
   }
 
   const playCard = (index) => {
-    // Debug: Ver por que razão pode não estar a enviar
-    console.log(`[Frontend Play] Click na carta ${index}.`);
-    console.log(`   > Turno atual: ${currentTurn.value}`);
-    console.log(`   > GameID: ${gameID.value}`);
-    console.log(`   > Socket ligado: ${!!socket}`);
-
-    if (currentTurn.value === 'user' && socket && gameID.value) {
-      console.log('   > A enviar pedido para o servidor...'); // <--- LOG NOVO
+    // Aceita 'user' ou 'me' como turno válido
+    if ((currentTurn.value === 'user' || currentTurn.value === 'me') && socket && gameID.value) {
       socket.emit('play_card', {
           gameID: gameID.value,
           cardIndex: index
       })
-    } else {
-        console.warn("   > Jogada ignorada (Não é a tua vez ou falta dados)");
     }
   }
 
-  const resetState = () => {
-    gameID.value = null
-    playerHand.value = []
-    tableCards.value = []
-    score.value = { user: 0, bot: 0 }
-    logs.value = 'Jogo reiniciado.'
-    isGameOver.value = false
-    botCardCount.value = 0
-  }
-
-  // Função para sair do jogo corretamente
   const quitGame = () => {
     if (socket) {
-        console.log('[BiscaStore] A sair do jogo...')
-        socket.emit('leave_game') // Avisa o servidor (opcional nesta fase, mas bom ter)
-        resetState()
+        socket.emit('leave_game')
+        gameID.value = null
+        playerHand.value = []
+        tableCards.value = []
+        availableGames.value = []
         unbindEvents()
     }
   }
 
   return {
-    // State
     gameID,
+    mySide,
     playerHand,
-    botCardCount,
+    opponentHandCount,
+    botCardCount, // <--- EXPORTAR O ALIAS AQUI
     trunfo,
     trunfoNaipe,
     tableCards,
@@ -159,12 +166,12 @@ export const useBiscaStore = defineStore('bisca', () => {
     currentTurn,
     isGameOver,
     cardsLeft,
-
-    // Actions
+    availableGames,
     startGame,
+    joinGame,
+    fetchGames,
     playCard,
-    resetState,
-    unbindEvents,
-    quitGame
+    quitGame,
+    unbindEvents
   }
 })
