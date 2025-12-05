@@ -1,158 +1,170 @@
+// stores/biscaStore.js
 import { defineStore } from 'pinia'
-
-import { ref } from 'vue'
-
-import { io } from 'socket.io-client'
+import { ref, inject } from 'vue'
 
 export const useBiscaStore = defineStore('bisca', () => {
-  const socket = ref(null)
+  // 1. INJEÇÃO: Recuperamos o socket criado no main.js
+  const socket = inject('socket')
 
-  const isConnected = ref(false)
-
-  // Estado do Jogo (Reativo)
+  // --- ESTADO (STATE) ---
+  const gameID = ref(null) // <--- NOVO: Guardamos o ID numérico do jogo
 
   const playerHand = ref([])
-
   const botCardCount = ref(0)
-
   const trunfo = ref(null)
-
+  const trunfoNaipe = ref(null)
   const tableCards = ref([])
-
   const score = ref({ user: 0, bot: 0 })
-
-  const logs = ref('A conectar...')
-
+  const logs = ref('À espera de iniciar jogo...')
   const currentTurn = ref(null)
-
   const isGameOver = ref(false)
-
   const cardsLeft = ref(0)
 
-  const trunfoNaipe = ref(null)
-
+  // Variável auxiliar para debugging
   let contadorLogs = 0
 
-  // Ligar ao servidor
+  // --- AÇÕES (ACTIONS) ---
 
-  const connect = () => {
-    if (socket.value) return
+  const bindEvents = () => {
+    // Removemos listeners antigos para evitar duplicados
+    socket.off('game_state')
+    socket.off('game-joined')
 
-    // ATENÇÃO: Garante que o URL corresponde ao teu servidor (ex: localhost:3000)
-
-    socket.value = io('http://localhost:3000')
-
-    socket.value.on('connect', () => {
-      isConnected.value = true
-
-      console.log('Conectado ao servidor!')
-
-      //startGame()
+    // 1. RESPOSTA AO CRIAR JOGO: Recebemos o ID e o estado inicial
+    socket.on('game-joined', (data) => {
+        console.log('[BiscaStore] Entrei na sala! ID:', data.id)
+        if (data.id) gameID.value = data.id
+        processGameState(data)
     })
 
-    socket.value.on('disconnect', () => {
-      isConnected.value = false
-
-      logs.value = 'Desconectado do servidor.'
-    })
-
-    // Receber atualizações do servidor
-
-    socket.value.on('game_state', (data) => {
+    // 2. ATUALIZAÇÕES DO JOGO (Jogadas, Bot, etc.)
+    socket.on('game_state', (data) => {
       contadorLogs++
-
-      // --- LOGS NA CONSOLA (DEBUG) ---
-
-      console.group(
-        contadorLogs,
-        ' - PACOTE RECEBIDO DO SOCKET - USER:',
-        data.score.user,
-        ' | BOT: ',
-        data.score.bot,
-      )
-
-      console.log('Estado Completo:', data)
-
-      console.log('Cartas na Mesa:', data.tableCards)
-
-      console.groupEnd()
-
-      // --- ATUALIZAÇÃO DO ESTADO ---
-
-      playerHand.value = data.playerHand
-
-      botCardCount.value = data.botCardCount
-
-      trunfo.value = data.trunfo
-
-      tableCards.value = data.tableCards
-
-      score.value = data.score
-
-      logs.value = data.logs
-
-      currentTurn.value = data.turn
-
-      isGameOver.value = data.gameOver
-
-      cardsLeft.value = data.cardsLeft
-
-      trunfoNaipe.value = data.trunfoNaipe
+      console.log(`[Update #${contadorLogs}] Estado recebido`, data)
+      processGameState(data)
     })
   }
 
-  const disconnect = () => {
-    if (socket.value) {
-      socket.value.disconnect()
+  // Função auxiliar para traduzir os dados do Backend (P1/P2) para o Frontend (User/Bot)
+  const processGameState = (data) => {
+      // Atualiza ID se vier no pacote
+      if (data.id) gameID.value = data.id
 
-      socket.value = null
+      // --- TRADUÇÃO DE DADOS ---
 
-      isConnected.value = false
+      // No Singleplayer, tu és sempre o Player 1 (Criador)
+      // O Backend manda 'player1Hand' -> Frontend usa 'playerHand'
+      playerHand.value = data.player1Hand || []
+
+      // O Backend manda 'player2Hand' -> Frontend usa 'botCardCount'
+      // (Se o backend mandar botCardCount diretamente, usamos esse, senão calculamos)
+      if (data.botCardCount !== undefined) {
+          botCardCount.value = data.botCardCount
+      } else if (data.player2Hand) {
+          botCardCount.value = data.player2Hand.length
+      }
+
+      trunfo.value = data.trunfo
+      trunfoNaipe.value = data.trunfoNaipe
+      tableCards.value = data.tableCards
+
+      // Pontuação: Player 1 é User, Player 2 é Bot
+      score.value = {
+          user: data.score.player1 || 0,
+          bot: data.score.player2 || 0
+      }
+
+      logs.value = data.logs
+
+      // Turno: Se for 'player1' é 'user', se for 'player2' é 'bot'
+      if (data.turn === 'player1') currentTurn.value = 'user'
+      else if (data.turn === 'player2') currentTurn.value = 'bot'
+      else currentTurn.value = null // Game Over
+
+      isGameOver.value = data.gameOver
+      cardsLeft.value = data.cardsLeft
+  }
+
+  const unbindEvents = () => {
+    if (socket) {
+      socket.off('game_state')
+      socket.off('game-joined')
     }
   }
 
   const startGame = (type = 3) => {
-    if (socket.value) {
-      // Envia o tipo escolhido para o backend
-      socket.value.emit('join_game', type)
+    if (!socket) return console.error("Socket não encontrado!")
 
-      console.log(`Pedindo para iniciar jogo de Bisca de ${type}...`)
-    }
+    // 1. Ativa os ouvintes
+    bindEvents()
+
+    // 2. Pede para criar jogo (NOVO EVENTO: create-game)
+    socket.emit('create-game', type)
+    console.log(`[BiscaStore] A pedir criação de jogo de ${type} cartas...`)
+
+    // Reset visual imediato
+    logs.value = "A criar sala..."
+    isGameOver.value = false
+    gameID.value = null
   }
 
   const playCard = (index) => {
-    if (currentTurn.value === 'user' && socket.value) {
-      socket.value.emit('play_card', index)
+    // Debug: Ver por que razão pode não estar a enviar
+    console.log(`[Frontend Play] Click na carta ${index}.`);
+    console.log(`   > Turno atual: ${currentTurn.value}`);
+    console.log(`   > GameID: ${gameID.value}`);
+    console.log(`   > Socket ligado: ${!!socket}`);
+
+    if (currentTurn.value === 'user' && socket && gameID.value) {
+      console.log('   > A enviar pedido para o servidor...'); // <--- LOG NOVO
+      socket.emit('play_card', {
+          gameID: gameID.value,
+          cardIndex: index
+      })
+    } else {
+        console.warn("   > Jogada ignorada (Não é a tua vez ou falta dados)");
+    }
+  }
+
+  const resetState = () => {
+    gameID.value = null
+    playerHand.value = []
+    tableCards.value = []
+    score.value = { user: 0, bot: 0 }
+    logs.value = 'Jogo reiniciado.'
+    isGameOver.value = false
+    botCardCount.value = 0
+  }
+
+  // Função para sair do jogo corretamente
+  const quitGame = () => {
+    if (socket) {
+        console.log('[BiscaStore] A sair do jogo...')
+        socket.emit('leave_game') // Avisa o servidor (opcional nesta fase, mas bom ter)
+        resetState()
+        unbindEvents()
     }
   }
 
   return {
-    connect,
-
-    disconnect,
-
-    startGame,
-
-    playCard,
-
-    isConnected,
-
+    // State
+    gameID,
     playerHand,
-
     botCardCount,
-
     trunfo,
-
+    trunfoNaipe,
     tableCards,
-
     score,
-
     logs,
-
     currentTurn,
-
     isGameOver,
-
     cardsLeft,
+
+    // Actions
+    startGame,
+    playCard,
+    resetState,
+    unbindEvents,
+    quitGame
   }
 })

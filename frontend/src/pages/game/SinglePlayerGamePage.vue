@@ -1,37 +1,54 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'; // <--- ADICIONEI 'ref' AQUI
-import { useBiscaStore } from '@/stores/biscaStore';
-import { storeToRefs } from 'pinia';
-import Card from '@/components/game/Card.vue';
+import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { storeToRefs } from 'pinia';
+
+// Importar os DOIS stores
+import { useBiscaStore } from '@/stores/biscaStore';
+import { useSocketStore } from '@/stores/socket'; // <-- 1. Importar SocketStore
+
+import Card from '@/components/game/Card.vue';
 
 const route = useRoute();
-const store = useBiscaStore();
+
+// Instanciar os stores
+const gameStore = useBiscaStore();
+const socketStore = useSocketStore(); // <-- 2. Usar SocketStore
+
+// Extrair dados do JOGO (BiscaStore)
 const {
   playerHand, botCardCount, trunfo, tableCards,
-  score, logs, currentTurn, isGameOver, isConnected, cardsLeft,
-} = storeToRefs(store);
+  score, logs, currentTurn, isGameOver, cardsLeft,
+} = storeToRefs(gameStore);
 
-// Controla se estamos no Menu ou no Jogo
+// Extrair estado da CONEXÃO (SocketStore)
+// O 'isConnected' agora vem daqui, ou usamos diretamente o socket do store se preferires
+const isConnected = computed(() => socketStore.socket.connected);
+
 const gameStarted = ref(false);
 
-// Função central para iniciar o jogo (chamada pelo URL ou pelos botões)
 const chooseGameMode = (type) => {
-  store.startGame(type);
-  gameStarted.value = true; // Esconde menu, mostra mesa
+  gameStore.startGame(type); // Inicia os ouvintes e pede para entrar
+  gameStarted.value = true;
 };
 
 onMounted(() => {
-  store.connect();
+  socketStore.handleConnection();
 
-  // Se viemos da Home Page com ?mode=9, iniciamos logo
+  // Verificamos se viemos com um modo na URL
   if (route.query.mode) {
     const modeFromUrl = parseInt(route.query.mode);
     chooseGameMode(modeFromUrl);
   }
 });
 
-onUnmounted(() => { store.disconnect(); });
+onUnmounted(() => {
+  // 4. Em vez de disconnect(), limpamos apenas os ouvintes do jogo
+  gameStore.unbindEvents();
+
+  // Opcional: Resetar o estado visual para a próxima vez
+  gameStore.resetState();
+});
 </script>
 
 <template>
@@ -76,7 +93,7 @@ onUnmounted(() => { store.disconnect(); });
 
       <div class="game-log">{{ logs }}</div>
 
-      <button v-if="isGameOver" @click="store.startGame()" class="restart-btn">
+      <button v-if="isGameOver" @click="gameStore.startGame()" class="restart-btn">
         Jogar Novamente
       </button>
     </div>
@@ -91,7 +108,7 @@ onUnmounted(() => { store.disconnect(); });
       <!-- MÃO DO JOGADOR (Com Animação) -->
       <TransitionGroup name="hand-anim" tag="div" class="player-hand">
         <Card v-for="(card, index) in playerHand" :key="card.id" :card="card" :interactable="currentTurn === 'user'"
-          :class="{ 'disabled': currentTurn !== 'user' }" @click="store.playCard(index)" />
+          :class="{ 'disabled': currentTurn !== 'user' }" @click="gameStore.playCard(index)" />
       </TransitionGroup>
     </div>
 

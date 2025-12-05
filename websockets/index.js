@@ -1,8 +1,9 @@
+// index.js (ou server.js)
 import { Server } from "socket.io";
 import { connectionsHandlers } from "./events/connections.js";
+import { gameHandlers } from "./events/game.js"; 
 
-
-// 1. Configuração do Servidor
+// 2. Configuração do Servidor
 const io = new Server(3000, {
   cors: {
     origin: "*",
@@ -10,7 +11,13 @@ const io = new Server(3000, {
   }
 });
 
+// 3. Bloco Principal de Conexão
+// É aqui que tudo começa. Quando um browser se liga...
+io.on("connection", (socket) => {
 
-connectionsHandlers(io);
+    connectionsHandlers(io, socket);
+
+    gameHandlers(io, socket);
+});
 
 console.log("Servidor de Bisca a correr na porta 3000...");
