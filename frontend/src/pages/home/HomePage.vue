@@ -46,9 +46,9 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="flex flex-row justify-center items-stretch gap-5 mt-10">
+    <div class="flex flex-col md:flex-row justify-center items-stretch gap-5 mt-10">
 
-        <Card class="w-full max-w-md flex flex-col">
+        <Card class="w-full md:max-w-md flex flex-col">
             <CardHeader>
                 <CardTitle class="text-3xl font-bold text-center">
                     Single Player
@@ -60,7 +60,7 @@ onMounted(async () => {
 
             <CardContent class="space-y-6 flex-1 flex flex-col">
                 <div class="space-y-2">
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                         <Button v-for="level in gameStore.difficulties" :key="level.value" size="sm"
                             :variant="selectedDifficulty === level.value ? 'default' : 'outline'"
                             class="flex flex-col py-3 h-16 transition-all hover:scale-105"

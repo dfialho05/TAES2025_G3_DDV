@@ -99,14 +99,16 @@ onUnmounted(() => { store.disconnect(); });
 </template>
 
 <style scoped>
+/*pc*/
 .game-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   background-color: #2e7d32;
+  overflow-x: hidden;
+  overflow-y: visible;
   color: white;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  overflow: hidden;
   position: relative;
 }
 
@@ -132,6 +134,7 @@ onUnmounted(() => { store.disconnect(); });
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  overflow: visible;
 }
 
 .table-area {
@@ -151,8 +154,8 @@ onUnmounted(() => { store.disconnect(); });
 }
 
 .mini-card {
-  width: 60px;
-  height: 85px;
+  width:60px;
+  height:85px;
 }
 
 /* Mãos */
@@ -162,11 +165,13 @@ onUnmounted(() => { store.disconnect(); });
   gap: 5px;
   justify-content: center;
   min-height: 100px;
+  overflow: visible;
   /* Garante altura para a animação não cortar */
 }
 
 .bot-hand {
   margin-bottom: 5px;
+  
 }
 
 /* Disabled state */
@@ -268,6 +273,58 @@ onUnmounted(() => { store.disconnect(); });
   margin-left: 5px;
 }
 
+/*mobile*/
+@media (max-width: 600px) {
+  .small-card{
+    width: 35px;
+    height: 55px;
+  }
+
+  .mini-card{
+    width: 45px;
+    height: 65px;
+  }
+
+  .player-hand,
+  .bot-hand {
+    flex-wrap:wrap;
+    gap:4px;
+    min-height: 120px;
+  }
+
+  .played-cards {
+    gap: 15px;
+    margin: 10px 0;
+    min-height: 90px;
+  }
+
+  .deck-pile {
+    right: 10px;
+    top: 55%;
+    transform: translateY(-55%);
+
+  }
+  .trunfo-area {
+    top: 10px;
+    left: 10px;
+  }
+
+  .table-area {
+    padding: 8px;
+  }
+
+  .game-log {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+  }
+
+  .bot-area,
+  .player-area {
+    padding: 10px;
+    gap: 8px;
+  }
+}
+
 /* =========================================
    ANIMAÇÕES (CSS Mágico)
    ========================================= */
@@ -290,12 +347,12 @@ onUnmounted(() => { store.disconnect(); });
 /* 3. Saída (Quando jogas a carta -> Sobe em direção à mesa) */
 .hand-anim-leave-to {
   opacity: 0;
-  transform: translateY(-100px) scale(0.5);
+  transform: translateY(-50px) scale(0.5);
 }
 
 /* 4. CRUCIAL: Remove a carta do fluxo para as outras deslizarem */
 .hand-anim-leave-active {
-  position: absolute;
+  position: relative;
 }
 
 /* --- ANIMAÇÃO DA MESA (table-anim) --- */

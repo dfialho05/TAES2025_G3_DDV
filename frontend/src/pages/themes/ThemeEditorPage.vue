@@ -11,19 +11,19 @@
                 <CardContent class="space-y-4">
                     <div class="space-y-2">
                         <Label for="theme-name">Theme Name</Label>
-                        <Input id="theme-name" v-model="themeName" placeholder="Enter theme name" :disabled="saving" />
+                        <Input id="theme-name" v-model="themeName" placeholder="Enter theme name" :disabled="saving" class="w-full"/>
                     </div>
 
                     <div class="space-y-2">
                         <Label for="theme-description">Description (optional)</Label>
                         <Input id="theme-description" v-model="themeDescription" placeholder="Enter theme description"
-                            :disabled="saving" />
+                            :disabled="saving" class="w-full" />
                     </div>
 
                     <div class="space-y-2">
                         <Label for="visibility">Visibility</Label>
-                        <Select v-model="visibility" :disabled="saving">
-                            <SelectTrigger id="visibility">
+                        <Select v-model="visibility" :disabled="saving" class="w-full">
+                            <SelectTrigger id="visibility" class="w-full">
                                 <SelectValue placeholder="Select visibility" />
                             </SelectTrigger>
                             <SelectContent>
@@ -38,17 +38,17 @@
             <Card>
                 <CardHeader>
                     <CardTitle>Card Images</CardTitle>
-                    <CardDescription>
+                    <CardDescription class="break-words">
                         Upload 8 images for your memory game ({{ cardFacesURLs.length }}/8 uploaded)
                     </CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-4">
-                    <div class="space-y-2">
-                        <Button @click="open" type="button" variant="outline" :disabled="saving || isUploading">
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <Button @click="open" type="button" variant="outline" :disabled="saving || isUploading" class="w-full sm:w-auto">
                             {{ isUploading ? 'Uploading...' : 'Select Images (up to 8)' }}
                         </Button>
-                        <Button v-if="files" @click="uploadImages">Save Photo</Button>
-                        <Button v-if="files" @click="reset" variant="ghost">
+                        <Button v-if="files" @click="uploadImages" class="w-full sm:w-auto">Save Photo</Button>
+                        <Button v-if="files" @click="reset" variant="ghost" class="w-full sm:w-auto">
                             Cancel
                         </Button>
                     </div>

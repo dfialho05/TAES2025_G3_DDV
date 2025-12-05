@@ -16,7 +16,7 @@
                 class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition"
                 :class="{ 'border-2 border-yellow-400': theme.is_global }">
                 <div class="flex justify-between items-start mb-3">
-                    <h3 class="font-bold text-lg">{{ theme.name }}</h3>
+                    <h3 class="font-bold text-lg truncate">{{ theme.name }}</h3>
                     <div class="flex gap-2">
                         <span class="text-xs px-2 py-1 rounded" :class="theme.visibility === 'PU'
                             ? 'bg-green-100 text-green-800'
@@ -27,9 +27,9 @@
                     </div>
                 </div>
 
-                <p class="text-sm text-gray-600 mb-3">{{ theme.description || 'No description' }}</p>
+                <p class="text-sm text-gray-600 mb-3 break-words">{{ theme.description || 'No description' }}</p>
 
-                <div v-if="theme.cards && theme.cards.length > 0" class="grid grid-cols-4 gap-1 mb-3">
+                <div v-if="theme.cards && theme.cards.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-3">
                     <div v-for="card in theme.cards.slice(0, 4)" :key="card"
                         class="aspect-square bg-gray-100 rounded overflow-hidden">
                         <img :src="`${serverBaseURL}${card.face_image_url}`" class="w-full h-full object-cover" />
@@ -41,13 +41,13 @@
                         class="w-full px-3 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition">
                         Use Theme
                     </button>
-                    <div class="flex gap-2">
+                    <div class="flex flex-col sm:flex-row gap-2">
                         <button @click="editTheme(theme.id)"
-                            class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition">
+                            class="w-full sm:flex-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition">
                             Edit
                         </button>
                         <button @click="deleteTheme(theme.id)"
-                            class="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition">
+                            class="w-full sm:flex-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition">
                             Delete
                         </button>
                     </div>

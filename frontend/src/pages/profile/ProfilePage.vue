@@ -65,8 +65,8 @@
       <!-- 2. GRELHA DE CONTEÚDO (Jogos + Partidas + Edição) -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <!-- COLUNA ESQUERDA: HISTÓRICOS (Ocupa 8 colunas ou 12 se não for owner) -->
-        <div :class="isOwner ? 'lg:col-span-8' : 'lg:col-span-12'" class="space-y-8">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div :class="isOwner ? 'md:col-span-12 lg:col-span-8' : 'lg:col-span-12'" class="space-y-8">
+          <div class="md:col-span-12 lg:col-span-4 space-y-6">
             <!-- BLOCO A: ÚLTIMOS 10 JOGOS (Lista Simples) -->
             <div class="bg-white rounded-xl border shadow-sm h-full">
               <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
@@ -194,7 +194,7 @@
 
                   <div class="text-right">
                     <span
-                      class="text-xs font-bold px-2 py-1 rounded border"
+                      class="text-xs font-bold px-1 py-1 rounded border break-words max-w-full"
                       :class="
                         game.is_winner === true
                           ? 'bg-green-50 text-green-700 border-green-100'
@@ -294,7 +294,7 @@
                       <div class="flex flex-col">
                         <div class="flex items-center gap-2">
                           <span
-                            class="font-bold text-xs uppercase tracking-wider"
+                            class="text-xs font-bold sm:px-2 px-1 py-1 rounded border break-words max-w-full"
                             :class="
                               isWinner(match) === true
                                 ? 'text-green-600'
@@ -313,7 +313,7 @@
                           </span>
                           <span
                             v-if="match.match_result"
-                            class="text-xs font-bold px-2 py-0.5 rounded"
+                            class="text-xs font-bold px-1 sm:px-2 py-0.5 rounded break-words whitespace-normal max-w-full"
                             :class="
                               isWinner(match) === true
                                 ? 'bg-green-100 text-green-700'
@@ -379,7 +379,7 @@
                       <div
                         v-for="g in match.games"
                         :key="g.id"
-                        class="flex items-center justify-between bg-white p-3 rounded border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
+                        class="flex flex-col sm:flex-row items-center justify-between bg-white p-3 rounded border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
                       >
                         <div class="flex items-center gap-3">
                           <!-- Status Dot -->
@@ -465,7 +465,7 @@
 
                         <div class="text-right">
                           <span
-                            class="text-xs font-bold px-2 py-1 rounded border"
+                            class="text-xs font-bold px-1 sm:px-2 py-1 rounded border break-words whitespace-normal max-w-full"
                             :class="
                               g.is_winner === true
                                 ? 'bg-green-50 text-green-700 border-green-100'
