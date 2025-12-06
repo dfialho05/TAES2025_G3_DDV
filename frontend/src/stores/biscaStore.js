@@ -1,79 +1,65 @@
 // stores/biscaStore.js
 import { defineStore } from 'pinia'
-import { ref, inject, computed } from 'vue' // <--- Importar computed
-import { useAuthStore } from './auth'
+import { ref, computed } from 'vue'
+import { useSocketStore } from './socket' // <--- A nossa "Lista de Contactos" para o servidor
 
 export const useBiscaStore = defineStore('bisca', () => {
-  const socket = inject('socket')
-  const authStore = useAuthStore()
+  // Acesso à store de comunicação (para enviarmos ordens)
+  const socketStore = useSocketStore()
 
-  // --- ESTADO (STATE) ---
-  const gameID = ref(null)
-  const mySide = ref('player1')
+  // =========================================
+  // 1. ESTADO (A Memória do Jogo)
+  // =========================================
+  const gameID = ref(null)             // Em que sala estou?
+  const mySide = ref('player1')        // Sou o Jogador 1 ou 2?
 
-  const playerHand = ref([])
-  const opponentHandCount = ref(0) // O novo nome oficial
+  const playerHand = ref([])           // As minhas cartas visíveis
+  const opponentHandCount = ref(0)     // Quantas cartas o inimigo tem (não vemos quais são)
 
-  const trunfo = ref(null)
-  const trunfoNaipe = ref(null)
-  const tableCards = ref([])
-  const score = ref({ me: 0, opponent: 0 })
-  const logs = ref('À espera de jogo...')
+  const trunfo = ref(null)             // Carta do trunfo
+  const trunfoNaipe = ref(null)        // Naipe do trunfo (importante se o trunfo for puxado)
+  const tableCards = ref([])           // Cartas jogadas na mesa
+  const cardsLeft = ref(0)             // Cartas no baralho
 
-  const currentTurn = ref(null)
-  const isGameOver = ref(false)
-  const cardsLeft = ref(0)
-  const availableGames = ref([])
+  const score = ref({ me: 0, opponent: 0 }) // Pontuação
+  const currentTurn = ref(null)        // De quem é a vez? ('user' ou 'bot')
 
-  // --- COMPATIBILIDADE (O Segredo para corrigir o teu erro) ---
-  // Criamos uma referência 'botCardCount' que aponta para o mesmo valor
+  const isGameOver = ref(false)        // O jogo acabou?
+  const logs = ref('À espera de jogo...') // Mensagens de texto (ex: "Player 1 jogou...")
+  const availableGames = ref([])       // Lista de salas do Lobby
+
+  // Alias para compatibilidade com o teu template antigo (Singleplayer)
   const botCardCount = computed(() => opponentHandCount.value)
 
-  // --- AÇÕES (ACTIONS) ---
+  // =========================================
+  // 2. LÓGICA DE DADOS (O Cérebro)
+  // =========================================
 
-  const bindEvents = () => {
-    socket.off('game_state')
-    socket.off('game-joined')
-    socket.off('games')
-
-    socket.on('games', (gamesList) => {
-        availableGames.value = gamesList
-    })
-
-    socket.on('game-joined', (data) => {
-        console.log('[Store] Entrei no jogo:', data.id)
-        if (data.id) gameID.value = data.id
-        processGameState(data)
-    })
-
-    socket.on('game_state', (data) => {
-      // console.log('[Store] Estado recebido:', data)
-      console.log('🔥 [STORE] Recebi GAME_STATE do servidor!', data);
-      processGameState(data)
-    })
-  }
-
+  // Recebe os dados brutos do servidor e organiza nas gavetas certas
   const processGameState = (data) => {
+      // 🛡️ PROTEÇÃO ANTI-FANTASMA:
+      // Se recebermos dados de um jogo (data.id) diferente do nosso (gameID), ignoramos.
+      if (gameID.value && data.id && String(data.id) !== String(gameID.value)) {
+          console.warn("👻 Ignorando dados de jogo antigo/fantasma.")
+          return
+      }
+
+      // Atualiza o ID se for novo
       if (data.id) gameID.value = data.id
 
-      // 1. Mãos
+      // A. Gestão de Mãos (Perspetiva)
+      // O servidor envia as duas mãos. Nós decidimos qual mostramos baseados no 'mySide'.
       if (mySide.value === 'player1') {
           playerHand.value = data.player1Hand || []
-          // Calcula quantas cartas o oponente tem
-          if (data.player2Hand) {
-              opponentHandCount.value = data.player2Hand.length
-          } else if (data.botCardCount !== undefined) {
-              opponentHandCount.value = data.botCardCount
-          }
+          // Se houver Player 2, pegamos o tamanho da mão dele. Se for Bot, idem.
+          opponentHandCount.value = (data.player2Hand || []).length || data.botCardCount || 0
       } else {
           // Sou Player 2
           playerHand.value = data.player2Hand || []
-          if (data.player1Hand) {
-              opponentHandCount.value = data.player1Hand.length
-          }
+          opponentHandCount.value = (data.player1Hand || []).length || 0
       }
 
-      // 2. Dados Comuns
+      // B. Atualizar Mesa e Regras
       trunfo.value = data.trunfo
       trunfoNaipe.value = data.trunfoNaipe
       tableCards.value = data.tableCards
@@ -81,109 +67,82 @@ export const useBiscaStore = defineStore('bisca', () => {
       isGameOver.value = data.gameOver
       logs.value = data.logs
 
-      // 3. Pontuação
-      const p1Score = data.score.player1 || 0
-      const p2Score = data.score.player2 || 0
+      // C. Pontuação (Mapear Player1/2 para Eu/Oponente)
+      const p1 = data.score.player1 || 0
+      const p2 = data.score.player2 || 0
 
       if (mySide.value === 'player1') {
-          score.value = { user: p1Score, bot: p2Score, me: p1Score, opponent: p2Score } // Compatibilidade user/bot
+          score.value = { user: p1, bot: p2, me: p1, opponent: p2 }
       } else {
-          score.value = { user: p2Score, bot: p1Score, me: p2Score, opponent: p1Score }
+          score.value = { user: p2, bot: p1, me: p2, opponent: p1 }
       }
 
-      // 4. Turno
-      if (data.turn === mySide.value) {
-          currentTurn.value = 'user' // Mantemos 'user' para o Singleplayer.vue não quebrar
-      } else if (data.turn) {
-          currentTurn.value = 'bot'  // Mantemos 'bot' para o Singleplayer.vue não quebrar
-      } else {
-          currentTurn.value = null
-      }
+      // D. De quem é a vez?
+      // O template espera 'user' ou 'bot'.
+      if (data.turn === mySide.value) currentTurn.value = 'user'
+      else if (data.turn) currentTurn.value = 'bot'
+      else currentTurn.value = null
   }
 
-  const unbindEvents = () => {
-    if (socket) {
-      socket.off('game_state')
-      socket.off('game-joined')
-      socket.off('games')
-    }
+  // Atualiza a lista do Lobby
+  const setAvailableGames = (games) => {
+      availableGames.value = games
   }
 
-  // --- INTERAÇÕES ---
+  // =========================================
+  // 3. AÇÕES DO UTILIZADOR (O Comando Remoto)
+  // =========================================
 
+  // Pede a lista de jogos ao servidor
   const fetchGames = () => {
-      if(socket) socket.emit('get-games')
+      socketStore.emitGetGames()
   }
 
-  const startGame = (type = 3) => {
-    if (!socket) return
-    bindEvents()
-    mySide.value = 'player1'
-    socket.emit('create-game', type)
-    logs.value = "A criar sala..."
-    isGameOver.value = false
+  // Cria um jogo novo (Sou Player 1)
+  const startGame = (type = 3, mode = 'singleplayer') => {
+      mySide.value = 'player1'
+      logs.value = "A criar sala..."
+      isGameOver.value = false
+      socketStore.emitCreateGame(type, mode)
   }
 
+  // Entra num jogo existente (Sou Player 2)
   const joinGame = (id) => {
-      if (!socket) return
-      bindEvents()
       mySide.value = 'player2'
-      socket.emit('join-game', id)
       logs.value = "A entrar..."
+      socketStore.emitJoinGame(id)
   }
 
-const playCard = (index) => {
-    // LOG DE DEBUG
-    console.log(`[PlayCard] Tentativa de jogar índice ${index}`);
-    console.log(`[PlayCard] Turno Atual: ${currentTurn.value}`);
-    console.log(`[PlayCard] Socket existe? ${!!socket}`);
-    console.log(`[PlayCard] GameID: ${gameID.value}`);
-
-    // A tua verificação original
-    if ((currentTurn.value === 'user' || currentTurn.value === 'me') && socket && gameID.value) {
-        console.log("✅ Condições aceites, a enviar para o servidor...");
-        socket.emit('play_card', {
-            gameID: gameID.value,
-            cardIndex: index
-        })
+  // Joga uma carta
+  const playCard = (index) => {
+    // Validação Local: Só enviamos se for a nossa vez (Evita spam no servidor)
+    if ((currentTurn.value === 'user' || currentTurn.value === 'me') && gameID.value) {
+        socketStore.emitPlayCard(gameID.value, index)
     } else {
-        console.warn("⛔ Bloqueado pelo IF. Não é a tua vez ou falta dados.");
+        console.warn("⛔ Não é a tua vez.")
     }
-}
+  }
 
+  // Sai do jogo (A "Faxina")
   const quitGame = () => {
-    if (socket) {
-        socket.emit('leave_game')
+    if (gameID.value) {
+        // 1. Avisa o servidor para nos tirar da sala
+        socketStore.emitLeaveGame(gameID.value)
+
+        // 2. Limpa a memória local
         gameID.value = null
         playerHand.value = []
         tableCards.value = []
         availableGames.value = []
-        unbindEvents()
+        logs.value = 'Saiu do jogo.'
     }
   }
 
   return {
-    gameID,
-    mySide,
-    playerHand,
-    opponentHandCount,
-    botCardCount, // <--- EXPORTAR O ALIAS AQUI
-    trunfo,
-    trunfoNaipe,
-    tableCards,
-    score,
-    logs,
-    currentTurn,
-    isGameOver,
-    cardsLeft,
-    availableGames,
-    startGame,
-    joinGame,
-    fetchGames,
-    playCard,
-    quitGame,
-    socket,
-    unbindEvents,
-    bindEvents
+    gameID, mySide, playerHand, opponentHandCount, botCardCount,
+    trunfo, trunfoNaipe, tableCards, score, logs, currentTurn,
+    isGameOver, cardsLeft, availableGames,
+    processGameState, setAvailableGames,
+    startGame, joinGame, fetchGames, playCard, quitGame
   }
 })

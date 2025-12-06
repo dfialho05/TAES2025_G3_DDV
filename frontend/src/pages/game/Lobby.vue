@@ -2,110 +2,457 @@
 import { onMounted, watch, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBiscaStore } from '@/stores/biscaStore';
+import { useSocketStore } from '@/stores/socket';
 import { storeToRefs } from 'pinia';
 
 const router = useRouter();
-const store = useBiscaStore();
-// Extraímos gameID e availableGames para serem reativos aqui
-const { availableGames, gameID } = storeToRefs(store);
+const biscaStore = useBiscaStore();
+const socketStore = useSocketStore();
+
+// Extraímos gameID e availableGames para serem reativos
+const { availableGames, gameID, logs } = storeToRefs(biscaStore);
 
 onMounted(() => {
   console.log("📍 Lobby Montado");
-
-  // 1. Tenta ligar os eventos
-  // Se o socket estiver desligado, vamos ver o erro no log
-  try {
-      store.bindEvents();
-      store.fetchGames();
-      console.log("✅ Eventos ligados e jogos pedidos");
-  } catch (e) {
-      console.error("❌ Erro ao ligar eventos (Socket em falta?):", e);
-  }
-});
-
-// Removemos eventos ao sair para evitar duplicados
-onUnmounted(() => {
-    store.unbindEvents();
+  socketStore.bindGameEvents();
+  socketStore.emitGetGames();
+  console.log("✅ Eventos de jogo ligados e lista pedida.");
 });
 
 // Criar Jogo (Player 1)
 const create = () => {
     console.log("🖱️ Cliquei em Criar Jogo");
-
-    // Verificação de segurança visual
-    if (!store.socket && !store.gameID) { // Nota: store.socket pode não estar acessível diretamente dependendo do return do store, mas o startGame trata disso
-         console.warn("⚠️ Socket parece estar desligado.");
-    }
-
-    store.startGame(3);
+    biscaStore.startGame(3, 'multiplayer');
 };
 
 // Entrar Jogo (Player 2)
 const join = (id) => {
     console.log("🖱️ Cliquei em Entrar no jogo", id);
-    store.joinGame(id);
+    biscaStore.joinGame(id);
 };
 
-// --- CORREÇÃO IMPORTANTE: USAR WATCH ---
-// O $subscribe pode ser "trickier". O watch é nativo do Vue e reage assim que a variável muda.
+// --- REDIRECIONAMENTO ---
 watch(gameID, (newID) => {
     console.log("👀 O gameID mudou para:", newID);
     if (newID) {
-        console.log("🚀 Redirecionando para a mesa...");
+        console.log("🚀 Jogo detetado! Redirecionando para a mesa...");
         router.push('/games/singleplayer');
     }
 });
 
-// Função para voltar (para testares se o router está a funcionar)
 const goHome = () => {
     router.push('/');
 }
 </script>
 
 <template>
-  <div class="lobby-container">
-    <div class="header">
-        <button @click="goHome" class="btn-back">⬅ Voltar</button>
-        <h1>🎮 Lobby Multiplayer</h1>
+  <div class="lobby-wrapper">
+    <div class="background-overlay"></div>
+
+    <div class="lobby-container">
+        <header class="lobby-header">
+            <button @click="goHome" class="btn-back">
+                <span class="icon">⬅</span> Voltar
+            </button>
+            <div class="title-group">
+                <h1>Lobby Multiplayer</h1>
+                <span class="subtitle">Desafia jogadores em tempo real</span>
+            </div>
+            <div class="placeholder"></div> </header>
+
+        <section class="action-area">
+            <button @click="create" class="btn-create">
+                <div class="icon-wrapper">🃏</div>
+                <div class="text-wrapper">
+                    <span class="btn-title">Criar Nova Sala</span>
+                    <span class="btn-desc">Bisca de 3 Cartas</span>
+                </div>
+            </button>
+        </section>
+
+        <section class="games-area">
+            <h2 class="section-title">Salas Disponíveis</h2>
+
+            <div v-if="availableGames.length === 0" class="empty-state">
+                <div v-if="!socketStore.joined" class="loading-pulse">
+                    <span class="spinner">↻</span> A ligar ao servidor...
+                </div>
+                <div v-else class="empty-content">
+                    <span class="ghost-icon">📭</span>
+                    <p>Nenhuma sala aberta no momento.</p>
+                    <small>Sê o primeiro a criar um jogo!</small>
+                </div>
+            </div>
+
+            <transition-group name="list" tag="div" class="games-list">
+                <div v-for="game in availableGames" :key="game.id" class="game-card">
+                    <div class="card-left">
+                        <div class="game-avatar">
+                            {{ game.creator ? game.creator.charAt(0).toUpperCase() : '?' }}
+                        </div>
+                        <div class="game-info">
+                            <span class="game-host">Sala de {{ game.creator || 'Anónimo' }}</span>
+                            <div class="badges">
+                                <span class="badge id-badge">#{{ game.id }}</span>
+                                <span class="badge type-badge">{{ game.type || 'Clássico' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button @click="join(game.id)" class="btn-join">
+                        Entrar <span class="arrow">➜</span>
+                    </button>
+                </div>
+            </transition-group>
+        </section>
     </div>
 
-    <div class="actions">
-      <button @click="create" class="btn-create">Criar Novo Jogo</button>
-    </div>
-
-    <h2>Jogos Disponíveis:</h2>
-
-    <div v-if="availableGames.length === 0" class="empty-msg">
-      Nenhum jogo criado. Sê o primeiro!
-    </div>
-
-    <div class="games-list">
-      <div v-for="game in availableGames" :key="game.id" class="game-card">
-        <div class="info">
-            <strong>Jogo #{{ game.id }}</strong>
-            <span>Criado por: {{ game.creator }}</span>
-            <span class="badge">{{ game.type }}</span>
+    <footer class="status-bar">
+        <div class="status-item">
+            <span class="indicator" :class="{ 'online': socketStore.joined }"></span>
+            {{ socketStore.joined ? 'Conectado' : 'Desconectado' }}
         </div>
-        <button @click="join(game.id)" class="btn-join">Entrar</button>
-      </div>
-    </div>
-
-    <div class="debug-box">
-        GameID Atual: {{ gameID || 'Nenhum' }} <br>
-        Logs: {{ store.logs }}
-    </div>
+        <div class="status-divider">|</div>
+        <div class="status-item">ID: {{ gameID || '--' }}</div>
+        <div class="status-divider">|</div>
+        <div class="status-item logs">{{ logs }}</div>
+    </footer>
   </div>
 </template>
 
 <style scoped>
-.lobby-container { max-width: 800px; margin: 0 auto; padding: 20px; color: #333; }
-.header { display: flex; align-items: center; gap: 20px; }
-.btn-back { background: #666; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px;}
-.game-card {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px;
+/* ================= LAYOUT & FUNDO ================= */
+.lobby-wrapper {
+    min-height: 100vh;
+    width: 100%;
+    position: relative;
+    background: radial-gradient(circle at top, #1e4d3b, #0f2920); /* Verde Mesa de Jogo */
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: white;
+    overflow-x: hidden;
 }
-.btn-create { background: #2e7d32; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1.2rem;}
-.btn-join { background: #1976d2; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer;}
-.debug-box { margin-top: 50px; padding: 10px; background: #f0f0f0; border: 1px dashed red; color: red; font-family: monospace; }
+
+.background-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+.lobby-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    position: relative;
+    z-index: 10;
+}
+
+/* ================= HEADER ================= */
+.lobby-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+}
+
+.btn-back {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-back:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(-3px);
+}
+
+.title-group {
+    text-align: center;
+}
+
+.title-group h1 {
+    font-size: 2.5rem;
+    margin: 0;
+    font-weight: 800;
+    background: linear-gradient(to right, #ffffff, #a7f3d0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.subtitle {
+    color: #6ee7b7;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.placeholder { width: 80px; } /* Equilibrio visual */
+
+/* ================= ACTIONS ================= */
+.action-area {
+    margin-bottom: 3rem;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-create {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 16px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    width: 100%;
+    max-width: 400px;
+}
+
+.btn-create:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(16, 185, 129, 0.5);
+}
+
+.icon-wrapper {
+    font-size: 2.5rem;
+    background: rgba(255,255,255,0.2);
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.text-wrapper {
+    text-align: left;
+}
+
+.btn-title {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.btn-desc {
+    display: block;
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+/* ================= LIST AREA ================= */
+.games-area {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    min-height: 300px;
+}
+
+.section-title {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+    color: #d1fae5;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 0.5rem;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: rgba(255,255,255,0.5);
+}
+
+.ghost-icon {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.loading-pulse {
+    font-style: italic;
+    color: #6ee7b7;
+}
+
+.spinner {
+    display: inline-block;
+    animation: spin 1s infinite linear;
+}
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Cards List */
+.games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.game-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #333;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.game-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.card-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.game-avatar {
+    width: 45px;
+    height: 45px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.game-host {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1f2937;
+}
+
+.badges {
+    display: flex;
+    gap: 8px;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.id-badge {
+    background: #e5e7eb;
+    color: #4b5563;
+}
+
+.type-badge {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.btn-join {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-join:hover {
+    background: #1d4ed8;
+}
+
+.btn-join .arrow {
+    font-size: 0.9rem;
+    transition: transform 0.2s;
+}
+
+.btn-join:hover .arrow {
+    transform: translateX(3px);
+}
+
+/* ================= STATUS BAR ================= */
+.status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    color: #9ca3af;
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    font-family: monospace;
+    z-index: 100;
+}
+
+.indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    margin-right: 5px;
+}
+
+.indicator.online {
+    background: #10b981;
+    box-shadow: 0 0 5px #10b981;
+}
+
+.status-divider { color: #4b5563; }
+.logs { max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Transitions */
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.4s ease;
+}
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    .lobby-header { flex-direction: column; gap: 1rem; }
+    .title-group h1 { font-size: 2rem; }
+    .game-card { flex-direction: column; align-items: stretch; gap: 1rem; }
+    .btn-join { width: 100%; justify-content: center; }
+    .placeholder { display: none; }
+}
 </style>

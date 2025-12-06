@@ -1,34 +1,48 @@
 // websockets/events/game.js
-import * as GameState from "../state/game.js";
+import * as GameState from "../state/game.js"; 
 import * as ConnectionState from "../state/connections.js"; 
 
 export const gameHandlers = (io, socket) => {
 
-    // --- LOBBY: Pedir lista de jogos ---
+    // =================================================================
+    // 1. ZONA DO LOBBY
+    // =================================================================
+
+    // [EVENTO: get-games]
+    // O Lobby pede a lista de jogos ativos.
+    // O servidor responde apenas para o socket que pediu.
     socket.on("get-games", () => {
         socket.emit("games", GameState.getGames());
     });
 
-    // --- LOBBY: Criar Jogo ---
-    socket.on("create-game", (gameType) => {
+    // [EVENTO: create-game]
+    // 1. Identifica o user através do socket.
+    // 2. Pede ao GameState para criar o objeto do jogo.
+    // 3. Coloca o socket numa sala privada (socket.join).
+    // 4. Envia o jogo criado ao dono (game-joined).
+    // 5. Atualiza a lista pública para todos os users (io.emit).
+    socket.on("create-game", (gameType, mode) => {
         const user = ConnectionState.getUser(socket.id);
         if (!user) return;
 
-        const game = GameState.createGame(gameType, user, 'multiplayer'); 
+        const gameMode = mode || 'singleplayer';
 
-        // OBRIGATÓRIO: O socket entra na "Sala" deste jogo
-        socket.join(`game-${game.id}`);
+        const game = GameState.createGame(gameType, user, gameMode); 
 
-        console.log(`[Game] ${user.name} criou o jogo ${game.id} (Modo: ${game.mode})`);
+        const roomName = `game-${game.id}`;
+        socket.join(roomName);
 
-        // 1. Envia o jogo para quem criou
+        console.log(`[Game] ${user.name} criou o jogo ${game.id} (Modo: ${gameMode}, Sala: ${roomName})`);
+
         socket.emit("game-joined", game.getState());
-
-        // 2. Avisa toda a gente no Lobby (agora vai aparecer porque é multiplayer!)
         io.emit("games", GameState.getGames());
     });
 
-    // --- LOBBY: Entrar num Jogo (Player 2) ---
+    // [EVENTO: join-game]
+    // 1. Tenta adicionar o User ao Jogo no GameState.
+    // 2. Se conseguir, coloca o socket na MESMA sala do criador.
+    // 3. Avisa a sala (io.to) que o jogo começou (atualiza o ecrã de ambos).
+    // 4. Remove o jogo da lista pública do lobby (io.emit).
     socket.on("join-game", (gameID) => {
         const user = ConnectionState.getUser(socket.id);
         if (!user) return;
@@ -36,46 +50,71 @@ export const gameHandlers = (io, socket) => {
         const game = GameState.joinGame(gameID, user);
         
         if (game) {
-            // Entra na mesma sala do Player 1
-            socket.join(`game-${game.id}`); // [cite: 288]
+            const roomName = `game-${game.id}`;
+            socket.join(roomName); 
             
             console.log(`[Game] ${user.name} entrou no jogo ${game.id}`);
 
-            // Avisa a sala (P1 e P2) que o jogo começou
-            io.to(`game-${game.id}`).emit("game_state", game.getState()); // [cite: 292]
-            
-            // Remove o jogo da lista do Lobby (porque ficou cheio)
+            io.to(roomName).emit("game_state", game.getState()); 
             io.emit("games", GameState.getGames());
         }
     });
 
-    // --- JOGO: Jogar uma Carta ---
+    // =================================================================
+    // 2. ZONA DE JOGO
+    // =================================================================
+
+    // [EVENTO: play_card]
+    // 1. Valida se a jogada é legal no GameState (turno, naipe, posse da carta).
+    // 2. Se for válida, garante que o socket está na sala (segurança).
+    // 3. Envia o novo estado para a sala (mostra a carta na mesa).
+    // 4. Chama o 'advanceGame' para decidir o próximo passo (bot, vaza, fim de jogo).
     socket.on("play_card", (data) => {
         const gameID = data.gameID;
         const cardIndex = data.cardIndex;
 
-        // 1. Tenta jogar a carta
         const result = GameState.handlePlayerMove(gameID, cardIndex, socket.id);
 
         if (result && result.moveValid) {
             const game = result.game;
             const roomName = `game-${game.id}`;
 
-            // Re-join de segurança (para o F5)
             socket.join(roomName);
 
-            // 2. Mostra a carta que o jogador acabou de jogar
             io.to(roomName).emit("game_state", game.getState());
 
-            // 3. O PASSO MÁGICO: "Cérebro, decide o que acontece a seguir"
-            // Se foi a 2ª carta -> ele resolve a vaza.
-            // Se foi a 1ª carta (Singleplayer) -> ele manda o bot jogar.
-            // Se foi a 1ª carta (Multiplayer) -> ele não faz nada (espera pelo P2).
             GameState.advanceGame(game.id, io); 
         }
     });
 
+    // =================================================================
+    // 3. ZONA DE SAÍDA (A Correção do Bug)
+    // =================================================================
 
+    // [EVENTO: leave_game]
+    // 1. IMPORTANTE: Remove o socket da sala (socket.leave). Isto impede receber eventos fantasma.
+    // 2. Se o jogo ainda estiver ativo, marca como GameOver (Desistência).
+    // 3. Avisa o jogador restante que ganhou.
+    // 4. Apaga o jogo da memória após 5 segundos.
+    socket.on("leave_game", (gameID) => {
+        const roomName = `game-${gameID}`;
+        
+        socket.leave(roomName);
+        console.log(`[Game] Socket ${socket.id} saiu da sala ${roomName}`);
 
-    
+        const game = GameState.getGame(gameID);
+        if (game) {
+            if (!game.gameOver) {
+                game.gameOver = true;
+                game.logs = "O oponente desistiu do jogo.";
+                
+                io.to(roomName).emit("game_state", game.getState());
+                
+                setTimeout(() => {
+                    GameState.removeGame(gameID);
+                    io.emit("games", GameState.getGames());
+                }, 5000);
+            }
+        }
+    });
 };

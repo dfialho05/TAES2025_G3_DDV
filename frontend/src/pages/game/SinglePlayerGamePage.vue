@@ -1,9 +1,9 @@
 <script setup>
-import { onMounted, onUnmounted, computed, watch } from 'vue'; // <--- Adicionado watch
-import { useRoute, useRouter } from 'vue-router'; // <--- Adicionado useRouter
+import { onMounted, onUnmounted, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { useBiscaStore } from '@/stores/biscaStore';
-import { useSocketStore } from '@/stores/socket';
+import { useBiscaStore } from '@/stores/biscaStore'; // Store de Dados
+import { useSocketStore } from '@/stores/socket';     // Store de Comunicação
 import Card from '@/components/game/Card.vue';
 
 const route = useRoute();
@@ -11,7 +11,7 @@ const router = useRouter();
 const gameStore = useBiscaStore();
 const socketStore = useSocketStore();
 
-// Alias para compatibilidade
+// Alias para compatibilidade visual
 const {
   playerHand, opponentHandCount: botCardCount, trunfo, tableCards,
   score, logs, currentTurn, isGameOver, cardsLeft, gameID
@@ -20,14 +20,16 @@ const {
 const isConnected = computed(() => socketStore.joined);
 
 onMounted(() => {
+  // Garante que o ouvinte de conexão base está ligado
   socketStore.handleConnection();
 
-  // 1. LIGAR OS OUVIDOS (CRUCIAL PARA O MULTIPLAYER) 👂
-  gameStore.bindEvents();
+  // 1. LIGAR OS OUVIDOS (CRUCIAL) 👂
+  // Alteração: Agora chamamos o socketStore, não o gameStore
+  socketStore.bindGameEvents();
 
   // 2. Lógica de Inicialização
   if (route.query.mode) {
-      // Modo Singleplayer (contra Bot localmente ou criado via URL)
+      // Modo Singleplayer
       const mode = parseInt(route.query.mode);
       if (!gameID.value) {
           console.log("Iniciando novo jogo Singleplayer...");
@@ -37,30 +39,35 @@ onMounted(() => {
       // Modo Multiplayer (Vem do Lobby)
       if (!gameID.value) {
           console.warn("Sem ID de jogo! Redirecionando para o Lobby...");
-          router.push('/lobby'); // Proteção contra F5
+          router.push('/games/lobby'); // Ajusta a rota se necessário
       } else {
           console.log(`Reconectado à mesa ${gameID.value}`);
-          // Opcional: Pedir o estado atual ao servidor para garantir sincronia
-          // socket.emit('get-game-state', gameID.value);
+          // Opcional: Pedir refresh de estado
+          // socketStore.socket.emit('get-game-state', gameID.value);
       }
   }
 });
 
-// Watcher de Segurança: Se o jogo acabar ou formos expulsos, volta ao lobby
+// Watcher de Segurança: Se o jogo acabar ou formos expulsos
 watch(gameID, (newVal) => {
     if (!newVal) {
         console.log("Jogo terminado ou desconectado.");
-        // router.push('/lobby'); // Descomenta se quiseres auto-kick
+        // router.push('/games/lobby');
     }
 });
 
 onUnmounted(() => {
-  // CUIDADO: No multiplayer, não queremos fazer "quitGame" se sairmos sem querer
-  // Mas para singleplayer faz sentido.
-  // gameStore.quitGame();
+  // CORREÇÃO CRÍTICA (Resolver o teu Bug de Salas Fantasma):
+  // Se sairmos do componente (voltar atrás), forçamos a saída do jogo no servidor.
+  if (gameID.value) {
+      console.log("🧹 A desmontar mesa... a sair do jogo.");
+      // Isto chama socket.emit('leave_game') e limpa o servidor
+      gameStore.quitGame();
+  }
 
-  // Apenas desligamos os eventos para não duplicar
-  gameStore.unbindEvents();
+  // Limpa os listeners do socket para não duplicar eventos se voltares a entrar
+  // O bindGameEvents do socketStore já faz .off() antes de .on(), mas limpar aqui é boa prática
+  // Se tivesses um unbind público no socketStore, usavas aqui.
 });
 </script>
 

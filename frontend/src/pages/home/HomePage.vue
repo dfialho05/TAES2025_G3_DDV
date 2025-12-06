@@ -30,12 +30,10 @@ const startGameSingleplayer = (tipo) => {
   })
 }
 
-const startGameMultiplayer = (tipo) => {
- router.push({
-    name: 'multiplayer',
-    query: { mode: tipo }
-  })
+const goToLobby = () => {
+    router.push('/lobby')
 }
+
 
 onMounted(async () => {
   const response = await apiStore.getGames()
@@ -132,7 +130,7 @@ onMounted(async () => {
             </CardHeader>
             <CardContent class="flex items-center justify-center h-64">
                  <Button
-                        @click="startGameMultiplayer(3)"
+                        @click="goToLobby()"
                         variant="outline"
                         class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all group">
                         <span class="text-lg font-bold group-hover:text-green-600 dark:group-hover:text-green-400">Bisca de 3</span>
