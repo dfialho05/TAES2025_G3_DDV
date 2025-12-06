@@ -26,7 +26,7 @@
           :class="[
             'entry-item',
             { 'current-user': entry.id === currentUserId },
-            `position-${entry.position}`
+            `position-${entry.position}`,
           ]"
         >
           <!-- Position Badge -->
@@ -37,24 +37,12 @@
             <span v-else class="position-number">{{ entry.position }}</span>
           </div>
 
-          <!-- Player Avatar -->
-          <div class="player-avatar">
-            <img
-              v-if="entry.photo_avatar_filename"
-              :src="`/api/avatars/${entry.photo_avatar_filename}`"
-              :alt="entry.name"
-              class="avatar-image"
-              @error="handleImageError"
-            />
-            <div v-else class="avatar-placeholder">
-              {{ getInitials(entry.nickname || entry.name) }}
-            </div>
-          </div>
-
           <!-- Player Info -->
           <div class="player-info">
             <h4 class="player-name">
-              {{ entry.nickname || entry.name }}
+              <router-link :to="`/profile/${entry.id}`" class="player-link">
+                {{ entry.nickname || entry.name }}
+              </router-link>
               <span v-if="entry.id === currentUserId" class="you-badge">Tu</span>
             </h4>
             <p class="player-stats">{{ getPlayerStats(entry) }}</p>
@@ -68,14 +56,6 @@
         </div>
       </div>
     </div>
-
-    <!-- View More Button -->
-    <div v-if="entries.length >= 5" class="view-more">
-      <button @click="$emit('viewMore', type)" class="view-more-btn">
-        Ver mais {{ title.toLowerCase() }}
-        <span class="arrow">→</span>
-      </button>
-    </div>
   </div>
 </template>
 
@@ -86,103 +66,92 @@ import { computed } from 'vue'
 const props = defineProps({
   title: {
     type: String,
-    required: true
+    required: true,
   },
   emoji: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
   },
   entries: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   currentUserId: {
     type: [String, Number],
-    default: null
+    default: null,
   },
   isLoading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   type: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 })
 
 // Emits
-const emit = defineEmits(['viewMore'])
+const emit = defineEmits([])
 
 // Methods
 const getPositionClass = (position) => {
-  switch(position) {
-    case 1: return 'gold'
-    case 2: return 'silver'
-    case 3: return 'bronze'
-    default: return 'regular'
+  switch (position) {
+    case 1:
+      return 'gold'
+    case 2:
+      return 'silver'
+    case 3:
+      return 'bronze'
+    default:
+      return 'regular'
   }
 }
 
 const getMedal = (position) => {
-  switch(position) {
-    case 1: return '🥇'
-    case 2: return '🥈'
-    case 3: return '🥉'
-    default: return position
+  switch (position) {
+    case 1:
+      return '🥇'
+    case 2:
+      return '🥈'
+    case 3:
+      return '🥉'
+    default:
+      return position
   }
 }
 
-const getInitials = (name) => {
-  return name
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase())
-    .slice(0, 2)
-    .join('')
-}
-
-const handleImageError = (event) => {
-  event.target.style.display = 'none'
-  event.target.parentNode.querySelector('.avatar-placeholder').style.display = 'flex'
-}
-
 const getPlayerStats = (entry) => {
-  switch(props.type) {
+  switch (props.type) {
     case 'mostWins':
-      return `${entry.wins || 0} vitórias • ${(entry.win_rate || 0).toFixed(1)}% win rate`
+      return `${entry.wins || 0} vitórias`
     case 'mostMatches':
-      return `${entry.total_matches || 0} partidas • ${(entry.match_win_rate || 0).toFixed(1)}% win rate`
+      return `${entry.total_matches || 0} partidas`
     case 'mostGames':
-      return `${entry.total_games || 0} jogos • ${(entry.win_rate || 0).toFixed(1)}% win rate`
-    case 'bestWinRatio':
-      return `${entry.total_games || 0} jogos • ${entry.wins || 0} vitórias`
+      return `${entry.total_games || 0} jogos`
     default:
       return ''
   }
 }
 
 const getMainStat = (entry) => {
-  switch(props.type) {
+  switch (props.type) {
     case 'mostWins':
       return entry.wins || 0
     case 'mostMatches':
       return entry.total_matches || 0
     case 'mostGames':
       return entry.total_games || 0
-    case 'bestWinRatio':
-      return (entry.win_rate || 0).toFixed(1)
     default:
       return 0
   }
 }
 
 const getStatUnit = () => {
-  switch(props.type) {
-    case 'bestWinRatio':
-      return '%'
+  switch (props.type) {
     default:
       return ''
   }
@@ -193,14 +162,16 @@ const getStatUnit = () => {
 .leaderboard-section {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .leaderboard-section:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 /* Section Header */
@@ -330,36 +301,6 @@ const getStatUnit = () => {
   font-size: 0.875rem;
 }
 
-/* Player Avatar */
-.player-avatar {
-  width: 40px;
-  height: 40px;
-  margin-right: 0.75rem;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.avatar-image {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e2e8f0;
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: linear-gradient(45deg, #4299e1, #3182ce);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 0.875rem;
-}
-
 /* Player Info */
 .player-info {
   flex: 1;
@@ -374,6 +315,17 @@ const getStatUnit = () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.player-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.player-link:hover {
+  color: #3182ce;
+  text-decoration: underline;
 }
 
 .you-badge {
@@ -411,43 +363,12 @@ const getStatUnit = () => {
   margin-top: -0.25rem;
 }
 
-/* View More */
-.view-more {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #f7fafc;
-}
-
-.view-more-btn {
-  width: 100%;
-  padding: 0.75rem;
-  background: transparent;
-  color: #3182ce;
-  border: 2px solid #3182ce;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.view-more-btn:hover {
-  background: #3182ce;
-  color: white;
-}
-
-.arrow {
-  transition: transform 0.3s ease;
-}
-
-.view-more-btn:hover .arrow {
-  transform: translateX(4px);
-}
-
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -18,7 +18,7 @@ class LeaderboardController extends Controller
     {
         $limit = $request->get("limit", 10);
         $period = $request->get("period", "all"); // all, month
-        $type = $request->get("type", "most_wins"); // most_wins, most_matches, most_games, best_winratio
+        $type = $request->get("type", "most_wins"); // most_wins, most_matches, most_games
 
         // Build date filter for period
         $dateFilter = $this->getDateFilter($period);
@@ -30,8 +30,6 @@ class LeaderboardController extends Controller
                 return $this->getMostMatches($limit, $dateFilter, $period);
             case "most_games":
                 return $this->getMostGames($limit, $dateFilter, $period);
-            case "best_winratio":
-                return $this->getBestWinRatio($limit, $dateFilter, $period);
             default:
                 return response()->json(
                     ["error" => "Invalid leaderboard type"],
@@ -49,17 +47,9 @@ class LeaderboardController extends Controller
             "users.id",
             "users.name",
             "users.nickname",
-            "users.photo_avatar_filename",
             "users.coins_balance",
             DB::raw(
                 "COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) as wins",
-            ),
-            DB::raw("COUNT(DISTINCT games.id) as total_games"),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id != users.id AND games.winner_user_id IS NOT NULL THEN games.id END) as losses",
-            ),
-            DB::raw(
-                "CASE WHEN COUNT(DISTINCT games.id) > 0 THEN (COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) * 100.0 / COUNT(DISTINCT games.id)) ELSE 0 END as win_rate",
             ),
         ])
             ->leftJoin("games", function ($join) {
@@ -81,12 +71,10 @@ class LeaderboardController extends Controller
                 "users.id",
                 "users.name",
                 "users.nickname",
-                "users.photo_avatar_filename",
                 "users.coins_balance",
             )
             ->having("wins", ">", 0) // Only show users with at least 1 win
             ->orderByDesc("wins")
-            ->orderByDesc("win_rate")
             ->limit($limit)
             ->get();
 
@@ -102,15 +90,8 @@ class LeaderboardController extends Controller
             "users.id",
             "users.name",
             "users.nickname",
-            "users.photo_avatar_filename",
             "users.coins_balance",
             DB::raw("COUNT(DISTINCT matches.id) as total_matches"),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN matches.winner_user_id = users.id THEN matches.id END) as match_wins",
-            ),
-            DB::raw(
-                "CASE WHEN COUNT(DISTINCT matches.id) > 0 THEN (COUNT(DISTINCT CASE WHEN matches.winner_user_id = users.id THEN matches.id END) * 100.0 / COUNT(DISTINCT matches.id)) ELSE 0 END as match_win_rate",
-            ),
         ])
             ->leftJoin("matches", function ($join) {
                 $join
@@ -131,12 +112,10 @@ class LeaderboardController extends Controller
                 "users.id",
                 "users.name",
                 "users.nickname",
-                "users.photo_avatar_filename",
                 "users.coins_balance",
             )
             ->having("total_matches", ">", 0) // Only show users with at least 1 match
             ->orderByDesc("total_matches")
-            ->orderByDesc("match_win_rate")
             ->limit($limit)
             ->get();
 
@@ -152,18 +131,8 @@ class LeaderboardController extends Controller
             "users.id",
             "users.name",
             "users.nickname",
-            "users.photo_avatar_filename",
             "users.coins_balance",
             DB::raw("COUNT(DISTINCT games.id) as total_games"),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) as wins",
-            ),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id != users.id AND games.winner_user_id IS NOT NULL THEN games.id END) as losses",
-            ),
-            DB::raw(
-                "CASE WHEN COUNT(DISTINCT games.id) > 0 THEN (COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) * 100.0 / COUNT(DISTINCT games.id)) ELSE 0 END as win_rate",
-            ),
         ])
             ->leftJoin("games", function ($join) {
                 $join
@@ -184,12 +153,10 @@ class LeaderboardController extends Controller
                 "users.id",
                 "users.name",
                 "users.nickname",
-                "users.photo_avatar_filename",
                 "users.coins_balance",
             )
             ->having("total_games", ">", 0) // Only show users with at least 1 game
             ->orderByDesc("total_games")
-            ->orderByDesc("win_rate")
             ->limit($limit)
             ->get();
 
@@ -197,74 +164,10 @@ class LeaderboardController extends Controller
     }
 
     /**
-     * Best Win Ratio Leaderboard
-     */
-    private function getBestWinRatio($limit, $dateFilter, $period)
-    {
-        $minGames = 5; // Minimum games required to be eligible for win ratio ranking
-
-        $query = User::select([
-            "users.id",
-            "users.name",
-            "users.nickname",
-            "users.photo_avatar_filename",
-            "users.coins_balance",
-            DB::raw("COUNT(DISTINCT games.id) as total_games"),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) as wins",
-            ),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id != users.id AND games.winner_user_id IS NOT NULL THEN games.id END) as losses",
-            ),
-            DB::raw(
-                "CASE WHEN COUNT(DISTINCT games.id) > 0 THEN (COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) * 100.0 / COUNT(DISTINCT games.id)) ELSE 0 END as win_rate",
-            ),
-        ])
-            ->leftJoin("games", function ($join) {
-                $join
-                    ->on("users.id", "=", "games.player1_user_id")
-                    ->orOn("users.id", "=", "games.player2_user_id");
-            })
-            ->where("users.type", "!=", "A")
-            ->where("users.blocked", false);
-
-        if ($dateFilter) {
-            $query
-                ->where("games.began_at", ">=", $dateFilter["start"])
-                ->where("games.began_at", "<=", $dateFilter["end"]);
-        }
-
-        $leaderboard = $query
-            ->groupBy(
-                "users.id",
-                "users.name",
-                "users.nickname",
-                "users.photo_avatar_filename",
-                "users.coins_balance",
-            )
-            ->having("total_games", ">=", $minGames) // Minimum games requirement
-            ->orderByDesc("win_rate")
-            ->orderByDesc("wins")
-            ->limit($limit)
-            ->get();
-
-        return $this->formatResponse(
-            $leaderboard,
-            $period,
-            "best_winratio",
-            $minGames,
-        );
-    }
-
-    /**
      * Format the response with position ranking
      */
-    private function formatResponse(
-        $leaderboard,
-        $period,
-        $type,
-        $minGames = null,
-    ) {
+    private function formatResponse($leaderboard, $period, $type)
+    {
         $leaderboard->each(function ($user, $index) {
             $user->position = $index + 1;
         });
@@ -274,7 +177,6 @@ class LeaderboardController extends Controller
             "data" => $leaderboard,
             "period" => $period,
             "type" => $type,
-            "min_games_required" => $minGames,
         ]);
     }
 
@@ -329,12 +231,6 @@ class LeaderboardController extends Controller
                     "period" => $period,
                     "type" => "most_games",
                 ],
-                "best_winratio" => [
-                    "success" => true,
-                    "data" => $this->getBestWinRatioData($limit, $dateFilter),
-                    "period" => $period,
-                    "type" => "best_winratio",
-                ],
             ],
         ]);
     }
@@ -348,17 +244,9 @@ class LeaderboardController extends Controller
             "users.id",
             "users.name",
             "users.nickname",
-            "users.photo_avatar_filename",
             "users.coins_balance",
             DB::raw(
                 "COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) as wins",
-            ),
-            DB::raw("COUNT(DISTINCT games.id) as total_games"),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id != users.id AND games.winner_user_id IS NOT NULL THEN games.id END) as losses",
-            ),
-            DB::raw(
-                "CASE WHEN COUNT(DISTINCT games.id) > 0 THEN (COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) * 100.0 / COUNT(DISTINCT games.id)) ELSE 0 END as win_rate",
             ),
         ])
             ->leftJoin("games", function ($join) {
@@ -380,12 +268,10 @@ class LeaderboardController extends Controller
                 "users.id",
                 "users.name",
                 "users.nickname",
-                "users.photo_avatar_filename",
                 "users.coins_balance",
             )
             ->having("wins", ">", 0)
             ->orderByDesc("wins")
-            ->orderByDesc("win_rate")
             ->limit($limit)
             ->get();
 
@@ -405,15 +291,8 @@ class LeaderboardController extends Controller
             "users.id",
             "users.name",
             "users.nickname",
-            "users.photo_avatar_filename",
             "users.coins_balance",
             DB::raw("COUNT(DISTINCT matches.id) as total_matches"),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN matches.winner_user_id = users.id THEN matches.id END) as match_wins",
-            ),
-            DB::raw(
-                "CASE WHEN COUNT(DISTINCT matches.id) > 0 THEN (COUNT(DISTINCT CASE WHEN matches.winner_user_id = users.id THEN matches.id END) * 100.0 / COUNT(DISTINCT matches.id)) ELSE 0 END as match_win_rate",
-            ),
         ])
             ->leftJoin("matches", function ($join) {
                 $join
@@ -434,12 +313,10 @@ class LeaderboardController extends Controller
                 "users.id",
                 "users.name",
                 "users.nickname",
-                "users.photo_avatar_filename",
                 "users.coins_balance",
             )
             ->having("total_matches", ">", 0)
             ->orderByDesc("total_matches")
-            ->orderByDesc("match_win_rate")
             ->limit($limit)
             ->get();
 
@@ -459,18 +336,8 @@ class LeaderboardController extends Controller
             "users.id",
             "users.name",
             "users.nickname",
-            "users.photo_avatar_filename",
             "users.coins_balance",
             DB::raw("COUNT(DISTINCT games.id) as total_games"),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) as wins",
-            ),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id != users.id AND games.winner_user_id IS NOT NULL THEN games.id END) as losses",
-            ),
-            DB::raw(
-                "CASE WHEN COUNT(DISTINCT games.id) > 0 THEN (COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) * 100.0 / COUNT(DISTINCT games.id)) ELSE 0 END as win_rate",
-            ),
         ])
             ->leftJoin("games", function ($join) {
                 $join
@@ -491,71 +358,10 @@ class LeaderboardController extends Controller
                 "users.id",
                 "users.name",
                 "users.nickname",
-                "users.photo_avatar_filename",
                 "users.coins_balance",
             )
             ->having("total_games", ">", 0)
             ->orderByDesc("total_games")
-            ->orderByDesc("win_rate")
-            ->limit($limit)
-            ->get();
-
-        $leaderboard->each(function ($user, $index) {
-            $user->position = $index + 1;
-        });
-
-        return $leaderboard;
-    }
-
-    /**
-     * Get Best Win Ratio data (without response wrapper)
-     */
-    private function getBestWinRatioData($limit, $dateFilter)
-    {
-        $minGames = 5;
-
-        $query = User::select([
-            "users.id",
-            "users.name",
-            "users.nickname",
-            "users.photo_avatar_filename",
-            "users.coins_balance",
-            DB::raw("COUNT(DISTINCT games.id) as total_games"),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) as wins",
-            ),
-            DB::raw(
-                "COUNT(DISTINCT CASE WHEN games.winner_user_id != users.id AND games.winner_user_id IS NOT NULL THEN games.id END) as losses",
-            ),
-            DB::raw(
-                "CASE WHEN COUNT(DISTINCT games.id) > 0 THEN (COUNT(DISTINCT CASE WHEN games.winner_user_id = users.id THEN games.id END) * 100.0 / COUNT(DISTINCT games.id)) ELSE 0 END as win_rate",
-            ),
-        ])
-            ->leftJoin("games", function ($join) {
-                $join
-                    ->on("users.id", "=", "games.player1_user_id")
-                    ->orOn("users.id", "=", "games.player2_user_id");
-            })
-            ->where("users.type", "!=", "A")
-            ->where("users.blocked", false);
-
-        if ($dateFilter) {
-            $query
-                ->where("games.began_at", ">=", $dateFilter["start"])
-                ->where("games.began_at", "<=", $dateFilter["end"]);
-        }
-
-        $leaderboard = $query
-            ->groupBy(
-                "users.id",
-                "users.name",
-                "users.nickname",
-                "users.photo_avatar_filename",
-                "users.coins_balance",
-            )
-            ->having("total_games", ">=", $minGames)
-            ->orderByDesc("win_rate")
-            ->orderByDesc("wins")
             ->limit($limit)
             ->get();
 

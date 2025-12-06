@@ -69,13 +69,6 @@
             <span class="stat-label">Total de Jogos</span>
           </div>
         </div>
-        <div class="stat-card">
-          <span class="stat-emoji">🏆</span>
-          <div class="stat-info">
-            <span class="stat-number">{{ topWinRate }}%</span>
-            <span class="stat-label">Melhor Win Rate</span>
-          </div>
-        </div>
       </div>
 
       <!-- Leaderboards Grid -->
@@ -139,13 +132,6 @@ const totalPlayers = computed(() => {
 const totalGames = computed(() => {
   if (leaderboards.value.mostGames.length > 0) {
     return leaderboards.value.mostGames[0]?.total_games || 0
-  }
-  return 0
-})
-
-const topWinRate = computed(() => {
-  if (leaderboards.value.bestWinRatio.length > 0) {
-    return Math.round(leaderboards.value.bestWinRatio[0]?.win_rate || 0)
   }
   return 0
 })

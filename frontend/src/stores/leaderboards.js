@@ -10,7 +10,6 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
     mostWins: [],
     mostMatches: [],
     mostGames: [],
-    bestWinRatio: [],
   })
 
   const isLoading = ref(false)
@@ -23,8 +22,7 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
     return (
       leaderboards.value.mostWins.length === 0 &&
       leaderboards.value.mostMatches.length === 0 &&
-      leaderboards.value.mostGames.length === 0 &&
-      leaderboards.value.bestWinRatio.length === 0
+      leaderboards.value.mostGames.length === 0
     )
   })
 
@@ -51,12 +49,6 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
       title: 'Most Games',
       emoji: '🎮',
       description: 'Players with the most individual games',
-    },
-    {
-      key: 'bestWinRatio',
-      title: 'Best Win Rate',
-      emoji: '📊',
-      description: 'Players with the highest win percentage',
     },
   ])
 
@@ -88,15 +80,14 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
       const response = await apiStore.getLeaderboardsAll(period, limit)
       console.log('API Response:', response.data)
 
-      // Transform API response to match our store structure
+      // API response now matches our store structure
       leaderboards.value = {
         mostWins: response.data.leaderboards.most_wins?.data || [],
         mostMatches: response.data.leaderboards.most_matches?.data || [],
         mostGames: response.data.leaderboards.most_games?.data || [],
-        bestWinRatio: response.data.leaderboards.best_winratio?.data || [],
       }
 
-      console.log('Transformed leaderboards:', leaderboards.value)
+      console.log('Updated leaderboards:', leaderboards.value)
       lastFetch.value = now
     } catch (err) {
       error.value = err.response?.data?.message || err.message || 'Failed to fetch leaderboards'
@@ -142,7 +133,6 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
       mostWins: [],
       mostMatches: [],
       mostGames: [],
-      bestWinRatio: [],
     }
     isLoading.value = false
     error.value = null
