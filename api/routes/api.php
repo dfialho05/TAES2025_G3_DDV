@@ -36,6 +36,18 @@ Route::get("/metadata", function (Request $request) {
 Route::post("/login", [AuthController::class, "login"]);
 Route::post("/register", [AuthController::class, "register"]);
 
+// Individual leaderboard categories
+Route::get("/leaderboard", [
+    \App\Http\Controllers\LeaderboardController::class,
+    "getLeaderboard",
+]);
+
+// All leaderboards at once (for dashboard view)
+Route::get("/leaderboards/all", [
+    \App\Http\Controllers\LeaderboardController::class,
+    "getAllLeaderboards",
+]);
+
 /*
 |--------------------------------------------------------------------------
 | Public Game Routes (No Authentication Required)
