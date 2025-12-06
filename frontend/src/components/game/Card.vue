@@ -1,49 +1,113 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, inject, onMounted, ref, watch } from 'vue'
+import { useDeckStore } from '@/stores/deck'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   card: { type: Object, default: null },
   faceDown: { type: Boolean, default: false },
   interactable: { type: Boolean, default: false },
-  deck: {type: String, default:'default'}
-});
+  deck: { type: String, default: null }, // Opcional: forçar um deck específico
+})
 
-const cardImage = computed(() => {
-  // 1. Carta virada para baixo
-  if (props.faceDown || !props.card) {
-    return new URL(`../../assets/cards/${props.deck}/semFace.png`, import.meta.url).href;
+const deckStore = useDeckStore()
+const authStore = useAuthStore()
+const API_BASE_URL = inject('apiBaseURL') || '/api'
+
+// Estado para controlar fallback
+const useLocalAssets = ref(false)
+const imageError = ref(false)
+
+// Garantir que os decks são carregados
+onMounted(async () => {
+  if (deckStore.decks.length === 0) {
+    await deckStore.fetchDecks()
+  }
+})
+
+// Determinar qual deck usar
+const activeDeckSlug = computed(() => {
+  // Se deck foi especificado como prop, usar esse
+  if (props.deck) {
+    return props.deck
   }
 
-  // 2. NAIPE: Usar DIRETAMENTE o que vem do servidor
-  // O servidor envia 'c', 'o', 'p', 'e'.
-  // As imagens chamam-se 'c...', 'o...', 'p...', 'e...'.
-  // Não precisamos de mapa nem de fallback!
-  const naipeCode = props.card.naipe;
+  // Caso contrário, usar o deck ativo do usuário
+  const activeDeck = deckStore.activeDeck
+  const slug = activeDeck?.slug || 'default'
 
-  // 3. RANK: Traduzir letras (A, K, J, Q) para números das imagens
+  return slug
+})
+
+// --- FIX: Resetar o estado de erro quando o deck muda ---
+watch(activeDeckSlug, () => {
+  useLocalAssets.value = false
+  imageError.value = false
+})
+
+// Função para gerar URL local (assets)
+const getLocalAssetUrl = (filename) => {
+  return new URL(`../../assets/cards/default/${filename}`, import.meta.url).href
+}
+
+// Função para gerar nome do arquivo da carta
+const getCardFilename = () => {
+  if (props.faceDown || !props.card) {
+    return 'semFace.png'
+  }
+
+  // --- FIX: Forçar minúsculas no naipe (ex: 'C' vira 'c') ---
+  const naipeCode = props.card.naipe ? props.card.naipe.toLowerCase() : ''
+
   const rankMap = {
-    'A': '1',
-    'J': '11',
-    'Q': '12',
-    'K': '13'
-  };
+    A: '1',
+    J: '11',
+    Q: '12',
+    K: '13',
+  }
+  const rankCode = rankMap[props.card.rank] || props.card.rank
+  return `${naipeCode}${rankCode}.png`
+}
 
-  // Se for 'A' usa o mapa ('1'). Se for '7', usa o próprio '7'.
-  const rankCode = rankMap[props.card.rank] || props.card.rank;
+const cardImage = computed(() => {
+  const filename = getCardFilename()
 
-  // 4. Nome final (ex: c1.png, p13.png)
-  const filename = `${naipeCode}${rankCode}.png`;
+  // Se devemos usar assets locais (apenas se já falhou anteriormente neste contexto)
+  if (useLocalAssets.value) {
+    return getLocalAssetUrl(filename)
+  }
 
-  return new URL(`../../assets/cards/${props.deck}/${filename}`, import.meta.url).href;
-});
+  // Caso contrário, tenta a API
+  return `${API_BASE_URL}/decks/${activeDeckSlug.value}/image/${filename}`
+})
+
+// Função para lidar com erro de imagem
+const handleImageError = () => {
+  // Apenas ativa o fallback se ainda não estiver ativo
+  if (!useLocalAssets.value) {
+    // console.warn(`[Card] Erro API. Ativando fallback local.`)
+    useLocalAssets.value = true
+    imageError.value = true
+  }
+}
+
+// Função para reset do estado quando imagem carrega com sucesso
+const handleImageLoad = () => {
+  if (imageError.value && !useLocalAssets.value) {
+    imageError.value = false
+  }
+}
 </script>
 
 <template>
-  <div
-    class="card-wrapper"
-    :class="{ 'interactable': interactable }"
-  >
-    <img :src="cardImage" alt="Carta" draggable="false" />
+  <div class="card-wrapper" :class="{ interactable: interactable }">
+    <img
+      :src="cardImage"
+      alt="Carta"
+      draggable="false"
+      @error="handleImageError"
+      @load="handleImageLoad"
+    />
   </div>
 </template>
 
@@ -52,7 +116,7 @@ const cardImage = computed(() => {
   width: 70px;
   height: 100px;
   border-radius: 6px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   transition: transform 0.2s;
   background-color: white;
@@ -68,6 +132,11 @@ img {
   display: block;
 }
 
-.interactable { cursor: pointer; }
-.interactable:hover { transform: translateY(-15px); z-index: 10; }
+.interactable {
+  cursor: pointer;
+}
+.interactable:hover {
+  transform: translateY(-15px);
+  z-index: 10;
+}
 </style>

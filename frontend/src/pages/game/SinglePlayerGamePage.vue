@@ -1,44 +1,60 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'; // <--- ADICIONEI 'ref' AQUI
-import { useBiscaStore } from '@/stores/biscaStore';
-import { storeToRefs } from 'pinia';
-import Card from '@/components/game/Card.vue';
-import { useRoute } from 'vue-router';
-import { watch } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue' // <--- ADICIONEI 'ref' AQUI
+import { useBiscaStore } from '@/stores/biscaStore'
+import { useDeckStore } from '@/stores/deck'
+import { storeToRefs } from 'pinia'
+import Card from '@/components/game/Card.vue'
+import { useRoute } from 'vue-router'
+import { watch } from 'vue'
 
-const route = useRoute();
-const store = useBiscaStore();
+const route = useRoute()
+const store = useBiscaStore()
+const deckStore = useDeckStore()
 const {
-  playerHand, botCardCount, trunfo, tableCards,
-  score, logs, currentTurn, isGameOver, isConnected, cardsLeft, game
-} = storeToRefs(store);
+  playerHand,
+  botCardCount,
+  trunfo,
+  tableCards,
+  score,
+  logs,
+  currentTurn,
+  isGameOver,
+  isConnected,
+  cardsLeft,
+  game,
+} = storeToRefs(store)
 
 // Controla se estamos no Menu ou no Jogo
-const gameStarted = ref(false);
+const gameStarted = ref(false)
 
 // Função central para iniciar o jogo (chamada pelo URL ou pelos botões)
 const chooseGameMode = (type) => {
-  store.startGame(type);
-  gameStarted.value = true; // Esconde menu, mostra mesa
-};
+  store.startGame(type)
+  gameStarted.value = true // Esconde menu, mostra mesa
+}
 
-onMounted(() => {
-  store.connect();
+onMounted(async () => {
+  store.connect()
+
+  // Carregar decks se ainda não estiverem carregados
+  if (deckStore.decks.length === 0) {
+    await deckStore.fetchDecks()
+  }
 
   // Se viemos da Home Page com ?mode=9, iniciamos logo
   if (route.query.mode) {
-    const modeFromUrl = parseInt(route.query.mode);
-    chooseGameMode(modeFromUrl);
+    const modeFromUrl = parseInt(route.query.mode)
+    chooseGameMode(modeFromUrl)
   }
-});
+})
 
-onUnmounted(() => { store.disconnect(); });
-
+onUnmounted(() => {
+  store.disconnect()
+})
 </script>
 
 <template>
   <div class="game-container">
-
     <div v-if="!isConnected" class="overlay">
       <h2>A ligar ao servidor...</h2>
       <p>Certifica-te que o backend está a correr na porta 3000</p>
@@ -55,23 +71,22 @@ onUnmounted(() => { store.disconnect(); });
 
     <!-- MESA DE JOGO -->
     <div class="table-area">
-
       <!-- Baralho -->
       <div v-if="cardsLeft > 0" class="deck-pile">
-        <Card :face-down="true" :deck="store.game?.deck_slug || 'default'"/>
+        <Card :face-down="true" />
         <span class="deck-count">{{ cardsLeft }}</span>
       </div>
 
       <!-- Trunfo -->
       <div class="trunfo-area" v-if="trunfo">
         <span>Trunfo:</span>
-        <Card :card="trunfo" class="mini-card" :deck="store.game?.deck_slug || 'default'" />
+        <Card :card="trunfo" class="mini-card" />
       </div>
 
       <!-- CARTAS JOGADAS (Com Animação) -->
       <TransitionGroup name="table-anim" tag="div" class="played-cards">
         <div v-for="move in tableCards" :key="move.player" class="move-wrapper">
-          <Card :card="move.card" :deck="store.game?.deck_slug || 'default'"/>
+          <Card :card="move.card" />
           <span class="label">{{ move.player === 'user' ? 'Tu' : 'Bot' }}</span>
         </div>
       </TransitionGroup>
@@ -92,11 +107,16 @@ onUnmounted(() => { store.disconnect(); });
 
       <!-- MÃO DO JOGADOR (Com Animação) -->
       <TransitionGroup name="hand-anim" tag="div" class="player-hand">
-        <Card v-for="(card, index) in playerHand" :key="card.id" :card="card" :interactable="currentTurn === 'user'"
-          :class="{ 'disabled': currentTurn !== 'user' }" @click="store.playCard(index)" :deck="store.game?.deck_slug || 'default'"/>
+        <Card
+          v-for="(card, index) in playerHand"
+          :key="card.id"
+          :card="card"
+          :interactable="currentTurn === 'user'"
+          :class="{ disabled: currentTurn !== 'user' }"
+          @click="store.playCard(index)"
+        />
       </TransitionGroup>
     </div>
-
   </div>
 </template>
 
