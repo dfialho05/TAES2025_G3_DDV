@@ -1,16 +1,17 @@
 <script setup>
-import { onMounted, onUnmounted, ref, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { onMounted, onUnmounted, computed, watch } from 'vue'; // <--- Adicionado watch
+import { useRoute, useRouter } from 'vue-router'; // <--- Adicionado useRouter
 import { storeToRefs } from 'pinia';
 import { useBiscaStore } from '@/stores/biscaStore';
 import { useSocketStore } from '@/stores/socket';
 import Card from '@/components/game/Card.vue';
 
 const route = useRoute();
+const router = useRouter();
 const gameStore = useBiscaStore();
 const socketStore = useSocketStore();
 
-// Usamos alias para compatibilidade com o template antigo
+// Alias para compatibilidade
 const {
   playerHand, opponentHandCount: botCardCount, trunfo, tableCards,
   score, logs, currentTurn, isGameOver, cardsLeft, gameID
@@ -21,23 +22,45 @@ const isConnected = computed(() => socketStore.joined);
 onMounted(() => {
   socketStore.handleConnection();
 
-  // CORREÇÃO CRÍTICA:
-  // Só iniciamos um jogo novo se NÃO tivermos já um ID de jogo (vindo do Lobby)
-  if (!gameID.value && route.query.mode) {
-      console.log("Iniciando novo jogo Singleplayer...");
+  // 1. LIGAR OS OUVIDOS (CRUCIAL PARA O MULTIPLAYER) 👂
+  gameStore.bindEvents();
+
+  // 2. Lógica de Inicialização
+  if (route.query.mode) {
+      // Modo Singleplayer (contra Bot localmente ou criado via URL)
       const mode = parseInt(route.query.mode);
-      // Pequeno delay para garantir que a conexão socket está pronta
-      setTimeout(() => {
-          gameStore.startGame(mode);
-      }, 100);
+      if (!gameID.value) {
+          console.log("Iniciando novo jogo Singleplayer...");
+          setTimeout(() => gameStore.startGame(mode), 100);
+      }
   } else {
-      console.log("A entrar em jogo existente ou aguardando...", gameID.value);
+      // Modo Multiplayer (Vem do Lobby)
+      if (!gameID.value) {
+          console.warn("Sem ID de jogo! Redirecionando para o Lobby...");
+          router.push('/lobby'); // Proteção contra F5
+      } else {
+          console.log(`Reconectado à mesa ${gameID.value}`);
+          // Opcional: Pedir o estado atual ao servidor para garantir sincronia
+          // socket.emit('get-game-state', gameID.value);
+      }
   }
 });
 
+// Watcher de Segurança: Se o jogo acabar ou formos expulsos, volta ao lobby
+watch(gameID, (newVal) => {
+    if (!newVal) {
+        console.log("Jogo terminado ou desconectado.");
+        // router.push('/lobby'); // Descomenta se quiseres auto-kick
+    }
+});
+
 onUnmounted(() => {
-  // Ao sair da página, saímos do jogo
-  gameStore.quitGame();
+  // CUIDADO: No multiplayer, não queremos fazer "quitGame" se sairmos sem querer
+  // Mas para singleplayer faz sentido.
+  // gameStore.quitGame();
+
+  // Apenas desligamos os eventos para não duplicar
+  gameStore.unbindEvents();
 });
 </script>
 

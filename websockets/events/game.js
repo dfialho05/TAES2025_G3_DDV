@@ -14,8 +14,6 @@ export const gameHandlers = (io, socket) => {
         const user = ConnectionState.getUser(socket.id);
         if (!user) return;
 
-        // CORREÇÃO AQUI: Adicionar o 3º parâmetro 'multiplayer'
-        // Antes estava: const game = GameState.createGame(gameType, user);
         const game = GameState.createGame(gameType, user, 'multiplayer'); 
 
         // OBRIGATÓRIO: O socket entra na "Sala" deste jogo
@@ -56,22 +54,28 @@ export const gameHandlers = (io, socket) => {
         const gameID = data.gameID;
         const cardIndex = data.cardIndex;
 
-        // CORREÇÃO: Passamos socket.id como 3º argumento
+        // 1. Tenta jogar a carta
         const result = GameState.handlePlayerMove(gameID, cardIndex, socket.id);
 
         if (result && result.moveValid) {
             const game = result.game;
-            
-            // Emite para a SALA inteira
-            io.to(`game-${game.id}`).emit("game_state", game.getState());
+            const roomName = `game-${game.id}`;
 
-            // Se for contra o Bot (player2 é null), ativamos o Bot
-            if (!game.player2) {
-                setTimeout(() => {
-                    // Passamos o 'io' para o Bot conseguir emitir para a sala
-                    GameState.handleBotLoop(game.id, io); 
-                }, 1000);
-            }
+            // Re-join de segurança (para o F5)
+            socket.join(roomName);
+
+            // 2. Mostra a carta que o jogador acabou de jogar
+            io.to(roomName).emit("game_state", game.getState());
+
+            // 3. O PASSO MÁGICO: "Cérebro, decide o que acontece a seguir"
+            // Se foi a 2ª carta -> ele resolve a vaza.
+            // Se foi a 1ª carta (Singleplayer) -> ele manda o bot jogar.
+            // Se foi a 1ª carta (Multiplayer) -> ele não faz nada (espera pelo P2).
+            GameState.advanceGame(game.id, io); 
         }
     });
+
+
+
+    
 };

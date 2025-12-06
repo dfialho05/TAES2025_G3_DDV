@@ -48,6 +48,7 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     socket.on('game_state', (data) => {
       // console.log('[Store] Estado recebido:', data)
+      console.log('🔥 [STORE] Recebi GAME_STATE do servidor!', data);
       processGameState(data)
     })
   }
@@ -131,15 +132,24 @@ export const useBiscaStore = defineStore('bisca', () => {
       logs.value = "A entrar..."
   }
 
-  const playCard = (index) => {
-    // Aceita 'user' ou 'me' como turno válido
+const playCard = (index) => {
+    // LOG DE DEBUG
+    console.log(`[PlayCard] Tentativa de jogar índice ${index}`);
+    console.log(`[PlayCard] Turno Atual: ${currentTurn.value}`);
+    console.log(`[PlayCard] Socket existe? ${!!socket}`);
+    console.log(`[PlayCard] GameID: ${gameID.value}`);
+
+    // A tua verificação original
     if ((currentTurn.value === 'user' || currentTurn.value === 'me') && socket && gameID.value) {
-      socket.emit('play_card', {
-          gameID: gameID.value,
-          cardIndex: index
-      })
+        console.log("✅ Condições aceites, a enviar para o servidor...");
+        socket.emit('play_card', {
+            gameID: gameID.value,
+            cardIndex: index
+        })
+    } else {
+        console.warn("⛔ Bloqueado pelo IF. Não é a tua vez ou falta dados.");
     }
-  }
+}
 
   const quitGame = () => {
     if (socket) {
@@ -172,6 +182,8 @@ export const useBiscaStore = defineStore('bisca', () => {
     fetchGames,
     playCard,
     quitGame,
-    unbindEvents
+    socket,
+    unbindEvents,
+    bindEvents
   }
 })

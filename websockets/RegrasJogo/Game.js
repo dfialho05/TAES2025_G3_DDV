@@ -177,6 +177,8 @@ export class BiscaGame {
     }
   }
 
+  
+
   // --- GET STATE (Para o Frontend) ---
   getState() {
     return {

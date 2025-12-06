@@ -49,63 +49,115 @@ export const removeGame = (gameID) => {
     games.delete(gameID);
 };
 
-// --- CORREÇÃO AQUI NA LÓGICA DE MOVIMENTO ---
 export const handlePlayerMove = (gameID, cardIndex, socketID) => { 
+    console.log(`--- 🏁 INÍCIO JOGADA (Game ${gameID}) ---`);
+    
     const game = games.get(gameID);
-    if (!game) return null;
-
-    // 2. Primeiro, descobrimos QUEM é o user por trás deste socket
-    const actingUser = getUser(socketID); 
-
-    if (!actingUser) {
-        console.log(`[Move Error] Socket ${socketID} não está autenticado.`);
+    if (!game) {
+        console.error(`❌ Jogo ${gameID} não encontrado em memória.`);
         return null;
     }
 
+    // 1. Quem é o user?
+    const actingUser = getUser(socketID); 
+    if (!actingUser) {
+        console.error(`❌ Socket ${socketID} não tem User associado. (Reiniciaste o servidor?)`);
+        return null;
+    }
+
+    console.log(`👤 User a tentar jogar: ${actingUser.name} (ID: ${actingUser.id})`);
+    
     let side = null;
 
-    // 3. Agora comparamos USER ID com USER ID (maçãs com maçãs)
-    if (game.player1.id === actingUser.id) { 
+    // 2. Comparação de IDs "À Prova de Balas" (Converte tudo para String)
+    const p1ID = String(game.player1.id);
+    const actorID = String(actingUser.id);
+    const p2ID = game.player2 ? String(game.player2.id) : null;
+
+    console.log(`🔍 Comparando: Actor(${actorID}) vs P1(${p1ID}) vs P2(${p2ID})`);
+
+    if (p1ID === actorID) { 
         side = "player1";
     } 
-    else if (game.player2 && game.player2.id === actingUser.id) {
+    else if (p2ID && p2ID === actorID) {
         side = "player2";
     } 
     
     if (!side) {
-        console.log(`[Block] User ${actingUser.name} tentou mexer no jogo errado.`);
+        console.error(`⛔ BLOQUEADO: O user ${actingUser.name} não pertence a este jogo.`);
         return null;
     }
 
+    console.log(`✅ Autorizado como: ${side}. A processar movimento...`);
+
     const moveValid = game.playCard(side, cardIndex);
+    
+    if (!moveValid) {
+        console.warn(`⚠️ Regras do Jogo bloquearam (Turno errado ou naipe obrigatório).`);
+    } else {
+        console.log(`🎉 Sucesso! Carta jogada.`);
+    }
+
     return { game, moveValid };
 };
 
-export const handleBotLoop = (gameID, io) => {
+export const advanceGame = (gameID, io) => {
     const game = games.get(gameID);
-
     if (!game || game.gameOver) return;
 
     const roomName = `game-${game.id}`;
 
-    if (game.tableCards.length < 2) {
-        game.playBotCard();
-        io.to(roomName).emit("game_state", game.getState());
-    }
-
-    if (game.tableCards.length === 2) {
+    // CASO 1: A mesa está cheia (2 cartas)? -> RESOLVER VAZA
+    // Funciona para Multiplayer e Singleplayer igual!
+    if (game.tableCards.length >= 2) {
+        
+        // Resolve quem ganhou
         const winner = game.resolveRound();
+        
+        // Atualiza o front (mostra a 2ª carta e a animação)
         io.to(roomName).emit("game_state", game.getState());
 
+        // Pausa dramática para verem quem ganhou
         setTimeout(() => {
             if (!games.has(gameID)) return;
 
+            // Limpa a mesa e distribui cartas
             game.cleanupRound(winner);
+            
+            // Atualiza o front (mesa limpa)
             io.to(roomName).emit("game_state", game.getState());
 
-            if (game.turn === "player2" && !game.gameOver) {
-                setTimeout(() => handleBotLoop(gameID, io), 1000);
-            }
+            // Recursividade: O jogo avançou, vamos ver se agora é a vez do Bot
+            advanceGame(gameID, io); 
         }, 1500);
+
+        return; // Sai da função para não executar o código do bot abaixo nesta passada
     }
+
+    // CASO 2: A mesa não está cheia. É a vez do Bot?
+    // Só entra aqui se o jogo for Singleplayer (!game.player2)
+   if (!game.player2 && game.turn === 'player2') {
+        
+        // Antes: game.playBotCard(); io.to...
+        
+        // AGORA: Adicionamos "Tempo de Cérebro" (ex: 1 a 2 segundos)
+        const thinkingTime = Math.random() * 1000 + 1000; // Entre 1s e 2s
+
+        setTimeout(() => {
+            // Verificar se o jogo ainda existe (o player pode ter saído durante o "pensar")
+            if (!games.has(gameID)) return;
+
+            game.playBotCard();
+            
+            // Avisa o frontend
+            io.to(roomName).emit("game_state", game.getState());
+
+            // Recursividade
+            advanceGame(gameID, io);
+        }, thinkingTime);
+    }
+    
+    // CASO 3: É a vez de um Humano?
+    // A função acaba aqui e o servidor fica à espera do evento 'play_card' do socket.
 };
+
