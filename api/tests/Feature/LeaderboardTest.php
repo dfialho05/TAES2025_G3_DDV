@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Deck;
 use App\Models\User;
 use App\Models\Game;
 use App\Models\Matches;
@@ -17,6 +18,14 @@ class LeaderboardTest extends TestCase
     {
         parent::setUp();
         Carbon::setTestNow();
+
+        // Create a default deck to satisfy foreign key constraints
+        Deck::create([
+            "name" => "Default Deck",
+            "slug" => "default",
+            "price" => 0,
+            "active" => true,
+        ]);
     }
 
     public function test_can_get_most_wins_leaderboard()

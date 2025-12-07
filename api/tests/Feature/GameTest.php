@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Deck;
 use App\Models\Game;
 use App\Models\Matches;
 use App\Models\User;
@@ -12,6 +13,19 @@ use Tests\TestCase;
 class GameTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Create a default deck to satisfy foreign key constraints
+        Deck::create([
+            "name" => "Default Deck",
+            "slug" => "default",
+            "price" => 0,
+            "active" => true,
+        ]);
+    }
 
     /**
      * Teste: Listar todos os jogos (Public Index).

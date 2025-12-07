@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Deck;
 use App\Models\Matches;
 use App\Models\User;
 use App\Models\Game;
@@ -12,6 +13,19 @@ use Tests\TestCase;
 class MatchTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Create a default deck to satisfy foreign key constraints
+        Deck::create([
+            "name" => "Default Deck",
+            "slug" => "default",
+            "price" => 0,
+            "active" => true,
+        ]);
+    }
 
     public function test_non_admin_cannot_get_all_matches()
     {
