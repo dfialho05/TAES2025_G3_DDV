@@ -20,9 +20,9 @@ onMounted(() => {
 });
 
 // Criar Jogo (Player 1)
-const create = () => {
+const create = (tipoJogo) => {
     console.log("🖱️ Cliquei em Criar Jogo");
-    biscaStore.startGame(3, 'multiplayer');
+    biscaStore.startGame(tipoJogo, 'multiplayer');
 };
 
 // Entrar Jogo (Player 2)
@@ -61,11 +61,19 @@ const goHome = () => {
             <div class="placeholder"></div> </header>
 
         <section class="action-area">
-            <button @click="create" class="btn-create">
+            <button @click="create(3)" class="btn-create">
                 <div class="icon-wrapper">🃏</div>
                 <div class="text-wrapper">
-                    <span class="btn-title">Criar Nova Sala</span>
-                    <span class="btn-desc">Bisca de 3 Cartas</span>
+                    <span class="btn-title">Bisca de 3</span>
+                    <span class="btn-desc">New room</span>
+                </div>
+            </button>
+
+            <button @click="create(9)" class="btn-create">
+                <div class="icon-wrapper">🃏</div>
+                <div class="text-wrapper">
+                    <span class="btn-title">Bisca de 9</span>
+                    <span class="btn-desc">New room</span>
                 </div>
             </button>
         </section>

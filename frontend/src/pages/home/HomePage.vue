@@ -124,18 +124,18 @@ onMounted(async () => {
                 <CardTitle class="text-3xl font-bold text-center">
                     MultiPlayer
                 </CardTitle>
-                <CardDescription class="text-center">
-                    Em breve...
-                </CardDescription>
+
             </CardHeader>
             <CardContent class="flex items-center justify-center h-64">
                  <Button
                         @click="goToLobby()"
                         variant="outline"
                         class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all group">
-                        <span class="text-lg font-bold group-hover:text-green-600 dark:group-hover:text-green-400">Bisca de 3</span>
-                        <span class="text-xs text-muted-foreground font-normal">Modo Clássico</span>
-                    </Button>
+                        <span class="text-lg font-bold group-hover:text-green-600 dark:group-hover:text-green-400">Lobby</span>
+                        <span class="text-xs text-muted-foreground font-normal">Enfrenta outros jogadores!</span>
+                  </Button>
+
+
             </CardContent>
         </Card>
     </div>
