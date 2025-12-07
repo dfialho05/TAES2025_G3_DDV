@@ -67,12 +67,26 @@ class CoinPurchaseController extends Controller
         }
 
         // Payment Gateway Logic
+        Log::info("Sending payment request", [
+            "url" => $paymentsUrl,
+            "payload" => $payload,
+            "user_id" => $user->id,
+        ]);
+
         try {
-            $response = Http::timeout(10)->post(
-                $paymentsUrl . "/api/debit",
-                $payload,
-            );
+            $response = Http::timeout(10)->post($paymentsUrl, $payload);
+
+            $statusCode = $response->status();
+            $responseBody = $response->body();
             $providerResponse = $response->json();
+
+            Log::info("Payment gateway response received", [
+                "status_code" => $statusCode,
+                "response_body" => $responseBody,
+                "parsed_response" => $providerResponse,
+                "user_id" => $user->id,
+                "payload_sent" => $payload,
+            ]);
 
             // Verificação Unificada:
             // 1. Se o request falhou (4xx, 5xx) OU
@@ -81,23 +95,41 @@ class CoinPurchaseController extends Controller
                 $response->failed() ||
                 ($providerResponse["status"] ?? "") !== "valid"
             ) {
-                Log::warning(
-                    "Payment Rejected: " . json_encode($providerResponse),
-                );
+                Log::warning("Payment Rejected", [
+                    "status_code" => $statusCode,
+                    "response" => $providerResponse,
+                    "payload" => $payload,
+                    "user_id" => $user->id,
+                ]);
+
                 return response()->json(
                     [
                         "message" => "Saldo ou Método de pagamento inválido",
+                        "debug_info" => [
+                            "gateway_status" => $statusCode,
+                            "gateway_response" => $providerResponse,
+                            "payload_sent" => $payload,
+                        ],
                     ],
                     422,
                 );
             }
         } catch (\Exception $e) {
             // Se houver erro de conexão (Timeout, DNS), apanhamos aqui
-            Log::error("Payment connection error: " . $e->getMessage());
+            Log::error("Payment connection error", [
+                "error" => $e->getMessage(),
+                "payload" => $payload,
+                "user_id" => $user->id,
+                "url" => $paymentsUrl,
+            ]);
 
             return response()->json(
                 [
-                    "message" => "Saldo ou Método de pagamento inválido",
+                    "message" => "Erro de conexão com gateway de pagamento",
+                    "debug_info" => [
+                        "error" => $e->getMessage(),
+                        "payload_sent" => $payload,
+                    ],
                 ],
                 422,
             );
