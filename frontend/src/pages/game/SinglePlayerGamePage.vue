@@ -13,7 +13,7 @@ const socketStore = useSocketStore();
 
 // Alias para compatibilidade visual
 const {
-  playerHand, opponentHandCount: botCardCount, trunfo, tableCards,
+  playerHand, opponentHandCount: botCardCount, trunfo, tableCards, opponentName, isWaiting,
   score, logs, currentTurn, isGameOver, cardsLeft, gameID
 } = storeToRefs(gameStore);
 
@@ -74,6 +74,17 @@ onUnmounted(() => {
 <template>
   <div class="game-container">
 
+    <div v-if="isWaiting" class="overlay waiting-overlay">
+      <div class="waiting-box">
+        <div class="spinner">⏳</div>
+        <h2>Sala Criada!</h2>
+        <p>A aguardar entrada do oponente...</p>
+        <div class="room-info">
+            ID da Sala: <strong>{{ gameID }}</strong>
+        </div>
+      </div>
+    </div>
+
     <div v-if="!isConnected" class="overlay">
       <h2>A ligar ao servidor...</h2>
       <p>Certifica-te que o backend está a correr na porta 3000</p>
@@ -81,7 +92,7 @@ onUnmounted(() => {
 
     <!-- ÁREA DO BOT -->
     <div class="bot-area">
-      <div class="avatar">🤖 Bot</div>
+      <div class="avatar"> {{ opponentName }}</div>
       <div class="bot-hand">
         <Card v-for="n in botCardCount" :key="n" :face-down="true" class="small-card" />
       </div>
@@ -344,5 +355,48 @@ onUnmounted(() => {
 .table-anim-enter-from {
   opacity: 0;
   transform: scale(0.5) translateY(50px);
+}
+
+.waiting-overlay {
+  background: rgba(46, 125, 50, 0.98) !important; /* Verde quase opaco */
+  z-index: 200; /* Garante que fica por cima de tudo */
+}
+
+.waiting-box {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  text-align: center;
+  color: #333;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  min-width: 300px;
+}
+
+.spinner {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  display: inline-block;
+  animation: spin 2s infinite linear;
+}
+
+.room-info {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f1f8e9;
+    border-radius: 6px;
+    color: #2e7d32;
+    font-family: monospace;
+    font-size: 1.2rem;
+    border: 1px dashed #2e7d32;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
 }
 </style>

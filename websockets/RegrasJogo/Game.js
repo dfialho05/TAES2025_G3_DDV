@@ -16,7 +16,9 @@ export class BiscaGame {
     // 2. Define o trunfo.
     // 3. Distribui as mãos iniciais.
     // 4. Inicializa o estado (pontos, turno, log).
-    constructor(gameType = 3) {
+    constructor(gameType = 3, mode = 'singleplayer') {
+
+        this.mode = mode;
         this.deck = this.createDeck();
         this.trunfo = this.deck.pop();
         this.trunfoNaipe = this.trunfo.naipe;
@@ -145,8 +147,8 @@ export class BiscaGame {
             const s1 = this.score.player1;
             const s2 = this.score.player2;
 
-            if (s1 > s2) this.logs = `FIM! Player 1 venceu (${s1} - ${s2})`;
-            else if (s2 > s1) this.logs = `FIM! Player 2 venceu (${s2} - ${s1})`;
+            if (s1 > s2) this.logs = `FIM! ${this.player1 ? this.player1.name : "Player 1"} venceu (${s1} - ${s2})`;
+            else if (s2 > s1) this.logs = `FIM! ${this.player2 ? this.player2.name : "Player 2"} venceu (${s2} - ${s1})`;
             else this.logs = "FIM! Empate Técnico (60-60)";
         } else {
             this.turn = winner;
@@ -205,6 +207,16 @@ export class BiscaGame {
     // Nota: Em produção, podias ocultar a mão do oponente aqui,
     // mas como enviamos para os dois, enviamos tudo e o Frontend filtra.
     getState() {
+        let p2Name = "Bot";
+        if (this.mode === 'multiplayer' && !this.player2) {
+            p2Name = null;
+        } else if (this.player2) {
+            p2Name = this.player2.name;
+        }
+
+
+
+
         return {
             id: this.id,
             player1Hand: this.player1Hand,
@@ -220,6 +232,9 @@ export class BiscaGame {
             gameOver: this.gameOver,
             logs: this.logs,
             
+            p1Name: this.player1 ? this.player1.name : "Player 1",
+            p2Name: p2Name,
+
             // Legacy (Compatibilidade)
             playerHand: this.player1Hand, 
             botCardCount: this.player2Hand.length 

@@ -15,9 +15,8 @@ export const createGame = (gameType, user, mode = 'singleplayer') => {
     currentGameID++;
     const gameID = currentGameID;
 
-    const newGame = new BiscaGame(gameType);
+    const newGame = new BiscaGame(gameType, mode);
     newGame.id = gameID;
-    newGame.mode = mode;
     newGame.creator = user.id;
     newGame.player1 = user; 
     newGame.player2 = null;

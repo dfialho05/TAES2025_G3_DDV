@@ -13,6 +13,9 @@ export const useBiscaStore = defineStore('bisca', () => {
   const gameID = ref(null)             // Em que sala estou?
   const mySide = ref('player1')        // Sou o Jogador 1 ou 2?
 
+  const opponentName = ref('Oponente')      // Nome do Player 1
+  const isWaiting = ref(false)         // Estou à espera de adversário?
+
   const playerHand = ref([])           // As minhas cartas visíveis
   const opponentHandCount = ref(0)     // Quantas cartas o inimigo tem (não vemos quais são)
 
@@ -38,7 +41,6 @@ export const useBiscaStore = defineStore('bisca', () => {
   // Recebe os dados brutos do servidor e organiza nas gavetas certas
   const processGameState = (data) => {
       // 🛡️ PROTEÇÃO ANTI-FANTASMA:
-      // Se recebermos dados de um jogo (data.id) diferente do nosso (gameID), ignoramos.
       if (gameID.value && data.id && String(data.id) !== String(gameID.value)) {
           console.warn("👻 Ignorando dados de jogo antigo/fantasma.")
           return
@@ -48,13 +50,26 @@ export const useBiscaStore = defineStore('bisca', () => {
       if (data.id) gameID.value = data.id
 
       // A. Gestão de Mãos (Perspetiva)
-      // O servidor envia as duas mãos. Nós decidimos qual mostramos baseados no 'mySide'.
       if (mySide.value === 'player1') {
           playerHand.value = data.player1Hand || []
+
+          // --- [INICIO ALTERAÇÃO] LÓGICA DE ESPERA ---
+          if (data.p2Name === null) {             // <--- Se o servidor enviar null, a cadeira está vazia
+              isWaiting.value = true              // <--- Ativamos o overlay de espera
+              opponentName.value = "Aguardando..."
+          } else {
+              isWaiting.value = false             // <--- Se vier nome (ou "Bot"), desativamos a espera
+              opponentName.value = data.p2Name    // <--- Usamos o nome real
+          }
+          // --- [FIM ALTERAÇÃO] ---
+
           // Se houver Player 2, pegamos o tamanho da mão dele. Se for Bot, idem.
           opponentHandCount.value = (data.player2Hand || []).length || data.botCardCount || 0
       } else {
           // Sou Player 2
+          isWaiting.value = false                 // <--- [NOVO] Quem entra nunca espera, o jogo começa logo
+          opponentName.value = data.p1Name || 'Player 1'
+
           playerHand.value = data.player2Hand || []
           opponentHandCount.value = (data.player1Hand || []).length || 0
       }
@@ -78,7 +93,6 @@ export const useBiscaStore = defineStore('bisca', () => {
       }
 
       // D. De quem é a vez?
-      // O template espera 'user' ou 'bot'.
       if (data.turn === mySide.value) currentTurn.value = 'user'
       else if (data.turn) currentTurn.value = 'bot'
       else currentTurn.value = null
@@ -139,7 +153,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   }
 
   return {
-    gameID, mySide, playerHand, opponentHandCount, botCardCount,
+    gameID, mySide, playerHand, opponentHandCount, botCardCount, opponentName, isWaiting,
     trunfo, trunfoNaipe, tableCards, score, logs, currentTurn,
     isGameOver, cardsLeft, availableGames,
     processGameState, setAvailableGames,
