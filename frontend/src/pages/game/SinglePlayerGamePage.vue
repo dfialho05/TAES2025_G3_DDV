@@ -9,11 +9,11 @@ import Card from '@/components/game/Card.vue';
 
 const route = useRoute();
 const router = useRouter();
-  
+
 const gameStore = useBiscaStore();
 const deckStore = useDeckStore()
 const socketStore = useSocketStore();
-  
+
 
 // Alias para compatibilidade visual
 const {
@@ -23,10 +23,10 @@ const {
 
 const isConnected = computed(() => socketStore.joined);
 
-onMounted(() => {
+onMounted(async () => {
   // Garante que o ouvinte de conexão base está ligado
   socketStore.handleConnection();
-  
+
   if (deckStore.decks.length === 0) {
     await deckStore.fetchDecks()
   }
