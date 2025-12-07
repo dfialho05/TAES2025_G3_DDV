@@ -7,9 +7,7 @@ import { useBiscaStore } from './biscaStore' // <--- Conexão inversa (PDF Pág.
 export const useSocketStore = defineStore('socket', () => {
   const socket = inject('socket')
   const authStore = useAuthStore()
-  // Nota: Instanciamos a store aqui para podermos chamar as ações dela
   const biscaStore = useBiscaStore()
-
   const joined = ref(false)
 
   // --- CONEXÃO GERAL ---
