@@ -25,7 +25,7 @@
                 <RouterLink to="/games/singleplayer">SinglePlayer</RouterLink>
               </NavigationMenuLink>
               <NavigationMenuLink as-child>
-                <RouterLink to="/">MultiPlayer</RouterLink>
+                <RouterLink to="/lobby">Lobbies</RouterLink>
               </NavigationMenuLink>
             </li>
           </NavigationMenuContent>
@@ -89,6 +89,7 @@
 </template>
 
 <script setup>
+import { onMounted, watch } from 'vue' // <--- 1. Importar onMounted e watch
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -103,11 +104,37 @@ import 'vue-sonner/style.css' // Certifica-te que este CSS é necessário aqui o
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import { useSocketStore } from '@/stores/socket' // <--- 2. Importar o Socket Store
 
 const authStore = useAuthStore()
+const socketStore = useSocketStore() // <--- 3. Iniciar o Store
 const router = useRouter()
 
+// --- LÓGICA DE SOCKETS (NOVO) ---
+
+// 1. Ativa os listeners globais (connect/disconnect) assim que a App monta
+onMounted(() => {
+  socketStore.handleConnection()
+})
+
+// 2. Observa o AuthStore. Assim que houver um currentUser (Login ou F5), avisa o servidor
+watch(
+  () => authStore.currentUser, // Observamos o currentUser
+  (newUser) => {
+    if (newUser) {
+      console.log(`[App] User autenticado: ${newUser.name}. A conectar ao socket...`)
+      socketStore.emitJoin(newUser)
+    }
+  },
+  { immediate: true } // Executa logo se o user já tiver sido carregado pelo main.js
+)
+
+// --- LÓGICA DE LOGOUT (ATUALIZADA) ---
+
 const logout = async () => {
+  // 3. Avisa o socket que vamos sair ANTES de limpar o token
+  socketStore.emitLeave()
+
   try {
     await toast.promise(authStore.logout(), {
       loading: 'Calling API',

@@ -18,6 +18,7 @@ const app = createApp(App)
 
 const socket = io('http://localhost:3000')
 app.provide('socket', socket)
+
 app.provide('apiBaseURL', API_BASE_URL)
 app.provide('serverBaseURL', SERVER_BASE_URL)
 

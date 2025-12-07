@@ -17,9 +17,8 @@ const selectedDifficulty = ref('')
 
 const highScores = ref([])
 
-const startGame = (tipo) => {
-  gameStore.difficulty = selectedDifficulty.value
-  router.push({
+const startGameSingleplayer = (tipo) => {
+ router.push({
     name: 'singleplayer',
     query: { mode: tipo },
   })
