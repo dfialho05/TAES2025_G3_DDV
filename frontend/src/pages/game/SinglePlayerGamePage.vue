@@ -1,60 +1,98 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue' // <--- ADICIONEI 'ref' AQUI
-import { useBiscaStore } from '@/stores/biscaStore'
+import { onMounted, onUnmounted, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
 import { useDeckStore } from '@/stores/deck'
-import { storeToRefs } from 'pinia'
-import Card from '@/components/game/Card.vue'
-import { useRoute } from 'vue-router'
-import { watch } from 'vue'
+import { useBiscaStore } from '@/stores/biscaStore'; // Store de Dados
+import { useSocketStore } from '@/stores/socket';     // Store de Comunicação
+import Card from '@/components/game/Card.vue';
 
-const route = useRoute()
-const store = useBiscaStore()
+const route = useRoute();
+const router = useRouter();
+  
+const gameStore = useBiscaStore();
 const deckStore = useDeckStore()
+const socketStore = useSocketStore();
+  
+
+// Alias para compatibilidade visual
 const {
-  playerHand,
-  botCardCount,
-  trunfo,
-  tableCards,
-  score,
-  logs,
-  currentTurn,
-  isGameOver,
-  isConnected,
-  cardsLeft,
-  game,
-} = storeToRefs(store)
+  playerHand, opponentHandCount: botCardCount, trunfo, tableCards, opponentName, isWaiting,
+  score, logs, currentTurn, isGameOver, cardsLeft, gameID
+} = storeToRefs(gameStore);
 
-// Controla se estamos no Menu ou no Jogo
-const gameStarted = ref(false)
+const isConnected = computed(() => socketStore.joined);
 
-// Função central para iniciar o jogo (chamada pelo URL ou pelos botões)
-const chooseGameMode = (type) => {
-  store.startGame(type)
-  gameStarted.value = true // Esconde menu, mostra mesa
-}
-
-onMounted(async () => {
-  store.connect()
-
-  // Carregar decks se ainda não estiverem carregados
+onMounted(() => {
+  // Garante que o ouvinte de conexão base está ligado
+  socketStore.handleConnection();
+  
   if (deckStore.decks.length === 0) {
     await deckStore.fetchDecks()
   }
 
-  // Se viemos da Home Page com ?mode=9, iniciamos logo
+  // 1. LIGAR OS OUVIDOS (CRUCIAL) 👂
+  // Alteração: Agora chamamos o socketStore, não o gameStore
+  socketStore.bindGameEvents();
+
+  // 2. Lógica de Inicialização
   if (route.query.mode) {
-    const modeFromUrl = parseInt(route.query.mode)
-    chooseGameMode(modeFromUrl)
+      // Modo Singleplayer
+      const mode = parseInt(route.query.mode);
+      if (!gameID.value) {
+          console.log("Iniciando novo jogo Singleplayer...");
+          setTimeout(() => gameStore.startGame(mode), 100);
+      }
+  } else {
+      // Modo Multiplayer (Vem do Lobby)
+      if (!gameID.value) {
+          console.warn("Sem ID de jogo! Redirecionando para o Lobby...");
+          router.push('/games/lobby'); // Ajusta a rota se necessário
+      } else {
+          console.log(`Reconectado à mesa ${gameID.value}`);
+          // Opcional: Pedir refresh de estado
+          // socketStore.socket.emit('get-game-state', gameID.value);
+      }
   }
 })
 
+// Watcher de Segurança: Se o jogo acabar ou formos expulsos
+watch(gameID, (newVal) => {
+    if (!newVal) {
+        console.log("Jogo terminado ou desconectado.");
+        // router.push('/games/lobby');
+    }
+});
+
 onUnmounted(() => {
-  store.disconnect()
-})
+  // CORREÇÃO CRÍTICA (Resolver o teu Bug de Salas Fantasma):
+  // Se sairmos do componente (voltar atrás), forçamos a saída do jogo no servidor.
+  if (gameID.value) {
+      console.log("🧹 A desmontar mesa... a sair do jogo.");
+      // Isto chama socket.emit('leave_game') e limpa o servidor
+      gameStore.quitGame();
+  }
+
+  // Limpa os listeners do socket para não duplicar eventos se voltares a entrar
+  // O bindGameEvents do socketStore já faz .off() antes de .on(), mas limpar aqui é boa prática
+  // Se tivesses um unbind público no socketStore, usavas aqui.
+});
 </script>
 
 <template>
   <div class="game-container">
+
+    <div v-if="isWaiting" class="overlay waiting-overlay">
+      <div class="waiting-box">
+        <div class="spinner">⏳</div>
+        <h2>Sala Criada!</h2>
+        <p>A aguardar entrada do oponente...</p>
+        <div class="room-info">
+            ID da Sala: <strong>{{ gameID }}</strong>
+        </div>
+      </div>
+    </div>
+
     <div v-if="!isConnected" class="overlay">
       <h2>A ligar ao servidor...</h2>
       <p>Certifica-te que o backend está a correr na porta 3000</p>
@@ -62,7 +100,7 @@ onUnmounted(() => {
 
     <!-- ÁREA DO BOT -->
     <div class="bot-area">
-      <div class="avatar">🤖 Bot</div>
+      <div class="avatar"> {{ opponentName }}</div>
       <div class="bot-hand">
         <Card v-for="n in botCardCount" :key="n" :face-down="true" class="small-card" />
       </div>
@@ -93,7 +131,7 @@ onUnmounted(() => {
 
       <div class="game-log">{{ logs }}</div>
 
-      <button v-if="isGameOver" @click="store.startGame()" class="restart-btn">
+      <button v-if="isGameOver" @click="gameStore.startGame()" class="restart-btn">
         Jogar Novamente
       </button>
     </div>
@@ -107,14 +145,8 @@ onUnmounted(() => {
 
       <!-- MÃO DO JOGADOR (Com Animação) -->
       <TransitionGroup name="hand-anim" tag="div" class="player-hand">
-        <Card
-          v-for="(card, index) in playerHand"
-          :key="card.id"
-          :card="card"
-          :interactable="currentTurn === 'user'"
-          :class="{ disabled: currentTurn !== 'user' }"
-          @click="store.playCard(index)"
-        />
+        <Card v-for="(card, index) in playerHand" :key="card.id" :card="card" :interactable="currentTurn === 'user'"
+          :class="{ 'disabled': currentTurn !== 'user' }" @click="gameStore.playCard(index)" />
       </TransitionGroup>
     </div>
   </div>
@@ -329,5 +361,48 @@ onUnmounted(() => {
 .table-anim-enter-from {
   opacity: 0;
   transform: scale(0.5) translateY(50px);
+}
+
+.waiting-overlay {
+  background: rgba(46, 125, 50, 0.98) !important; /* Verde quase opaco */
+  z-index: 200; /* Garante que fica por cima de tudo */
+}
+
+.waiting-box {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  text-align: center;
+  color: #333;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  min-width: 300px;
+}
+
+.spinner {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  display: inline-block;
+  animation: spin 2s infinite linear;
+}
+
+.room-info {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f1f8e9;
+    border-radius: 6px;
+    color: #2e7d32;
+    font-family: monospace;
+    font-size: 1.2rem;
+    border: 1px dashed #2e7d32;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
 }
 </style>

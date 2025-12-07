@@ -15,8 +15,7 @@ export class Bot {
       return this.playOffensive(mappedHand, trunfoNaipe);
     }
 
-    // Se o jogador já jogou (Bot responde)
-    const opponentMove = tableCards.find((c) => c.player === "user");
+    const opponentMove = tableCards[0];
 
     // Passamos a flag de obrigação para a defesa
     return this.playDefensive(

@@ -3,52 +3,44 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Game extends Model
+class Matches extends Model
 {
     use HasFactory;
 
     public $timestamps = false;
 
+    protected $table = "matches";
+
     protected $fillable = [
-        "match_id",
+        "type",
         "player1_user_id",
         "player2_user_id",
         "winner_user_id",
-        "deck_id",
         "loser_user_id",
-        "type",
         "status",
         "began_at",
         "ended_at",
         "total_time",
-        "player1_points",
-        "player2_points",
-        "is_draw",
-        "custom",
+        "player1_marks",
+        "player2_marks",
+        "stake",
     ];
 
     protected $casts = [
         "began_at" => "datetime",
         "ended_at" => "datetime",
-        "player1_points" => "integer",
-        "player2_points" => "integer",
-        "is_draw" => "boolean",
+        "player1_marks" => "integer",
+        "player2_marks" => "integer",
+        "stake" => "decimal:2",
     ];
 
     /**
      * Relação com o Player 1
-     * CORREÇÃO: Usar BelongsTo em vez de HasOne
      */
-  
-    public function deck(): BelongsTo
-    {
-        return $this->belongsTo(Deck::class);
-    }
-  
     public function player1(): BelongsTo
     {
         return $this->belongsTo(User::class, "player1_user_id", "id");
@@ -56,7 +48,6 @@ class Game extends Model
 
     /**
      * Relação com o Player 2
-     * CORREÇÃO: Usar BelongsTo em vez de HasOne
      */
     public function player2(): BelongsTo
     {
@@ -65,7 +56,6 @@ class Game extends Model
 
     /**
      * Relação com o vencedor
-     * CORREÇÃO: Usar BelongsTo em vez de HasOne
      */
     public function winner(): BelongsTo
     {
@@ -73,15 +63,23 @@ class Game extends Model
     }
 
     /**
-     * Relação com a partida (match) pai
+     * Relação com o perdedor
      */
-    public function match(): BelongsTo
+    public function loser(): BelongsTo
     {
-        return $this->belongsTo(Matches::class, "match_id", "id");
+        return $this->belongsTo(User::class, "loser_user_id", "id");
     }
 
     /**
-     * Scope para filtrar jogos de um utilizador específico
+     * Relação com os jogos desta partida
+     */
+    public function games(): HasMany
+    {
+        return $this->hasMany(Game::class, "match_id", "id");
+    }
+
+    /**
+     * Scope para filtrar partidas de um utilizador específico
      */
     public function scopeForUser($query, $userId)
     {
@@ -94,7 +92,7 @@ class Game extends Model
     }
 
     /**
-     * Scope para jogos finalizados
+     * Scope para partidas finalizadas
      */
     public function scopeFinished($query)
     {
@@ -110,7 +108,7 @@ class Game extends Model
     }
 
     /**
-     * Método auxiliar para verificar se um utilizador participou neste jogo
+     * Método auxiliar para verificar se um utilizador participou nesta partida
      */
     public function hasPlayer($userId): bool
     {
@@ -132,7 +130,7 @@ class Game extends Model
     }
 
     /**
-     * Método auxiliar para verificar se um utilizador venceu este jogo
+     * Método auxiliar para verificar se um utilizador venceu esta partida
      */
     public function isWinner($userId): bool
     {

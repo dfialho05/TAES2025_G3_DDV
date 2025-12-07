@@ -11,7 +11,9 @@ import ThemesListPage from '@/pages/themes/ThemesListPage.vue'
 import ThemeEditorPage from '@/pages/themes/ThemeEditorPage.vue'
 import PurchasePage from '@/pages/purchase/PurchasePage.vue'
 import ShopPage from '@/pages/shop/ShopPage.vue'
+import LeaderboardPage from '@/pages/leaderboard/LeaderboardPage.vue'
 import { useAuthStore } from '@/stores/auth'
+import Lobby from '@/pages/game/Lobby.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -22,6 +24,11 @@ const router = createRouter({
       component: HomePage,
     },
     {
+      path: '/leaderboards',
+      name: 'leaderboards',
+      component: LeaderboardPage,
+    },
+    {
       path: '/games',
       children: [
         {
@@ -30,6 +37,12 @@ const router = createRouter({
           component: SinglePlayerGamePage,
         },
       ],
+    },
+    {
+      path: '/lobby',
+      name: 'Lobby',
+      component: Lobby,
+      meta: { requiresAuth: true },
     },
     {
       path: '/about',
@@ -46,12 +59,31 @@ const router = createRouter({
       name: 'register',
       component: RegisterPage,
     },
+
+    // --- ALTERAÇÃO: Rota de Perfil Genérica (Redirecionamento) ---
     {
       path: '/profile',
+      name: 'profile-redirect',
+      beforeEnter: (to, from, next) => {
+        const authStore = useAuthStore()
+        if (authStore.user?.id) {
+          // Se estiver logado, manda para o perfil dele com ID explícito
+          next({ name: 'profile', params: { id: authStore.user.id } })
+        } else {
+          // Se não estiver logado, manda fazer login
+          next({ name: 'login' })
+        }
+      },
+    },
+
+    // --- ALTERAÇÃO: Rota de Perfil Pública (com ID) ---
+    {
+      path: '/profile/:id',
       name: 'profile',
       component: ProfilePage,
-      meta: { requiresAuth: true },
+      // Nota: Removemos o meta: { requiresAuth: true } para ser público
     },
+
     {
       path: '/themes',
       name: 'themes',

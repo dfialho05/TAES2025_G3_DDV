@@ -11,10 +11,14 @@ import { useAuthStore } from './stores/auth'
 const API_BASE_URL = 'http://localhost:8000/api'
 const SERVER_BASE_URL = 'http://localhost:8000'
 
+// Configurar baseURL do axios para que as chamadas relativas funcionem
+axios.defaults.baseURL = API_BASE_URL
+
 const app = createApp(App)
 
 const socket = io('http://localhost:3000')
 app.provide('socket', socket)
+
 app.provide('apiBaseURL', API_BASE_URL)
 app.provide('serverBaseURL', SERVER_BASE_URL)
 
