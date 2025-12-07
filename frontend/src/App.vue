@@ -37,6 +37,12 @@
           </NavigationMenuLink>
         </NavigationMenuItem>
 
+        <NavigationMenuItem v-if="authStore.isLoggedIn">
+          <NavigationMenuLink>
+            <RouterLink to="/shop">Shop</RouterLink>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+
         <NavigationMenuItem>
           <NavigationMenuLink>
             <RouterLink to="/leaderboards">Leaderboards</RouterLink>

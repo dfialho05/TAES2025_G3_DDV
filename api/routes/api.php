@@ -4,10 +4,12 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\BoardThemeController;
 use App\Http\Controllers\CardFaceController;
+use App\Http\Controllers\DeckController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CoinPurchaseController;
+use App\Http\Controllers\StoreController;
 use App\Http\Controllers\MatchController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -61,6 +63,18 @@ Route::apiResource("games", GameController::class)->only([
     "store",
 ]);
 
+// Rotas públicas para decks (imagens podem ser acessadas sem autenticação)
+Route::get("/decks", [DeckController::class, "index"]);
+Route::get("/decks/{deckSlug}/image/{cardName}", [
+    DeckController::class,
+    "getCardImage",
+]);
+Route::get("/decks/{deckSlug}/assets", [
+    DeckController::class,
+    "getDeckAssets",
+]);
+Route::get("/decks/{deckSlug}", [DeckController::class, "show"]);
+Route::get("/decks/{deckSlug}/files", [DeckController::class, "listDeckFiles"]);
 /*
 |--------------------------------------------------------------------------
 | Public Profile & History Routes (Optimized for Performance)
@@ -182,6 +196,10 @@ Route::middleware("auth:sanctum")->group(function () {
     */
 
     Route::post("/purchases/", [CoinPurchaseController::class, "initiate"]);
+
+    Route::get("/store/decks", [StoreController::class, "index"]);
+    Route::post("/store/buy", [StoreController::class, "buy"]);
+    Route::post("/store/equip", [StoreController::class, "toggleActive"]);
 });
 
 /*
@@ -248,4 +266,26 @@ Route::fallback(function () {
         ],
         404,
     );
+});
+
+// Rota de Debug Visual (Apagar depois)
+Route::get("/debug-image/{slug}", function ($slug) {
+    // 1. Constrói o caminho exato
+    $path = storage_path("app/public/decks/{$slug}/preview.png");
+
+    // 2. Se não existir, mostra o erro no ecrã em vez de tentar adivinhar
+    if (!file_exists($path)) {
+        return response(
+            "❌ ERRO: O ficheiro não foi encontrado neste caminho exato:<br><strong>" .
+                $path .
+                "</strong>",
+            404,
+        );
+    }
+
+    // 3. Se existir, mostra a imagem e força o browser a não guardar cache
+    return response()->file($path, [
+        "Cache-Control" => "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma" => "no-cache",
+    ]);
 });

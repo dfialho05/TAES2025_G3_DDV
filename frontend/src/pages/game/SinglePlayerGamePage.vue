@@ -2,14 +2,18 @@
 import { onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import { useDeckStore } from '@/stores/deck'
 import { useBiscaStore } from '@/stores/biscaStore'; // Store de Dados
 import { useSocketStore } from '@/stores/socket';     // Store de Comunicação
 import Card from '@/components/game/Card.vue';
 
 const route = useRoute();
 const router = useRouter();
+  
 const gameStore = useBiscaStore();
+const deckStore = useDeckStore()
 const socketStore = useSocketStore();
+  
 
 // Alias para compatibilidade visual
 const {
@@ -22,6 +26,10 @@ const isConnected = computed(() => socketStore.joined);
 onMounted(() => {
   // Garante que o ouvinte de conexão base está ligado
   socketStore.handleConnection();
+  
+  if (deckStore.decks.length === 0) {
+    await deckStore.fetchDecks()
+  }
 
   // 1. LIGAR OS OUVIDOS (CRUCIAL) 👂
   // Alteração: Agora chamamos o socketStore, não o gameStore
@@ -46,7 +54,7 @@ onMounted(() => {
           // socketStore.socket.emit('get-game-state', gameID.value);
       }
   }
-});
+})
 
 // Watcher de Segurança: Se o jogo acabar ou formos expulsos
 watch(gameID, (newVal) => {
@@ -101,7 +109,6 @@ onUnmounted(() => {
 
     <!-- MESA DE JOGO -->
     <div class="table-area">
-
       <!-- Baralho -->
       <div v-if="cardsLeft > 0" class="deck-pile">
         <Card :face-down="true" />
@@ -142,7 +149,6 @@ onUnmounted(() => {
           :class="{ 'disabled': currentTurn !== 'user' }" @click="gameStore.playCard(index)" />
       </TransitionGroup>
     </div>
-
   </div>
 </template>
 

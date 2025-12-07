@@ -143,8 +143,9 @@ class GameController extends Controller
      */
     public function store(StoreGameRequest $request)
     {
-        $game = new Game($request->validated());
-        $game->save();
+        $game = Game::create($request->validated());
+        $game->load('deck');
+        // $game->save();
         return new GameResource($game);
     }
 
