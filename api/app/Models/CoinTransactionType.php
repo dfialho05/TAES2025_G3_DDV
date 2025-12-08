@@ -15,6 +15,8 @@ class CoinTransactionType extends Model
         "custom" => "array",
     ];
 
+    public $timestamps = false;
+
     public const TYPE_CREDIT = "C";
     public const TYPE_DEBIT = "D";
 
