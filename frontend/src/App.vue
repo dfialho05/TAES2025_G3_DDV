@@ -30,6 +30,25 @@
             </li>
           </NavigationMenuContent>
         </NavigationMenuItem>
+        <button
+  @click="isDark = !isDark"
+  :aria-pressed="isDark"
+  class="ml-4 p-2 rounded-md hover:bg-[var(--muted)] focus:outline-none"
+  title="Toggle dark mode"
+>
+  <template v-if="isDark">
+    <!-- ícone de sol para indicar sair do dark -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 7a5 5 0 100 10 5 5 0 000-10z"/>
+    </svg>
+  </template>
+  <template v-else>
+    <!-- ícone de lua para indicar entrar no dark -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+    </svg>
+  </template>
+</button>
 
         <NavigationMenuItem>
           <NavigationMenuLink>
@@ -111,11 +130,12 @@ import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { useSocketStore } from '@/stores/socket' // <--- 2. Importar o Socket Store
+import {ref } from 'vue'
 
 const authStore = useAuthStore()
 const socketStore = useSocketStore() // <--- 3. Iniciar o Store
 const router = useRouter()
-
+const THEME_KEY = 'theme'
 // --- LÓGICA DE SOCKETS (NOVO) ---
 
 // 1. Ativa os listeners globais (connect/disconnect) assim que a App monta
@@ -133,7 +153,28 @@ watch(
     }
   },
   { immediate: true } // Executa logo se o user já tiver sido carregado pelo main.js
+) 
+
+// --- DARK MODE ---
+
+const isDark = ref(
+  localStorage.getItem(THEME_KEY) === 'dark' ||
+  (localStorage.getItem(THEME_KEY) === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
 )
+
+// aplica a classe no root
+const applyTheme = (v) => document.documentElement.classList.toggle('dark', !!v)
+
+// aplica no mount
+onMounted(() => {
+  applyTheme(isDark.value)
+})
+
+// persiste sempre que muda
+watch(isDark, (v) => {
+  applyTheme(v)
+  localStorage.setItem(THEME_KEY, v ? 'dark' : 'light')
+})
 
 // --- LÓGICA DE LOGOUT (ATUALIZADA) ---
 
