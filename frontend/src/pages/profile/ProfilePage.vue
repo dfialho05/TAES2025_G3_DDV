@@ -1,6 +1,5 @@
 <template>
   <div class="max-w-7xl mx-auto p-6">
-    <!-- Loading State -->
     <div v-if="loadingUser" class="text-center py-20">
       <div
         class="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"
@@ -8,9 +7,7 @@
       <p class="text-lg text-gray-500 font-medium">A carregar perfil...</p>
     </div>
 
-    <!-- User Profile Content -->
     <div v-else-if="displayedUser" class="space-y-8 animate-in fade-in duration-500">
-      <!-- 1. HEADER DO UTILIZADOR -->
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
         <div class="flex flex-col md:flex-row gap-8 items-center md:items-start">
           <div class="shrink-0 relative group">
@@ -35,7 +32,6 @@
               {{ displayedUser.email }}
             </p>
 
-            <!-- Botões de Edição (Apenas Dono) -->
             <div v-if="isOwner" class="pt-4 flex flex-wrap gap-3 justify-center md:justify-start">
               <div v-if="!files">
                 <Button
@@ -62,12 +58,111 @@
         </div>
       </div>
 
-      <!-- 2. GRELHA DE CONTEÚDO (Jogos + Partidas + Edição) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div
+          class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4"
+        >
+          <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M2 20h20" />
+              <path d="m16 8-8 8" />
+              <path d="m10.5 5.5 8 8" />
+              <path d="M4 14.5l8-8" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Partidas</p>
+            <div
+              v-if="statisticsStore.isLoading"
+              class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+            ></div>
+            <p v-else class="text-2xl font-bold text-slate-800">
+              {{ statisticsStore.stats.total_matches }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4"
+        >
+          <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+              <path d="M4 22h16" />
+              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+              <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Vitórias</p>
+            <div
+              v-if="statisticsStore.isLoading"
+              class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+            ></div>
+            <p v-else class="text-2xl font-bold text-emerald-600">
+              {{ statisticsStore.stats.total_wins }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4"
+        >
+          <div class="p-3 bg-amber-50 text-amber-600 rounded-lg">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 20V10" />
+              <path d="M18 20V4" />
+              <path d="M6 20v-4" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Win Rate</p>
+            <div
+              v-if="statisticsStore.isLoading"
+              class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+            ></div>
+            <p v-else class="text-2xl font-bold text-amber-600">
+              {{ statisticsStore.stats.win_rate }}%
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <!-- COLUNA ESQUERDA: HISTÓRICOS (Ocupa 8 colunas ou 12 se não for owner) -->
         <div :class="isOwner ? 'lg:col-span-8' : 'lg:col-span-12'" class="space-y-8">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- BLOCO A: ÚLTIMOS 10 JOGOS (Lista Simples) -->
             <div class="bg-white rounded-xl border shadow-sm h-full">
               <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
                 <h3 class="font-bold text-gray-800 flex items-center gap-2">🎲 Últimos Jogos</h3>
@@ -111,7 +206,6 @@
                   class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                 >
                   <div class="flex items-center gap-4">
-                    <!-- Status Dot -->
                     <span
                       class="w-3 h-3 rounded-full ring-2 ring-white shadow-sm flex-shrink-0"
                       :class="game.status === 'Ended' ? 'bg-emerald-500' : 'bg-amber-400'"
@@ -216,7 +310,6 @@
               </div>
             </div>
 
-            <!-- BLOCO B: ÚLTIMAS 5 PARTIDAS (Acordeão) -->
             <div class="bg-white rounded-xl border shadow-sm h-full">
               <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
                 <h3 class="font-bold text-gray-800 flex items-center gap-2">🏆 Últimas Partidas</h3>
@@ -254,7 +347,6 @@
                   </div>
                 </div>
 
-                <!-- Lista de Matches -->
                 <div
                   v-for="match in matchesStore.recentMatches"
                   :key="match.id"
@@ -265,13 +357,11 @@
                       : 'border-slate-200'
                   "
                 >
-                  <!-- Cabeçalho (Clicável) -->
                   <div
                     class="flex items-center justify-between p-3 cursor-pointer bg-white"
                     @click="toggleMatch(match.id)"
                   >
                     <div class="flex items-center gap-3">
-                      <!-- Seta -->
                       <div
                         class="text-slate-400 transition-transform duration-200"
                         :class="{ 'rotate-180': expandedMatchId === match.id }"
@@ -366,7 +456,6 @@
                     </div>
                   </div>
 
-                  <!-- Detalhes (Jogos dentro do Match) -->
                   <div
                     v-if="expandedMatchId === match.id"
                     class="bg-slate-50/80 border-t border-slate-100 p-3 space-y-2 animate-in slide-in-from-top-1 duration-200"
@@ -382,7 +471,6 @@
                         class="flex items-center justify-between bg-white p-3 rounded border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
                       >
                         <div class="flex items-center gap-3">
-                          <!-- Status Dot -->
                           <span
                             class="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-sm flex-shrink-0"
                             :class="g.status === 'Ended' ? 'bg-emerald-500' : 'bg-amber-400'"
@@ -495,7 +583,6 @@
           </div>
         </div>
 
-        <!-- COLUNA DIREITA: EDITAR (Apenas Dono) -->
         <div v-if="isOwner" class="lg:col-span-4 space-y-6">
           <div class="bg-white rounded-xl border shadow-sm sticky top-6">
             <div class="p-5 border-b bg-slate-50/50">
@@ -546,7 +633,6 @@
       </div>
     </div>
 
-    <!-- Error State -->
     <div v-else class="text-center py-20">
       <h2 class="text-2xl font-bold text-gray-800">Utilizador não encontrado</h2>
       <Button @click="router.push('/')" variant="link" class="mt-4 text-primary"
@@ -557,12 +643,13 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, watch } from 'vue'
+import { ref, inject, computed, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
 import { useMatchesStore } from '@/stores/matches'
 import { useGamesStore } from '@/stores/games'
+import { useStatisticsStore } from '@/stores/statistics'
 import { useFileDialog } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { getErrorMessage, errorLogger, safeAsync } from '@/utils/errorHandling'
@@ -581,6 +668,7 @@ const authStore = useAuthStore()
 const apiStore = useAPIStore()
 const matchesStore = useMatchesStore()
 const gamesStore = useGamesStore()
+const statisticsStore = useStatisticsStore()
 
 const serverBaseURL = inject('serverBaseURL')
 const apiBaseURL = inject('apiBaseURL')
@@ -615,6 +703,9 @@ const loadProfileData = async () => {
   // Limpar erros anteriores
   gamesStore.clearErrors()
   matchesStore.clearErrors()
+
+  // 1. Carregar Estatísticas (NOVO)
+  statisticsStore.fetchUserStats(userId)
 
   // Usar safeAsync para tratamento robusto de erros
   const [gamesError] = await safeAsync(
@@ -655,19 +746,6 @@ const loadProfileData = async () => {
     if (hasGames) {
       console.log('[ProfilePage] JOGOS RECENTES (Objetos completos):')
       console.table(gamesStore.recentGames)
-
-      // Log individual de cada jogo
-      console.log('[ProfilePage] ANÁLISE INDIVIDUAL DOS JOGOS:')
-      gamesStore.recentGames.forEach((game, index) => {
-        console.log(`[ProfilePage] Jogo ${index + 1} (ID: ${game?.id || 'N/A'}):`, game)
-        console.log(`   ├─ Tipo: ${game?.type || 'Standard'}`)
-        console.log(`   ├─ Status: ${game?.status || 'N/A'}`)
-        console.log(`   ├─ Vencedor ID: ${game?.winner_id || 'N/A'}`)
-        console.log(`   ├─ É vencedor: ${game?.is_winner}`)
-        console.log(`   ├─ Oponente: ${game?.opponent?.name || 'Não encontrado'}`)
-        console.log(`   ├─ Data: ${game?.began_at || 'N/A'}`)
-        console.log(`   └─ Match ID: ${game?.match_id || 'N/A'}`)
-      })
     } else {
       console.log('[ProfilePage] Nenhum jogo encontrado')
     }
@@ -675,19 +753,6 @@ const loadProfileData = async () => {
     if (hasMatches) {
       console.log('[ProfilePage] PARTIDAS RECENTES (Objetos completos):')
       console.table(matchesStore.recentMatches)
-
-      // Log individual de cada partida
-      console.log('[ProfilePage] ANÁLISE INDIVIDUAL DAS PARTIDAS:')
-      matchesStore.recentMatches.forEach((match, index) => {
-        console.log(`[ProfilePage] Partida ${index + 1} (ID: ${match?.id || 'N/A'}):`, match)
-        console.log(`   ├─ Tipo: ${match?.type || 'Standard'}`)
-        console.log(`   ├─ Status: ${match?.status || 'N/A'}`)
-        console.log(`   ├─ Vencedor ID: ${match?.winner_user_id || 'N/A'}`)
-        console.log(`   ├─ É vencedor: ${match?.is_winner}`)
-        console.log(`   ├─ Oponente: ${match?.opponent?.name || 'Não encontrado'}`)
-        console.log(`   ├─ Total de jogos: ${match?.games_count || match?.games?.length || 0}`)
-        console.log(`   └─ Jogos detalhados:`, match?.games || [])
-      })
     } else {
       console.log('[ProfilePage] Nenhuma partida encontrada')
     }
@@ -703,6 +768,9 @@ watch(
     loadingUser.value = true
     displayedUser.value = null
     expandedMatchId.value = null
+
+    // Reset das estatísticas antes de carregar novo utilizador
+    statisticsStore.resetStats()
 
     try {
       // 1. Carregar User
@@ -722,7 +790,7 @@ watch(
         }
       }
 
-      // 3. Carregar Históricos (Jogos e Partidas) de forma assíncrona
+      // 3. Carregar Históricos (Jogos e Partidas e Stats)
       loadProfileData()
     } catch (err) {
       console.error('Erro profile:', err)
@@ -733,6 +801,11 @@ watch(
   },
   { immediate: true },
 )
+
+// Limpar ao sair
+onUnmounted(() => {
+  statisticsStore.resetStats()
+})
 
 // --- Helpers ---
 const formatDate = (dateStr) => {
@@ -809,29 +882,6 @@ const getMatchResultDescription = (match) => {
   }
   return match.match_result
 }
-
-// // --- Debug ---
-// const testImageFetch = async () => {
-//   if (!displayedUser.value?.photo_avatar_filename) return
-
-//   const url = `${serverBaseURL}/api/avatars/${displayedUser.value.photo_avatar_filename}`
-//   console.log('Testing fetch for:', url)
-
-//   try {
-//     const response = await fetch(url)
-//     console.log('Fetch response:', response.status, response.statusText)
-//     console.log('Response headers:', [...response.headers.entries()])
-
-//     if (response.ok) {
-//       const blob = await response.blob()
-//       console.log('Blob size:', blob.size, 'type:', blob.type)
-//     } else {
-//       console.error('Fetch failed:', response.status)
-//     }
-//   } catch (error) {
-//     console.error('Fetch error:', error)
-//   }
-// }
 
 // --- Edição ---
 const { files, open, reset } = useFileDialog({ accept: 'image/*', multiple: false })

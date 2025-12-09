@@ -38,6 +38,12 @@ Route::get("/metadata", function (Request $request) {
 Route::post("/login", [AuthController::class, "login"]);
 Route::post("/register", [AuthController::class, "register"]);
 
+/*
+|--------------------------------------------------------------------------
+| Public Game Routes (No Authentication Required)
+|--------------------------------------------------------------------------
+*/
+
 // Individual leaderboard categories
 Route::get("/leaderboard", [
     \App\Http\Controllers\LeaderboardController::class,
@@ -50,11 +56,10 @@ Route::get("/leaderboards/all", [
     "getAllLeaderboards",
 ]);
 
-/*
-|--------------------------------------------------------------------------
-| Public Game Routes (No Authentication Required)
-|--------------------------------------------------------------------------
-*/
+Route::get("/users/{id}/statistics", [
+    App\Http\Controllers\StatisticsController::class,
+    "getUserStats",
+]);
 
 // Basic Game Operations
 Route::apiResource("games", GameController::class)->only([
