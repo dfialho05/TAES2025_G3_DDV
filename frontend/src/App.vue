@@ -1,24 +1,22 @@
 <template>
   <Toaster />
-  <nav class="w-full p-4 flex flex-col md:flex-row justify-between items-center">
-    <div class="text-center md:text-left mb-2 md:mb-0">
-      <RouterLink to="/" class="text-lg md:text-xl font-bold block order-1 md:order-1 text-center md:text-left"> 🧠 Bisca Game </RouterLink>
-      <span class="text-xs font-bold whitespace-nowrap order-2 md:order-2 mt-1 md:mt-0 text-center md:text-left" style="font-weight: bold;" v-if="authStore.currentUser" >
+  <nav class="max-w-full p-5 flex flex-row justify-between align-middle">
+    <div class="align-middle text-xl">
+      <RouterLink to="/"> 🧠 Bisca Game </RouterLink>
+      <span class="text-xs" style="font-weight: bold" v-if="authStore.currentUser">
         &nbsp;&nbsp;&nbsp;
         {{ authStore.currentUser?.name }}
       </span>
-
-      <span class="text-xs font-bold whitespace-nowrap order-2 md:order-2 mt-1 md:mt-0 text-center md:text-left" style="font-weight: bold;" v-if="authStore.currentUser" >
-        &nbsp;&nbsp;&nbsp;
-        <label for="balance">Balance: </label>
-        {{ authStore.currentUser?.coins_balance }} Coins
-
-      </span>
-
+      <RouterLink to="/purchase">
+        <span class="text-xs" style="font-weight: bold" v-if="authStore.currentUser">
+          &nbsp;&nbsp;&nbsp;
+          {{ authStore.currentUser?.coins_balance }} 🪙
+        </span>
+      </RouterLink>
     </div>
 
     <NavigationMenu>
-      <NavigationMenuList class="w-full md:w-auto">
+      <NavigationMenuList class="justify-around gap-20">
         <NavigationMenuItem>
           <NavigationMenuTrigger>Games</NavigationMenuTrigger>
           <NavigationMenuContent>

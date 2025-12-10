@@ -161,13 +161,11 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <!-- COLUNA ESQUERDA: HISTÓRICOS (Ocupa 8 colunas ou 12 se não for owner) -->
-        <div :class="isOwner ? 'md:col-span-12 lg:col-span-8' : 'lg:col-span-12'" class="space-y-8">
-          <div class="md:col-span-12 lg:col-span-4 space-y-6">
-            <!-- BLOCO A: ÚLTIMOS 10 JOGOS (Lista Simples) -->
-            <div class="bg-white rounded-xl border shadow-sm h-full">
-              <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
-                <h3 class="font-bold text-gray-800 flex items-center gap-2">🎲 Últimos Jogos</h3>
+        <div :class="isOwner ? 'lg:col-span-8' : 'lg:col-span-12'" class="space-y-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm h-full">
+              <div class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center">
+                <h3 class="font-bold text-gray-900 flex items-center gap-2">🎲 Últimos Jogos</h3>
               </div>
 
               <div class="divide-y divide-slate-50 dark:divide-gray-700">
@@ -240,23 +238,13 @@
                   </div>
 
                   <div class="text-right">
-                    <span
-                      class="text-xs font-bold px-1 py-1 rounded border break-words max-w-full"
-                      :class="
-                        game.is_winner === true
-                          ? 'bg-green-50 text-green-700 border-green-100'
-                          : game.is_winner === false
-                            ? 'bg-red-50 text-red-700 border-red-100'
-                            : 'bg-amber-50 text-amber-700 border-amber-100'
-                      "
-                    >
-                      {{
-                        game.is_winner === true
-                          ? 'VITÓRIA'
-                          : game.is_winner === false
-                            ? 'DERROTA'
-                            : 'EMPATE'
-                      }}
+                    <span class="text-xs font-bold px-2 py-1 rounded border"
+                      :class="game.is_winner === true
+                        ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
+                        : game.is_winner === false
+                          ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900 dark:text-red-300 dark:border-red-700'
+                          : 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700'">
+                      {{ game.is_winner === true ? 'VITÓRIA' : game.is_winner === false ? 'DERROTA' : 'EMPATE' }}
                     </span>
                   </div>
                 </div>
@@ -322,7 +310,7 @@
                       <div class="flex flex-col">
                         <div class="flex items-center gap-2">
                           <span
-                            class="text-xs font-bold sm:px-2 px-1 py-1 rounded border break-words max-w-full"
+                            class="font-bold text-xs uppercase tracking-wider"
                             :class="
                               isWinner(match) === true
                                 ? 'text-green-600'
@@ -380,7 +368,7 @@
                       <div
                         v-for="g in match.games"
                         :key="g.id"
-                        class="flex flex-col sm:flex-row items-center justify-between bg-white p-3 rounded border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
+                        class="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
                       >
                         <div class="flex items-center gap-3">
                           <span
@@ -465,7 +453,7 @@
 
                         <div class="text-right">
                           <span
-                            class="text-xs font-bold px-1 sm:px-2 py-1 rounded border break-words whitespace-normal max-w-full"
+                            class="text-xs font-bold px-2 py-1 rounded border"
                             :class="
                               g.is_winner === true
                                 ? 'bg-green-50 text-green-700 border-green-100'
