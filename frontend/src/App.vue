@@ -1,39 +1,32 @@
 <template>
   <Toaster />
-  <nav class="max-w-full p-5 flex flex-row justify-between align-middle">
-    <div class="align-middle text-xl">
-      <RouterLink to="/"> 🧠 Bisca Game </RouterLink>
-      <span class="text-xs" style="font-weight: bold" v-if="authStore.currentUser">
-        &nbsp;&nbsp;&nbsp;
-        {{ authStore.currentUser?.name }}
-      </span>
-      <RouterLink to="/purchase">
-        <span class="text-xs" style="font-weight: bold" v-if="authStore.currentUser">
-          &nbsp;&nbsp;&nbsp;
+  <nav class="max-w-full p-5 flex flex-col md:flex-row justify-between items-center">
+    <div class="align-middle text-xl flex items-center gap-2 md:gap-4">
+       <RouterLink to="/" class="text-xl"> 🧠 Bisca Game </RouterLink>
+
+      <div v-if="authStore.currentUser" class="flex items-center gap-1">
+        <UserAvatar 
+          :user="authStore.currentUser" 
+          class="h-6 w-6 md:h-8 md:w-8 border border-slate-200 dark:border-gray-700 shrink-0"
+        />
+        <span class="hidden md:inline text-xs font-bold md:text-sm">
+          {{ authStore.currentUser?.name }}
+        </span>
+      </div>
+
+        <RouterLink to="/purchase" v-if="authStore.currentUser">
+        <span class="text-xs font-bold">
           {{ authStore.currentUser?.coins_balance }} 🪙
         </span>
-      </RouterLink>
+        </RouterLink>
     </div>
 
     <NavigationMenu>
-      <NavigationMenuList class="justify-around gap-20">
-        <NavigationMenuItem>
-          <NavigationMenuTrigger>Games</NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <li>
-              <NavigationMenuLink as-child>
-                <RouterLink to="/games/singleplayer">SinglePlayer</RouterLink>
-              </NavigationMenuLink>
-              <NavigationMenuLink as-child>
-                <RouterLink to="/lobby">Lobbies</RouterLink>
-              </NavigationMenuLink>
-            </li>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
+      <NavigationMenuList class="flex flex-col md:flex-row justify-around gap-2 md:gap-20 w-full md:w-auto">
         <button
   @click="isDark = !isDark"
   :aria-pressed="isDark"
-  class="ml-4 p-2 rounded-md hover:bg-[var(--muted)] focus:outline-none"
+  class="mt-2 md:mt-0 ml-0 md:ml-4 p-2 rounded-md hover:bg-[var(--muted)] focus:outline-none"
   title="Toggle dark mode"
 >
   <template v-if="isDark">
@@ -131,6 +124,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { useSocketStore } from '@/stores/socket' // <--- 2. Importar o Socket Store
 import {ref } from 'vue'
+import UserAvatar from '@/components/UserAvatar.vue'
+
 
 const authStore = useAuthStore()
 const socketStore = useSocketStore() // <--- 3. Iniciar o Store
