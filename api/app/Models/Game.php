@@ -4,17 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Game extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
     protected $fillable = [
         "match_id",
         "player1_user_id",
         "player2_user_id",
         "winner_user_id",
+        "deck_id",
         "loser_user_id",
         "type",
         "status",
@@ -39,6 +43,12 @@ class Game extends Model
      * Relação com o Player 1
      * CORREÇÃO: Usar BelongsTo em vez de HasOne
      */
+  
+    public function deck(): BelongsTo
+    {
+        return $this->belongsTo(Deck::class);
+    }
+  
     public function player1(): BelongsTo
     {
         return $this->belongsTo(User::class, "player1_user_id", "id");

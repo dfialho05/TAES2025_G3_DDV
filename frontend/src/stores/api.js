@@ -87,6 +87,21 @@ export const useAPIStore = defineStore('api', () => {
     return axios.get(`${API_BASE_URL}/games`)
   }
 
+  // LEADERBOARDS
+  const getLeaderboardsAll = async (period = 'all', limit = 5) => {
+    const response = await axios.get(`${API_BASE_URL}/leaderboards/all`, {
+      params: { period, limit },
+    })
+    return response
+  }
+
+  const getLeaderboard = async (type, period = 'all', limit = 10) => {
+    const response = await axios.get(`${API_BASE_URL}/leaderboard`, {
+      params: { type, period, limit },
+    })
+    return response
+  }
+
   return {
     postLogin,
     postLogout,
@@ -96,6 +111,8 @@ export const useAPIStore = defineStore('api', () => {
     patchUserPhoto,
     postDeleteAccount,
     uploadProfilePhoto,
-    getGames, // <--- Exportar a nova função
+    getGames,
+    getLeaderboardsAll,
+    getLeaderboard,
   }
 })

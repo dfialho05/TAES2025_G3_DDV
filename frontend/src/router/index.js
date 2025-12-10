@@ -10,7 +10,10 @@ import ProfilePage from '@/pages/profile/ProfilePage.vue'
 import ThemesListPage from '@/pages/themes/ThemesListPage.vue'
 import ThemeEditorPage from '@/pages/themes/ThemeEditorPage.vue'
 import PurchasePage from '@/pages/purchase/PurchasePage.vue'
+import ShopPage from '@/pages/shop/ShopPage.vue'
+import LeaderboardPage from '@/pages/leaderboard/LeaderboardPage.vue'
 import { useAuthStore } from '@/stores/auth'
+import Lobby from '@/pages/game/Lobby.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,6 +24,11 @@ const router = createRouter({
       component: HomePage,
     },
     {
+      path: '/leaderboards',
+      name: 'leaderboards',
+      component: LeaderboardPage,
+    },
+    {
       path: '/games',
       children: [
         {
@@ -29,6 +37,12 @@ const router = createRouter({
           component: SinglePlayerGamePage,
         },
       ],
+    },
+    {
+      path: '/lobby',
+      name: 'Lobby',
+      component: Lobby,
+      meta: { requiresAuth: true },
     },
     {
       path: '/about',
@@ -93,6 +107,12 @@ const router = createRouter({
       name: 'purchase',
       component: PurchasePage,
       meta: { requiresAuth: true },
+    },
+    {
+        path: '/shop',
+        name: 'Shop',
+        component: ShopPage,
+        meta: { requiresAuth: true } // Se usares proteção de rotas
     },
   ],
 })

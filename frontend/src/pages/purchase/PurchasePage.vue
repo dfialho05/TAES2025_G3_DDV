@@ -41,7 +41,7 @@
 
           <div>
             <label class="block text-sm font-medium mb-1">Referência de pagamento</label>
-            <Input v-model="paymentReference" type="text" :placeholder="paymentPlaceholder" />
+            <Input v-model="paymentReference" type="text" :placeholder="paymentPlaceholder"/>
             <p class="text-xs text-muted-foreground mt-1">
               Formato esperado varia conforme o tipo de pagamento.
             </p>

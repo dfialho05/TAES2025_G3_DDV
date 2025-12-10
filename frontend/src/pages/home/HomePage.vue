@@ -1,13 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Button } from '@/components/ui/button'
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 import { useRouter } from 'vue-router'
 
@@ -21,28 +15,19 @@ const router = useRouter()
 
 const selectedDifficulty = ref('')
 
-const highScores = ref([])
 
-const startGame = (tipo) => {
-gameStore.difficulty = selectedDifficulty.value
- router.push({
+const startGameSingleplayer = (tipo) => {
+  router.push({
     name: 'singleplayer',
-    query: { mode: tipo }
+    query: { mode: tipo },
   })
 }
 
-onMounted(async () => {
-  const response = await apiStore.getGames()
-
-  highScores.value = response.data.data
-		.map(item => ({
-			moves: item.player1_moves,
-      time: item.total_time,
-      username: item.player1?.name
-    }))
-    .sort((a, b) => a.time - b.time == 0 ? a.moves - b.moves : a.time - b.time)
-    .slice(0, 3)
+const goToLobby = () => {
+  router.push({
+    name: 'Lobby',
   })
+}
 </script>
 
 <template>
