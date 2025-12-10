@@ -1,78 +1,84 @@
 <template>
-  <div class="leaderboard-page">
+  <div class="max-w-7xl mx-auto p-6 space-y-6">
     <!-- Header -->
-    <div class="page-header">
-      <h1 class="page-title">
-        <span class="emoji">🏆</span>
-        Leaderboards
+    <header class="text-center space-y-2">
+      <h1 class="text-4xl font-bold flex justify-center items-center gap-2">
+        <span>🏆</span> Leaderboards
       </h1>
-      <p class="page-description">Vê os melhores jogadores em diferentes categorias</p>
-    </div>
+      <p class="text-gray-500 dark:text-gray-300 text-lg">
+        Vê os melhores jogadores em diferentes categorias
+      </p>
+    </header>
 
-    <!-- Period Filter -->
-    <div class="period-filters">
-      <div class="filter-group">
-        <label class="filter-label">Período:</label>
-        <div class="period-buttons">
+    <!-- Filters + Refresh -->
+    <div class="flex flex-col md:flex-row md:justify-between items-center gap-4">
+      <div class="flex items-center gap-4 flex-wrap">
+        <span class="font-semibold text-gray-600 dark:text-gray-300">Período:</span>
+        <div class="flex gap-2 flex-wrap">
           <button
             v-for="period in periods"
             :key="period.value"
-            @click="changePeriod(period.value)"
-            :class="['period-btn', { active: selectedPeriod === period.value }]"
-            :disabled="isLoading"
-          >
-            <span class="emoji">{{ period.emoji }}</span>
-            {{ period.label }}
-          </button>
+              @click="changePeriod(period.value)"
+              :class="[
+              'px-4 py-2 rounded-lg border transition-all font-medium',
+              selectedPeriod === period.value 
+                 ? 'bg-blue-600 border-blue-600 text-white dark:bg-blue-700 dark:border-blue-700 dark:text-white' 
+                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200'
+            ]"
+  :disabled="isLoading"
+>
+  <span class="mr-1">{{ period.emoji }}</span>{{ period.label }}
+</button>
         </div>
       </div>
-
       <button
         @click="refreshLeaderboards"
         :disabled="isLoading"
-        class="refresh-btn"
-        title="Refresh Leaderboards"
+        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
       >
-        <span :class="['refresh-icon', { spinning: isLoading }]">🔄</span>
+        <span :class="['transition-transform', { 'animate-spin': isLoading }]">🔄</span>
+        Refresh
       </button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading && isEmpty" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p class="loading-text">A carregar leaderboards...</p>
+    <div v-if="isLoading && isEmpty" class="flex flex-col items-center py-20 text-gray-500 dark:text-gray-300">
+      <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 dark:border-primary-dark dark:border-t-transparent"></div>
+      <span>A carregar leaderboards...</span>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-container">
-      <div class="error-icon">❌</div>
-      <h3>Erro ao carregar leaderboards</h3>
-      <p class="error-message">{{ error }}</p>
-      <button @click="refreshLeaderboards" class="retry-btn">Tentar novamente</button>
+    <div v-else-if="error" class="text-center py-20 text-red-500 dark:text-red-400 space-y-2">
+      <div class="text-4xl mb-2">❌</div>
+      <h3 class="font-semibold text-lg">Erro ao carregar leaderboards</h3>
+      <p>{{ error }}</p>
+      <button @click="refreshLeaderboards" class="mt-4 px-6 py-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg transition">
+        Tentar novamente
+      </button>
     </div>
 
-    <!-- Leaderboards Grid -->
-    <div v-else class="leaderboards-container">
-      <!-- Quick Stats Overview -->
-      <div class="stats-overview" v-if="!isEmpty">
-        <div class="stat-card">
-          <span class="stat-emoji">👑</span>
-          <div class="stat-info">
-            <span class="stat-number">{{ totalPlayers }}</span>
-            <span class="stat-label">Jogadores Ativos</span>
+    <!-- Leaderboards Content -->
+    <div v-else>
+      <!-- Quick Stats -->
+      <div v-if="!isEmpty" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md dark:shadow-lg flex items-center gap-4 transition-colors">
+          <span class="text-3xl">👑</span>
+          <div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ totalPlayers }}</div>
+            <div class="text-gray-500 dark:text-gray-300 text-sm">Jogadores Ativos</div>
           </div>
         </div>
-        <div class="stat-card">
-          <span class="stat-emoji">🎮</span>
-          <div class="stat-info">
-            <span class="stat-number">{{ totalGames }}</span>
-            <span class="stat-label">Total de Jogos</span>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md dark:shadow-lg flex items-center gap-4 transition-colors">
+          <span class="text-3xl">🎮</span>
+          <div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ totalGames }}</div>
+            <div class="text-gray-500 dark:text-gray-300 text-sm">Total de Jogos</div>
           </div>
         </div>
       </div>
 
       <!-- Leaderboards Grid -->
-      <div class="leaderboards-grid">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <LeaderboardSection
           v-for="type in leaderboardTypes"
           :key="type.key"
@@ -86,15 +92,19 @@
         />
       </div>
 
-      <!-- Current User Position -->
-      <div v-if="currentUser && userPositions.length > 0" class="user-positions">
-        <h3>As tuas posições:</h3>
-        <div class="user-position-cards">
-          <div v-for="position in userPositions" :key="position.type" class="user-position-card">
-            <span class="position-emoji">{{ position.emoji }}</span>
-            <div class="position-info">
-              <span class="position-title">{{ position.title }}</span>
-              <span class="position-rank">#{{ position.position }}</span>
+      <!-- User Positions -->
+      <div v-if="currentUser && userPositions.length > 0" class="bg-gradient-to-r from-purple-700 to-indigo-900 dark:from-purple-800 dark:to-indigo-950 text-white rounded-xl p-6 mt-8 transition-colors">
+        <h3 class="text-xl font-bold mb-4">As tuas posições:</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div
+            v-for="position in userPositions"
+            :key="position.type"
+            class="bg-white/10 dark:bg-white/5 backdrop-blur-sm p-4 rounded-lg flex items-center gap-3 transition-colors"
+          >
+            <span class="text-2xl">{{ position.emoji }}</span>
+            <div class="flex flex-col">
+              <span class="text-sm opacity-90">{{ position.title }}</span>
+              <span class="font-bold text-lg">#{{ position.position }}</span>
             </div>
           </div>
         </div>
