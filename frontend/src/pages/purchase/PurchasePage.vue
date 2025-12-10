@@ -10,7 +10,7 @@
           <div>
             <label class="block text-sm font-medium mb-1">Valor (EUR)</label>
             <div class="flex items-center gap-4">
-              <Input v-model="euros" type="number" class="w-40" placeholder="1" min="1" />
+              <Input v-model="euros" type="number" class="w-full sm:w-40" placeholder="1" min="1" />
               <div
                 class="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-2 rounded-md border"
               >
@@ -86,7 +86,7 @@
               <h3 class="font-bold text-lg">{{ purchase.success.message }}</h3>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mt-3 text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
               <div class="bg-white/60 p-2 rounded border border-green-100">
                 <span class="block text-xs text-green-600 uppercase font-semibold"
                   >Coins Creditadas</span
@@ -100,7 +100,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3 mt-4">
+          <div class="flex flex-col sm:flex-row items-stretch gap-3 mt-4">
             <Button
               :disabled="purchase.loading"
               variant="default"
@@ -111,7 +111,7 @@
               <span v-else>A processar pagamento...</span>
             </Button>
 
-            <Button type="button" variant="outline" @click="onReset" :disabled="purchase.loading">
+            <Button type="button" variant="outline" @click="onReset" :disabled="purchase.loading" class="w-full sm:w-auto">
               Limpar
             </Button>
           </div>
