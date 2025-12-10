@@ -8,7 +8,7 @@
     </div>
 
     <div v-else-if="displayedUser" class="space-y-8 animate-in fade-in duration-500">
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-gray-700">
         <div class="flex flex-col md:flex-row gap-8 items-center md:items-start">
           <div class="shrink-0 relative group">
             <UserAvatar
@@ -21,7 +21,7 @@
 
           <div class="flex-1 text-center md:text-left space-y-2 pt-2">
             <div>
-              <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-gray-100">
+              <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-gray-100 ">
                 {{ displayedUser.name }}
               </h1>
               <p v-if="displayedUser.nickname" class="text-lg text-primary font-semibold">
@@ -38,7 +38,7 @@
                   @click="open"
                   variant="outline"
                   size="sm"
-                  class="bg-white dark:bg-gray-700 border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-600 text-slate-700 dark:text-gray-200"
+                  class="bg-white dark:bg-gray-800 border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-600 text-slate-700 dark:text-gray-200"
                 >
                   📷 Alterar Foto
                 </Button>
@@ -60,7 +60,7 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
-          class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4"
+          class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
         >
           <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
             <svg
@@ -86,14 +86,14 @@
               v-if="statisticsStore.isLoading"
               class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
             ></div>
-            <p v-else class="text-2xl font-bold text-slate-800">
+            <p v-else class="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {{ statisticsStore.stats.total_matches }}
             </p>
           </div>
         </div>
 
         <div
-          class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4"
+          class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
         >
           <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
             <svg
@@ -128,7 +128,7 @@
         </div>
 
         <div
-          class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4"
+          class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
         >
           <div class="p-3 bg-amber-50 text-amber-600 rounded-lg">
             <svg
@@ -163,9 +163,9 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div :class="isOwner ? 'lg:col-span-8' : 'lg:col-span-12'" class="space-y-8">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white rounded-xl border shadow-sm h-full">
-              <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
-                <h3 class="font-bold text-gray-800 flex items-center gap-2">🎲 Últimos Jogos</h3>
+            <div class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm h-full">
+              <div class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center">
+                <h3 class="font-bold text-gray-900 flex items-center gap-2">🎲 Últimos Jogos</h3>
               </div>
 
               <div class="divide-y divide-slate-50 dark:divide-gray-700">
@@ -182,7 +182,7 @@
                 <div v-else-if="gamesStore.recentGames.length === 0" class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm">
                   <div class="mb-2">🎮</div>
                   <div class="font-medium">Nenhum jogo encontrado</div>
-                  <div class="text-xs mt-1 text-gray-300 dark:text-gray-500">
+                  <div class="text-xs mt-1 text-gray-500 dark:text-gray-300 ">
                     Este utilizador ainda não jogou jogos individuais
                   </div>
                 </div>
@@ -194,7 +194,7 @@
                 >
                   <div class="flex items-center gap-4">
                     <span
-                      class="w-3 h-3 rounded-full ring-2 ring-white shadow-sm flex-shrink-0"
+                      class="w-3 h-3 rounded-full ring-2 ring-white shadow-sm shrink-0"
                       :class="game.status === 'Ended' ? 'bg-emerald-500' : 'bg-amber-400'"
                       :title="game.status"
                     ></span>
@@ -214,7 +214,7 @@
                           </span>
                         </span>
                         <span
-                          class="text-[9px] text-slate-400 dark:text-gray-400 uppercase bg-slate-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex-shrink-0"
+                          class="text-[9px] text-slate-400 dark:text-gray-400 uppercase bg-slate-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0"
                         >{{ game.type || 'Standard' }}</span>
                       </div>
                       <div class="text-xs text-slate-500 dark:text-gray-400 mb-1">
@@ -230,10 +230,10 @@
                         <span class="flex items-center gap-1">
                           <span class="w-2 h-2 rounded-full" :class="game.is_winner === null ? 'bg-amber-500' : 'bg-gray-500'"></span>
                           <span class="font-semibold" :class="game.is_winner === null ? 'text-amber-700' : 'text-gray-700'">{{ getGamePoints(game).opponentPoints }}</span>
-                          <span class="text-slate-600 dark:text-gray-300">pts</span>
+                          <span class="text-slate-500 dark:text-gray-300">pts</span>
                         </span>
                       </div>
-                      <div v-else class="text-xs italic text-gray-400 dark:text-gray-500">Pontos não disponíveis</div>
+                      <div v-else class="text-xs italic text-gray-500 dark:text-gray-300">Pontos não disponíveis</div>
                     </div>
                   </div>
 
@@ -251,9 +251,9 @@
               </div>
             </div>
 
-            <div class="bg-white rounded-xl border shadow-sm h-full">
-              <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
-                <h3 class="font-bold text-gray-800 flex items-center gap-2">🏆 Últimas Partidas</h3>
+            <div class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm h-full">
+              <div class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center">
+                <h3 class="font-bold text-gray-900 flex items-center gap-2">🏆 Últimas Partidas</h3>
               </div>
 
               <div class="divide-y divide-slate-50 dark:divide-gray-700">
@@ -284,7 +284,7 @@
                   @click="toggleMatch(match.id)"
                 >
                   <div
-                    class="flex items-center justify-between p-3 cursor-pointer bg-white"
+                    class="flex items-center justify-between p-3 cursor-pointer bg-white dark:bg-gray-800"
                     @click="toggleMatch(match.id)"
                   >
                     <div class="flex items-center gap-3">
@@ -328,7 +328,7 @@
                             }}
                           </span>
                           <span
-                            class="text-[9px] text-slate-400 dark:text-gray-400 uppercase bg-slate-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex-shrink-0"
+                            class="text-[9px] text-slate-400 dark:text-gray-400 uppercase bg-slate-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0"
                           >
                             {{ match.type || 'Standard' }}
                           </span>
@@ -358,7 +358,7 @@
 
                   <div
                     v-if="expandedMatchId === match.id"
-                    class="bg-slate-50/80 border-t border-slate-100 p-3 space-y-2 animate-in slide-in-from-top-1 duration-200"
+                    class="bg-slate-50/80 border-t border-slate-100 dark:border-gray-700 p-3 space-y-2 animate-in slide-in-from-top-1 duration-200"
                   >
                     <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                       Detalhes dos Jogos
@@ -368,11 +368,11 @@
                       <div
                         v-for="g in match.games"
                         :key="g.id"
-                        class="flex items-center justify-between bg-white p-3 rounded border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
+                        class="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
                       >
                         <div class="flex items-center gap-3">
                           <span
-                            class="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-sm flex-shrink-0"
+                            class="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-sm shrink-0"
                             :class="g.status === 'Ended' ? 'bg-emerald-500' : 'bg-amber-400'"
                             :title="g.status"
                           ></span>
@@ -410,7 +410,7 @@
                                 </span>
                               </span>
                               <span
-                                class="text-[9px] text-slate-400 uppercase bg-slate-100 px-1.5 py-0.5 rounded flex-shrink-0"
+                                class="text-[9px] text-slate-400 uppercase bg-slate-100 px-1.5 py-0.5 rounded shrink-0"
                               >
                                 {{ g.type || 'Standard' }}
                               </span>
@@ -490,12 +490,12 @@
             <div class="p-5 space-y-4">
               <div class="space-y-1.5">
                 <Label for="name" class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider">Nome</Label>
-                <Input id="name" v-model="formData.name" class="bg-white dark:bg-gray-700 text-slate-900 dark:text-gray-100"/>
+                <Input id="name" v-model="formData.name" class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100"/>
               </div>
 
               <div class="space-y-1.5">
                 <Label for="email" class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider">Email</Label>
-                <Input id="email" v-model="formData.email" type="email" class="bg-white dark:bg-gray-700 text-slate-900 dark:text-gray-100"/>
+                <Input id="email" v-model="formData.email" type="email" class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100"/>
               </div>
 
               <div class="pt-4 space-y-3">
