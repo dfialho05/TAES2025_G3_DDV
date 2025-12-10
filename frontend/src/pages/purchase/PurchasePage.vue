@@ -41,7 +41,7 @@
 
           <div>
             <label class="block text-sm font-medium mb-1">Referência de pagamento</label>
-            <Input v-model="paymentReference" type="text" :placeholder="paymentPlaceholder"/>
+            <Input v-model="paymentReference" type="text" :placeholder="paymentPlaceholder" />
             <p class="text-xs text-muted-foreground mt-1">
               Formato esperado varia conforme o tipo de pagamento.
             </p>
@@ -124,6 +124,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePurchaseStore } from '@/stores/purchase'
+import { useAuthStore } from '@/stores/auth'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -164,6 +165,7 @@ const localError = ref(null)
 const localErrorField = ref(null)
 
 const purchase = usePurchaseStore()
+const authStore = useAuthStore()
 
 // Local Validation Logic
 const validateLocal = () => {
@@ -268,7 +270,18 @@ const onSubmit = async () => {
     return
   }
 
-  // On success, clear form fields but keep the success message
+  // On success, update user balance and clear form fields
+  if (res.data && res.data.new_balance !== undefined) {
+    authStore.updateCoinsBalance(res.data.new_balance)
+  } else {
+    // Fallback: refresh user data from server
+    try {
+      await authStore.refreshUser()
+    } catch (err) {
+      console.warn('Failed to refresh user data after purchase:', err)
+    }
+  }
+
   euros.value = ''
   paymentType.value = 'MBWAY'
   paymentReference.value = ''
