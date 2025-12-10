@@ -4,7 +4,7 @@
       <div
         class="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"
       ></div>
-      <p class="text-lg text-gray-500 font-medium">A carregar perfil...</p>
+      <p class="text-lg text-gray-500 dark:text-gray-300 font-medium">A carregar perfil...</p>
     </div>
 
     <div v-else-if="displayedUser" class="space-y-8 animate-in fade-in duration-500">
@@ -21,14 +21,14 @@
 
           <div class="flex-1 text-center md:text-left space-y-2 pt-2">
             <div>
-              <h1 class="text-3xl font-bold tracking-tight text-slate-900">
+              <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-gray-100">
                 {{ displayedUser.name }}
               </h1>
               <p v-if="displayedUser.nickname" class="text-lg text-primary font-semibold">
                 @{{ displayedUser.nickname }}
               </p>
             </div>
-            <p class="text-gray-500 font-mono text-sm bg-slate-50 inline-block px-2 py-1 rounded">
+            <p class="text-gray-500 dark:text-gray-300 font-mono text-sm bg-slate-50 dark:bg-gray-700 inline-block px-2 py-1 rounded">
               {{ displayedUser.email }}
             </p>
 
@@ -38,7 +38,7 @@
                   @click="open"
                   variant="outline"
                   size="sm"
-                  class="bg-white border-slate-300 hover:bg-slate-50 text-slate-700"
+                  class="bg-white dark:bg-gray-700 border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-600 text-slate-700 dark:text-gray-200"
                 >
                   📷 Alterar Foto
                 </Button>
@@ -49,7 +49,7 @@
                   @click="reset"
                   variant="ghost"
                   size="sm"
-                  class="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  class="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900"
                   >Cancelar</Button
                 >
               </div>
@@ -168,34 +168,21 @@
                 <h3 class="font-bold text-gray-800 flex items-center gap-2">🎲 Últimos Jogos</h3>
               </div>
 
-              <div class="divide-y divide-slate-50">
-                <div
-                  v-if="gamesStore.loadingRecentGames"
-                  class="p-8 text-center text-gray-400 text-sm"
-                >
-                  <div
-                    class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"
-                  ></div>
+              <div class="divide-y divide-slate-50 dark:divide-gray-700">
+                <div v-if="gamesStore.loadingRecentGames" class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm">
+                  <div class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
                   A carregar jogos...
                 </div>
-
-                <div
-                  v-else-if="gamesStore.errors.recentGames"
-                  class="p-8 text-center text-red-400 text-sm"
-                >
+                <div v-else-if="gamesStore.errors.recentGames" class="p-8 text-center text-red-400 text-sm">
                   <div class="mb-2">⚠️ {{ gamesStore.errors.recentGames }}</div>
                   <button @click="loadProfileData" class="text-xs underline hover:no-underline">
                     Tentar novamente
                   </button>
                 </div>
-
-                <div
-                  v-else-if="gamesStore.recentGames.length === 0"
-                  class="p-8 text-center text-gray-400 text-sm"
-                >
+                <div v-else-if="gamesStore.recentGames.length === 0" class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm">
                   <div class="mb-2">🎮</div>
                   <div class="font-medium">Nenhum jogo encontrado</div>
-                  <div class="text-xs mt-1 text-gray-300">
+                  <div class="text-xs mt-1 text-gray-300 dark:text-gray-500">
                     Este utilizador ainda não jogou jogos individuais
                   </div>
                 </div>
@@ -203,7 +190,7 @@
                 <div
                   v-for="game in gamesStore.recentGames"
                   :key="game.id"
-                  class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                  class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div class="flex items-center gap-4">
                     <span
@@ -211,99 +198,53 @@
                       :class="game.status === 'Ended' ? 'bg-emerald-500' : 'bg-amber-400'"
                       :title="game.status"
                     ></span>
-                    <div class="flex flex-col min-w-0 flex-1">
+                    <div class="flex flex-col min-w-0 flex-1 text-gray-900 dark:text-gray-100">
                       <div class="flex items-center gap-2 mb-1">
-                        <span class="text-sm text-slate-800 truncate">
+                        <span class="text-sm truncate">
                           vs
                           <RouterLink
                             v-if="game.opponent?.id"
                             :to="{ name: 'profile', params: { id: game.opponent.id } }"
-                            class="font-bold text-blue-600 hover:text-blue-800 hover:underline transition-all duration-200 cursor-pointer bg-blue-50 hover:bg-blue-100 px-1 py-0.5 rounded inline-flex items-center gap-1"
-                            title="Ver perfil de {{ game.opponent.nickname || game.opponent.name }}"
+                            class="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-all duration-200 cursor-pointer bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 px-1 py-0.5 rounded inline-flex items-center gap-1"
                           >
                             {{ game.opponent.nickname || game.opponent.name }}
-                            <svg
-                              class="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
                           </RouterLink>
-                          <span v-else class="font-bold text-slate-800">
-                            {{
-                              game.opponent
-                                ? game.opponent.nickname || game.opponent.name
-                                : 'Desconhecido'
-                            }}
+                          <span v-else class="font-bold">
+                            {{ game.opponent ? game.opponent.nickname || game.opponent.name : 'Desconhecido' }}
                           </span>
                         </span>
                         <span
-                          class="text-[9px] text-slate-400 uppercase bg-slate-100 px-1.5 py-0.5 rounded flex-shrink-0"
-                          >{{ game.type || 'Standard' }}</span
-                        >
+                          class="text-[9px] text-slate-400 dark:text-gray-400 uppercase bg-slate-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex-shrink-0"
+                        >{{ game.type || 'Standard' }}</span>
                       </div>
-                      <div class="text-xs text-slate-500 mb-1">
+                      <div class="text-xs text-slate-500 dark:text-gray-400 mb-1">
                         {{ formatDate(game.began_at) }}
                       </div>
-                      <div
-                        class="text-xs flex items-center gap-2"
-                        v-if="getGamePoints(game).hasPoints"
-                      >
+                      <div class="text-xs flex items-center gap-2" v-if="getGamePoints(game).hasPoints">
                         <span class="flex items-center gap-1">
-                          <span
-                            class="w-2 h-2 rounded-full"
-                            :class="game.is_winner === null ? 'bg-amber-500' : 'bg-blue-500'"
-                          ></span>
-                          <span
-                            class="font-semibold"
-                            :class="game.is_winner === null ? 'text-amber-700' : 'text-blue-700'"
-                            >{{ getGamePoints(game).userPoints }}</span
-                          >
-                          <span class="text-slate-600">pts</span>
+                          <span class="w-2 h-2 rounded-full" :class="game.is_winner === null ? 'bg-amber-500' : 'bg-blue-500'"></span>
+                          <span class="font-semibold" :class="game.is_winner === null ? 'text-amber-700' : 'text-blue-700'">{{ getGamePoints(game).userPoints }}</span>
+                          <span class="text-slate-600 dark:text-gray-300">pts</span>
                         </span>
-                        <span class="text-slate-400">•</span>
+                        <span class="text-slate-400 dark:text-gray-500">•</span>
                         <span class="flex items-center gap-1">
-                          <span
-                            class="w-2 h-2 rounded-full"
-                            :class="game.is_winner === null ? 'bg-amber-500' : 'bg-gray-500'"
-                          ></span>
-                          <span
-                            class="font-semibold"
-                            :class="game.is_winner === null ? 'text-amber-700' : 'text-gray-700'"
-                            >{{ getGamePoints(game).opponentPoints }}</span
-                          >
-                          <span class="text-slate-600">pts</span>
+                          <span class="w-2 h-2 rounded-full" :class="game.is_winner === null ? 'bg-amber-500' : 'bg-gray-500'"></span>
+                          <span class="font-semibold" :class="game.is_winner === null ? 'text-amber-700' : 'text-gray-700'">{{ getGamePoints(game).opponentPoints }}</span>
+                          <span class="text-slate-600 dark:text-gray-300">pts</span>
                         </span>
                       </div>
-                      <div v-else class="text-xs text-slate-400 italic">Pontos não disponíveis</div>
+                      <div v-else class="text-xs italic text-gray-400 dark:text-gray-500">Pontos não disponíveis</div>
                     </div>
                   </div>
 
                   <div class="text-right">
-                    <span
-                      class="text-xs font-bold px-2 py-1 rounded border"
-                      :class="
-                        game.is_winner === true
-                          ? 'bg-green-50 text-green-700 border-green-100'
-                          : game.is_winner === false
-                            ? 'bg-red-50 text-red-700 border-red-100'
-                            : 'bg-amber-50 text-amber-700 border-amber-100'
-                      "
-                    >
-                      {{
-                        game.is_winner === true
-                          ? 'VITÓRIA'
-                          : game.is_winner === false
-                            ? 'DERROTA'
-                            : 'EMPATE'
-                      }}
+                    <span class="text-xs font-bold px-2 py-1 rounded border"
+                      :class="game.is_winner === true
+                        ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
+                        : game.is_winner === false
+                          ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900 dark:text-red-300 dark:border-red-700'
+                          : 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700'">
+                      {{ game.is_winner === true ? 'VITÓRIA' : game.is_winner === false ? 'DERROTA' : 'EMPATE' }}
                     </span>
                   </div>
                 </div>
@@ -315,47 +256,32 @@
                 <h3 class="font-bold text-gray-800 flex items-center gap-2">🏆 Últimas Partidas</h3>
               </div>
 
-              <div class="p-4 space-y-3">
-                <div
-                  v-if="matchesStore.loadingRecentMatches"
-                  class="text-center text-gray-400 text-sm py-4"
-                >
-                  <div
-                    class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"
-                  ></div>
+              <div class="divide-y divide-slate-50 dark:divide-gray-700">
+                <div v-if="matchesStore.loadingRecentMatches" class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm">
+                  <div class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
                   A carregar partidas...
                 </div>
 
-                <div
-                  v-else-if="matchesStore.errors.recentMatches"
-                  class="text-center text-red-400 text-sm py-4"
-                >
+                <div v-else-if="matchesStore.errors.recentMatches" class="p-8 text-center text-red-400 text-sm">
                   <div class="mb-2">⚠️ {{ matchesStore.errors.recentMatches }}</div>
                   <button @click="loadProfileData" class="text-xs underline hover:no-underline">
                     Tentar novamente
                   </button>
                 </div>
 
-                <div
-                  v-else-if="matchesStore.recentMatches.length === 0"
-                  class="text-center text-gray-400 text-sm py-4"
-                >
-                  <div class="mb-2">🏆</div>
+                <div v-else-if="matchesStore.recentMatches.length === 0" class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm">
+                  <div class="mb-2">🛡️</div>
                   <div class="font-medium">Nenhuma partida encontrada</div>
-                  <div class="text-xs mt-1 text-gray-300">
-                    Este utilizador ainda não participou em partidas completas
+                  <div class="text-xs mt-1 text-gray-300 dark:text-gray-500">
+                    Este utilizador ainda não participou em partidas
                   </div>
                 </div>
 
                 <div
                   v-for="match in matchesStore.recentMatches"
                   :key="match.id"
-                  class="border rounded-lg bg-white overflow-hidden transition-all duration-200 hover:shadow-sm"
-                  :class="
-                    expandedMatchId === match.id
-                      ? 'ring-1 ring-primary/20 border-primary/30'
-                      : 'border-slate-200'
-                  "
+                  class="p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors rounded"
+                  @click="toggleMatch(match.id)"
                 >
                   <div
                     class="flex items-center justify-between p-3 cursor-pointer bg-white"
@@ -402,57 +328,31 @@
                             }}
                           </span>
                           <span
-                            v-if="match.match_result"
-                            class="text-xs font-bold px-2 py-0.5 rounded"
-                            :class="
-                              isWinner(match) === true
-                                ? 'bg-green-100 text-green-700'
-                                : isWinner(match) === false
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-amber-100 text-amber-700'
-                            "
-                            :title="getMatchResultDescription(match)"
+                            class="text-[9px] text-slate-400 dark:text-gray-400 uppercase bg-slate-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex-shrink-0"
                           >
-                            {{ match.match_result }}
+                            {{ match.type || 'Standard' }}
                           </span>
-                          <span
-                            class="text-[10px] text-slate-400 bg-slate-50 px-1 rounded border"
-                            >{{ match.type || 'Standard' }}</span
-                          >
                         </div>
-                        <div class="text-xs text-slate-600 mt-1 flex items-center gap-1">
-                          <span class="text-slate-400">vs</span>
-                          <RouterLink
-                            v-if="match.opponent?.id"
-                            :to="{ name: 'profile', params: { id: match.opponent.id } }"
-                            class="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-all duration-200 cursor-pointer bg-blue-50 hover:bg-blue-100 px-1 py-0.5 rounded inline-flex items-center gap-1"
-                            title="Ver perfil de {{ getOpponentName(match) }}"
-                          >
-                            {{ getOpponentName(match) }}
-                            <svg
-                              class="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
-                          </RouterLink>
-                          <span v-else class="font-medium">{{ getOpponentName(match) }}</span>
-                        </div>
-                        <div class="text-[9px] text-slate-300 mt-0.5" v-if="match.began_at">
+                        <div class="text-xs text-slate-500 dark:text-gray-400 mb-1">
                           {{ formatDate(match.began_at) }}
+                        </div>
+                        <div class="text-xs italic text-gray-400 dark:text-gray-500">
+                          {{ getMatchResultDescription(match) }}
                         </div>
                       </div>
                     </div>
 
                     <div class="text-right">
-                      <p class="text-[10px] text-slate-400">{{ formatDate(match.began_at) }}</p>
+                      <span
+                        class="text-xs font-bold px-2 py-1 rounded border"
+                        :class="isWinner(match) === true
+                          ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
+                          : isWinner(match) === false
+                            ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900 dark:text-red-300 dark:border-red-700'
+                            : 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700'"
+                      >
+                        {{ isWinner(match) === true ? 'VITÓRIA' : isWinner(match) === false ? 'DERROTA' : 'EMPATE' }}
+                      </span>
                     </div>
                   </div>
 
@@ -573,9 +473,6 @@
                         </div>
                       </div>
                     </div>
-                    <div v-else class="text-center text-xs text-gray-400 italic py-1">
-                      Sem detalhes disponíveis.
-                    </div>
                   </div>
                 </div>
               </div>
@@ -584,45 +481,28 @@
         </div>
 
         <div v-if="isOwner" class="lg:col-span-4 space-y-6">
-          <div class="bg-white rounded-xl border shadow-sm sticky top-6">
-            <div class="p-5 border-b bg-slate-50/50">
-              <h3 class="font-semibold text-lg text-slate-800">Editar Dados</h3>
-              <p class="text-sm text-slate-500 mt-0.5">Atualiza as tuas informações</p>
+          <div class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm sticky top-6 border-slate-200 dark:border-gray-700">
+            <div class="p-5 border-b bg-slate-50/50 dark:bg-gray-700/50">
+              <h3 class="font-semibold text-lg text-slate-800 dark:text-gray-100">Editar Dados</h3>
+              <p class="text-sm text-slate-500 dark:text-gray-300 mt-0.5">Atualiza as tuas informações</p>
             </div>
 
             <div class="p-5 space-y-4">
               <div class="space-y-1.5">
-                <Label
-                  for="name"
-                  class="text-xs uppercase text-slate-500 font-semibold tracking-wider"
-                  >Nome</Label
-                >
-                <Input id="name" v-model="formData.name" class="bg-white" />
+                <Label for="name" class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider">Nome</Label>
+                <Input id="name" v-model="formData.name" class="bg-white dark:bg-gray-700 text-slate-900 dark:text-gray-100"/>
               </div>
 
               <div class="space-y-1.5">
-                <Label
-                  for="email"
-                  class="text-xs uppercase text-slate-500 font-semibold tracking-wider"
-                  >Email</Label
-                >
-                <Input id="email" v-model="formData.email" type="email" class="bg-white" />
+                <Label for="email" class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider">Email</Label>
+                <Input id="email" v-model="formData.email" type="email" class="bg-white dark:bg-gray-700 text-slate-900 dark:text-gray-100"/>
               </div>
 
               <div class="pt-4 space-y-3">
-                <Button @click="saveProfile" class="w-full font-semibold shadow-sm">
-                  Guardar Alterações
-                </Button>
+                <Button @click="saveProfile" class="w-full font-semibold shadow-sm">Guardar Alterações</Button>
 
-                <div
-                  v-if="authStore.currentUser?.type !== 'A'"
-                  class="pt-2 border-t border-slate-100"
-                >
-                  <Button
-                    @click="confirmDelete"
-                    variant="ghost"
-                    class="w-full text-red-500 hover:text-red-600 hover:bg-red-50 text-sm h-9"
-                  >
+                <div v-if="authStore.currentUser?.type !== 'A'" class="pt-2 border-t border-slate-100 dark:border-gray-700">
+                  <Button @click="confirmDelete" variant="ghost" class="w-full text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 text-sm h-9">
                     Eliminar Conta
                   </Button>
                 </div>
@@ -630,6 +510,7 @@
             </div>
           </div>
         </div>
+
       </div>
     </div>
 

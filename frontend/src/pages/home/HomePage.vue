@@ -55,13 +55,13 @@ const goToLobby = () => {
 
 
         <div class="grid grid-cols-2 gap-3 pt-2">
-          <Button @click="startGame(3)" variant="outline"
+          <Button @click="startGameSingleplayer(3)" variant="outline"
             class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all group">
             <span class="text-lg font-bold group-hover:text-green-600 dark:group-hover:text-green-400">Bisca de 3</span>
             <span class="text-xs text-muted-foreground font-normal">Modo Clássico</span>
           </Button>
 
-          <Button @click="startGame(9)" variant="outline"
+          <Button @click="startGameSingleplayer(9)" variant="outline"
             class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all group">
             <span class="text-lg font-bold group-hover:text-purple-600 dark:group-hover:text-purple-400">Bisca de
               9</span>
@@ -74,7 +74,7 @@ const goToLobby = () => {
     <Card class="w-full max-w-md opacity-75 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
       <CardHeader>
         <CardTitle class="text-3xl font-bold text-center"> MultiPlayer </CardTitle>
-        <CardDescription class="text-center"> Em breve... </CardDescription>
+        <CardDescription class="text-center"></CardDescription>
       </CardHeader>
       <CardContent class="flex items-center justify-center h-64">
         <Button @click="goToLobby" variant="outline"
