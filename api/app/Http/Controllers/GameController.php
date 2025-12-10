@@ -172,7 +172,7 @@ class GameController extends Controller
                 "type" => $game->type,
             ]);
 
-            return new GameResource($game);
+            return response()->json(new GameResource($game), 201);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -453,7 +453,7 @@ class GameController extends Controller
                 "created_by" => $user->id,
             ]);
 
-            return response()->json($game, 201);
+            return response()->json(new GameResource($game), 201);
         } catch (\Exception $e) {
             DB::rollBack();
 

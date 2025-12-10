@@ -17,11 +17,16 @@ class StoreGameRequest extends FormRequest
 
     protected function prepareForValidation()
     {
-        // Set default values
-        $defaults = [
-            "status" => "Pending",
-            "type" => "3", // Default to Bisca dos 3
-        ];
+        // Set default values only if not already provided
+        $defaults = [];
+
+        if (!$this->has("status")) {
+            $defaults["status"] = "Pending";
+        }
+
+        if (!$this->has("type")) {
+            $defaults["type"] = "3"; // Default to Bisca dos 3
+        }
 
         // Set default deck if not provided
         if (!$this->has("deck_id")) {
@@ -40,18 +45,20 @@ class StoreGameRequest extends FormRequest
             $defaults["player1_user_id"] = $this->user()->id;
         }
 
-        // If match_id is provided, inherit type from match
+        // If match_id is provided, inherit type from match (only if not explicitly set)
         if ($this->has("match_id") && $this->match_id) {
             $match = \App\Models\Matches::find($this->match_id);
             if ($match) {
-                $defaults["type"] = $match->type;
+                if (!$this->has("type")) {
+                    $defaults["type"] = $match->type;
+                }
 
                 // If players are not specified, use match players
-                if (
-                    !$this->has("player1_user_id") ||
-                    !$this->has("player2_user_id")
-                ) {
+                if (!$this->has("player1_user_id")) {
                     $defaults["player1_user_id"] = $match->player1_user_id;
+                }
+
+                if (!$this->has("player2_user_id")) {
                     $defaults["player2_user_id"] = $match->player2_user_id;
                 }
             }

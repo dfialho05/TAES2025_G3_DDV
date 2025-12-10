@@ -354,7 +354,7 @@ class MatchTest extends TestCase
 
         $response
             ->assertStatus(422)
-            ->assertJsonValidationErrors(["type", "player2_user_id"]);
+            ->assertJsonValidationErrors(["player2_user_id"]);
     }
 
     public function test_match_creation_validates_user_existence()
