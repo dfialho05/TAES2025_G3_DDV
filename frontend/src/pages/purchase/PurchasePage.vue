@@ -100,7 +100,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3 mt-4">
+          <div class="flex flex-col sm:flex-row items-stretch gap-3 mt-4">
             <Button
               :disabled="purchase.loading"
               variant="default"
@@ -111,7 +111,7 @@
               <span v-else>A processar pagamento...</span>
             </Button>
 
-            <Button type="button" variant="outline" @click="onReset" :disabled="purchase.loading">
+            <Button type="button" variant="outline" @click="onReset" :disabled="purchase.loading" class="w-full sm:w-auto">
               Limpar
             </Button>
           </div>
