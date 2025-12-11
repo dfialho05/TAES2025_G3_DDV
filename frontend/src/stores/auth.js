@@ -100,6 +100,41 @@ export const useAuthStore = defineStore('auth', () => {
     return initPromise
   }
 
+  // Método para atualizar o usuário atual garantindo reatividade
+  const updateUser = (updates) => {
+    if (currentUser.value) {
+      // Cria um novo objeto para garantir reatividade
+      currentUser.value = { ...currentUser.value, ...updates }
+    }
+  }
+
+  // Método para atualizar saldo de coins especificamente
+  const updateCoinsBalance = (newBalance) => {
+    if (currentUser.value) {
+      currentUser.value = { ...currentUser.value, coins_balance: newBalance }
+    }
+  }
+
+  // Método para atualizar dados personalizados (como decks)
+  const updateCustomData = (customUpdates) => {
+    if (currentUser.value) {
+      const newCustom = { ...currentUser.value.custom, ...customUpdates }
+      currentUser.value = { ...currentUser.value, custom: newCustom }
+    }
+  }
+
+  // Método para refrescar dados do usuário do servidor
+  const refreshUser = async () => {
+    if (currentUser.value) {
+      try {
+        await getUser()
+      } catch (err) {
+        console.error('Erro ao refrescar dados do usuário:', err)
+        throw err
+      }
+    }
+  }
+
   return {
     currentUser,
     isLoggedIn,
@@ -110,5 +145,9 @@ export const useAuthStore = defineStore('auth', () => {
     getUser,
     register,
     deleteAccount,
+    updateUser,
+    updateCoinsBalance,
+    updateCustomData,
+    refreshUser,
   }
 })

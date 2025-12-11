@@ -89,11 +89,36 @@ Route::get("/decks/{deckSlug}/files", [DeckController::class, "listDeckFiles"]);
 // OTIMIZADO: Histórico de Jogos Individuais (Para lista simples no perfil)
 Route::get("/users/{id}/games/recent", [GameController::class, "recentGames"]);
 
+// NOVO: Histórico completo de jogos com paginação (Para página de histórico)
+Route::get("/users/{id}/games", [GameController::class, "getAllUserGames"]);
+
 // OTIMIZADO: Histórico de Partidas com detalhes (Para acordeão no perfil)
 Route::get("/users/{id}/matches/recent", [
     MatchController::class,
     "recentMatches",
 ]);
+
+// NOVO: Histórico completo de partidas com paginação (Para página de histórico)
+Route::get("/users/{id}/matches", [
+    MatchController::class,
+    "getAllUserMatches",
+]);
+
+// Buscar dados públicos do utilizador (Para página de histórico)
+Route::get("/users/{id}/profile", function ($id) {
+    $user = \App\Models\User::find($id);
+    if (!$user) {
+        return response()->json(["message" => "User not found"], 404);
+    }
+    return response()->json([
+        "id" => $user->id,
+        "name" => $user->name,
+        "nickname" => $user->nickname,
+        "photo_avatar_filename" => $user->photo_avatar_filename,
+        "type" => $user->type,
+        "created_at" => $user->created_at,
+    ]);
+});
 
 // Estatísticas públicas de utilizador
 Route::get("/users/{id}/games/stats", [GameController::class, "userStats"]);

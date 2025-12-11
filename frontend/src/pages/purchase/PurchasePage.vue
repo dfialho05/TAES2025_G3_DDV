@@ -12,7 +12,7 @@
             <div class="flex items-center gap-4">
               <Input v-model="euros" type="number" class="w-40" placeholder="1" min="1" />
               <div
-                class="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-2 rounded-md border"
+                class="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-2 rounded-md border dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
               >
                 Recebe: <span class="text-primary font-bold">{{ calculatedCoins }}</span> Coins
               </div>
@@ -28,10 +28,10 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Tipo de pagamento</label>
+            <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Tipo de pagamento</label>
             <select
               v-model="paymentType"
-              class="w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm"
+              class="w-full rounded-md border bg-white text-gray-700 px-3 py-2 text-sm shadow-sm dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600"
             >
               <option v-for="t in paymentTypes" :key="t" :value="t">
                 {{ t }}
@@ -41,8 +41,8 @@
 
           <div>
             <label class="block text-sm font-medium mb-1">Referência de pagamento</label>
-            <Input v-model="paymentReference" type="text" :placeholder="paymentPlaceholder"/>
-            <p class="text-xs text-muted-foreground mt-1">
+            <Input v-model="paymentReference" type="text" :placeholder="paymentPlaceholder" />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Formato esperado varia conforme o tipo de pagamento.
             </p>
             <div
@@ -100,7 +100,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3 mt-4">
+          <div class="flex flex-col sm:flex-row items-stretch gap-3 mt-4">
             <Button
               :disabled="purchase.loading"
               variant="default"
@@ -111,7 +111,7 @@
               <span v-else>A processar pagamento...</span>
             </Button>
 
-            <Button type="button" variant="outline" @click="onReset" :disabled="purchase.loading">
+            <Button type="button" variant="outline" @click="onReset" :disabled="purchase.loading" class="w-full sm:w-auto">
               Limpar
             </Button>
           </div>
@@ -124,6 +124,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePurchaseStore } from '@/stores/purchase'
+import { useAuthStore } from '@/stores/auth'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -164,6 +165,7 @@ const localError = ref(null)
 const localErrorField = ref(null)
 
 const purchase = usePurchaseStore()
+const authStore = useAuthStore()
 
 // Local Validation Logic
 const validateLocal = () => {
@@ -268,7 +270,18 @@ const onSubmit = async () => {
     return
   }
 
-  // On success, clear form fields but keep the success message
+  // On success, update user balance and clear form fields
+  if (res.data && res.data.new_balance !== undefined) {
+    authStore.updateCoinsBalance(res.data.new_balance)
+  } else {
+    // Fallback: refresh user data from server
+    try {
+      await authStore.refreshUser()
+    } catch (err) {
+      console.warn('Failed to refresh user data after purchase:', err)
+    }
+  }
+
   euros.value = ''
   paymentType.value = 'MBWAY'
   paymentReference.value = ''

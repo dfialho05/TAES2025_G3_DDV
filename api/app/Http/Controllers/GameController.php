@@ -337,6 +337,106 @@ class GameController extends Controller
     }
 
     /**
+     * NOVO MÉTODO: Histórico completo de jogos com paginação
+     * Endpoint: GET /users/{id}/games
+     */
+    public function getAllUserGames(Request $request, $id): JsonResponse
+    {
+        try {
+            // Verificar se o utilizador existe
+            $user = User::find($id);
+            if (!$user) {
+                return response()->json(["message" => "User not found"], 404);
+            }
+
+            // Parâmetros de paginação
+            $page = $request->get("page", 1);
+            $limit = min($request->get("limit", 50), 100); // Máximo 100 por página
+
+            // Buscar todos os jogos do utilizador com paginação
+            $games = Game::with([
+                "player1:id,name,nickname,photo_avatar_filename",
+                "player2:id,name,nickname,photo_avatar_filename",
+                "winner:id,name,nickname",
+            ])
+                ->where(function ($q) use ($id) {
+                    $q->where("player1_user_id", $id)->orWhere(
+                        "player2_user_id",
+                        $id,
+                    );
+                })
+                ->orderBy("began_at", "desc")
+                ->paginate($limit, ["*"], "page", $page);
+
+            // Processar cada jogo
+            $processedGames = $games
+                ->getCollection()
+                ->map(function ($game) use ($id) {
+                    // Determinar oponente baseado no ID do utilizador
+                    $opponent = null;
+                    if ($game->player1_user_id == $id && $game->player2) {
+                        $opponent = $game->player2;
+                    } elseif ($game->player2_user_id == $id && $game->player1) {
+                        $opponent = $game->player1;
+                    }
+
+                    return [
+                        "id" => $game->id,
+                        "type" => $game->type ?? "Standard",
+                        "status" => $game->status,
+                        "began_at" => $game->began_at,
+                        "ended_at" => $game->ended_at,
+                        "winner_id" => $game->winner_user_id,
+                        "winner" => $game->winner,
+                        "player1_id" => $game->player1_user_id,
+                        "player2_id" => $game->player2_user_id,
+                        "player1_points" => $game->player1_points,
+                        "player2_points" => $game->player2_points,
+                        "opponent" => $opponent
+                            ? [
+                                "id" => $opponent->id,
+                                "name" => $opponent->name,
+                                "nickname" => $opponent->nickname,
+                                "photo_avatar_filename" =>
+                                    $opponent->photo_avatar_filename,
+                            ]
+                            : null,
+                        "is_winner" =>
+                            $game->winner_user_id === null
+                                ? null
+                                : $game->winner_user_id == $id,
+                        "match_id" => $game->match_id,
+                    ];
+                });
+
+            return response()->json([
+                "games" => $processedGames,
+                "pagination" => [
+                    "current_page" => $games->currentPage(),
+                    "last_page" => $games->lastPage(),
+                    "per_page" => $games->perPage(),
+                    "total" => $games->total(),
+                    "from" => $games->firstItem(),
+                    "to" => $games->lastItem(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error("[GameController] Error in getAllUserGames", [
+                "user_id" => $id,
+                "error" => $e->getMessage(),
+            ]);
+
+            return response()->json(
+                [
+                    "message" => "Erro interno do servidor",
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
      * Estatísticas rápidas de jogos de um utilizador
      */
     public function userStats(Request $request, $id): JsonResponse

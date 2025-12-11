@@ -8,7 +8,9 @@
     </div>
 
     <div v-else-if="displayedUser" class="space-y-8 animate-in fade-in duration-500">
-      <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-gray-700">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-gray-700"
+      >
         <div class="flex flex-col md:flex-row gap-8 items-center md:items-start">
           <div class="shrink-0 relative group">
             <UserAvatar
@@ -21,14 +23,16 @@
 
           <div class="flex-1 text-center md:text-left space-y-2 pt-2">
             <div>
-              <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-gray-100 ">
+              <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-gray-100">
                 {{ displayedUser.name }}
               </h1>
               <p v-if="displayedUser.nickname" class="text-lg text-primary font-semibold">
                 @{{ displayedUser.nickname }}
               </p>
             </div>
-            <p class="text-gray-500 dark:text-gray-300 font-mono text-sm bg-slate-50 dark:bg-gray-700 inline-block px-2 py-1 rounded">
+            <p
+              class="text-gray-500 dark:text-gray-300 font-mono text-sm bg-slate-50 dark:bg-gray-700 inline-block px-2 py-1 rounded"
+            >
               {{ displayedUser.email }}
             </p>
 
@@ -116,7 +120,9 @@
             </svg>
           </div>
           <div>
-            <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Vitórias</p>
+            <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">
+              Vitórias em Jogos
+            </p>
             <div
               v-if="statisticsStore.isLoading"
               class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
@@ -148,7 +154,9 @@
             </svg>
           </div>
           <div>
-            <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Win Rate</p>
+            <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">
+              Taxa de Vitórias
+            </p>
             <div
               v-if="statisticsStore.isLoading"
               class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
@@ -164,25 +172,59 @@
         <div :class="isOwner ? 'lg:col-span-8' : 'lg:col-span-12'" class="space-y-8">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm h-full">
-              <div class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center">
-                <h3 class="font-bold text-gray-900 flex items-center gap-2">🎲 Últimos Jogos</h3>
+              <div
+                class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center"
+              >
+                <h3 class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  🎲 Últimos Jogos
+                </h3>
+                <RouterLink
+                  :to="{ name: 'history', params: { id: displayedUser.id } }"
+                  class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
+                >
+                  Ver Histórico Completo
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </RouterLink>
               </div>
 
               <div class="divide-y divide-slate-50 dark:divide-gray-700">
-                <div v-if="gamesStore.loadingRecentGames" class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm">
-                  <div class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+                <div
+                  v-if="gamesStore.loadingRecentGames"
+                  class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm"
+                >
+                  <div
+                    class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"
+                  ></div>
                   A carregar jogos...
                 </div>
-                <div v-else-if="gamesStore.errors.recentGames" class="p-8 text-center text-red-400 text-sm">
+                <div
+                  v-else-if="gamesStore.errors.recentGames"
+                  class="p-8 text-center text-red-400 text-sm"
+                >
                   <div class="mb-2">⚠️ {{ gamesStore.errors.recentGames }}</div>
                   <button @click="loadProfileData" class="text-xs underline hover:no-underline">
                     Tentar novamente
                   </button>
                 </div>
-                <div v-else-if="gamesStore.recentGames.length === 0" class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm">
+                <div
+                  v-else-if="gamesStore.recentGames.length === 0"
+                  class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm"
+                >
                   <div class="mb-2">🎮</div>
                   <div class="font-medium">Nenhum jogo encontrado</div>
-                  <div class="text-xs mt-1 text-gray-500 dark:text-gray-300 ">
+                  <div class="text-xs mt-1 text-gray-500 dark:text-gray-300">
                     Este utilizador ainda não jogou jogos individuais
                   </div>
                 </div>
@@ -201,7 +243,9 @@
                     <div class="flex flex-col min-w-0 flex-1 text-gray-900 dark:text-gray-100">
                       <div class="flex items-center gap-2 mb-1">
                         <span class="text-sm truncate">
-                          vs
+                          Bisca de
+                          <!-- Opponent information commented out -->
+                          <!--
                           <RouterLink
                             v-if="game.opponent?.id"
                             :to="{ name: 'profile', params: { id: game.opponent.id } }"
@@ -210,41 +254,76 @@
                             {{ game.opponent.nickname || game.opponent.name }}
                           </RouterLink>
                           <span v-else class="font-bold">
-                            {{ game.opponent ? game.opponent.nickname || game.opponent.name : 'Desconhecido' }}
+                            {{
+                              game.opponent
+                                ? game.opponent.nickname || game.opponent.name
+                                : 'Desconhecido'
+                            }}
                           </span>
+                          -->
                         </span>
                         <span
                           class="text-[9px] text-slate-400 dark:text-gray-400 uppercase bg-slate-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0"
-                        >{{ game.type || 'Standard' }}</span>
+                          >{{ game.type || 'Standard' }}</span
+                        >
                       </div>
                       <div class="text-xs text-slate-500 dark:text-gray-400 mb-1">
                         {{ formatDate(game.began_at) }}
                       </div>
-                      <div class="text-xs flex items-center gap-2" v-if="getGamePoints(game).hasPoints">
+                      <div
+                        class="text-xs flex items-center gap-2"
+                        v-if="getGamePoints(game).hasPoints"
+                      >
                         <span class="flex items-center gap-1">
-                          <span class="w-2 h-2 rounded-full" :class="game.is_winner === null ? 'bg-amber-500' : 'bg-blue-500'"></span>
-                          <span class="font-semibold" :class="game.is_winner === null ? 'text-amber-700' : 'text-blue-700'">{{ getGamePoints(game).userPoints }}</span>
+                          <span
+                            class="w-2 h-2 rounded-full"
+                            :class="game.is_winner === null ? 'bg-amber-500' : 'bg-blue-500'"
+                          ></span>
+                          <span
+                            class="font-semibold"
+                            :class="game.is_winner === null ? 'text-amber-700' : 'text-blue-700'"
+                            >{{ getGamePoints(game).userPoints }}</span
+                          >
                           <span class="text-slate-600 dark:text-gray-300">pts</span>
                         </span>
                         <span class="text-slate-400 dark:text-gray-500">•</span>
                         <span class="flex items-center gap-1">
-                          <span class="w-2 h-2 rounded-full" :class="game.is_winner === null ? 'bg-amber-500' : 'bg-gray-500'"></span>
-                          <span class="font-semibold" :class="game.is_winner === null ? 'text-amber-700' : 'text-gray-700'">{{ getGamePoints(game).opponentPoints }}</span>
+                          <span
+                            class="w-2 h-2 rounded-full"
+                            :class="game.is_winner === null ? 'bg-amber-500' : 'bg-gray-500'"
+                          ></span>
+                          <span
+                            class="font-semibold"
+                            :class="game.is_winner === null ? 'text-amber-700' : 'text-gray-700'"
+                            >{{ getGamePoints(game).opponentPoints }}</span
+                          >
                           <span class="text-slate-500 dark:text-gray-300">pts</span>
                         </span>
                       </div>
-                      <div v-else class="text-xs italic text-gray-500 dark:text-gray-300">Pontos não disponíveis</div>
+                      <div v-else class="text-xs italic text-gray-500 dark:text-gray-300">
+                        Pontos não disponíveis
+                      </div>
                     </div>
                   </div>
 
                   <div class="text-right">
-                    <span class="text-xs font-bold px-2 py-1 rounded border"
-                      :class="game.is_winner === true
-                        ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
-                        : game.is_winner === false
-                          ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900 dark:text-red-300 dark:border-red-700'
-                          : 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700'">
-                      {{ game.is_winner === true ? 'VITÓRIA' : game.is_winner === false ? 'DERROTA' : 'EMPATE' }}
+                    <span
+                      class="text-xs font-bold px-2 py-1 rounded border"
+                      :class="
+                        game.is_winner === true
+                          ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
+                          : game.is_winner === false
+                            ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900 dark:text-red-300 dark:border-red-700'
+                            : 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700'
+                      "
+                    >
+                      {{
+                        game.is_winner === true
+                          ? 'VITÓRIA'
+                          : game.is_winner === false
+                            ? 'DERROTA'
+                            : 'EMPATE'
+                      }}
                     </span>
                   </div>
                 </div>
@@ -252,24 +331,58 @@
             </div>
 
             <div class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm h-full">
-              <div class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center">
-                <h3 class="font-bold text-gray-900 flex items-center gap-2">🏆 Últimas Partidas</h3>
+              <div
+                class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center"
+              >
+                <h3 class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  🏆 Últimas Partidas
+                </h3>
+                <RouterLink
+                  :to="{ name: 'history', params: { id: displayedUser.id } }"
+                  class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
+                >
+                  Ver Histórico Completo
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </RouterLink>
               </div>
 
               <div class="divide-y divide-slate-50 dark:divide-gray-700">
-                <div v-if="matchesStore.loadingRecentMatches" class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm">
-                  <div class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+                <div
+                  v-if="matchesStore.loadingRecentMatches"
+                  class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm"
+                >
+                  <div
+                    class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"
+                  ></div>
                   A carregar partidas...
                 </div>
 
-                <div v-else-if="matchesStore.errors.recentMatches" class="p-8 text-center text-red-400 text-sm">
+                <div
+                  v-else-if="matchesStore.errors.recentMatches"
+                  class="p-8 text-center text-red-400 text-sm"
+                >
                   <div class="mb-2">⚠️ {{ matchesStore.errors.recentMatches }}</div>
                   <button @click="loadProfileData" class="text-xs underline hover:no-underline">
                     Tentar novamente
                   </button>
                 </div>
 
-                <div v-else-if="matchesStore.recentMatches.length === 0" class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm">
+                <div
+                  v-else-if="matchesStore.recentMatches.length === 0"
+                  class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm"
+                >
                   <div class="mb-2">🛡️</div>
                   <div class="font-medium">Nenhuma partida encontrada</div>
                   <div class="text-xs mt-1 text-gray-300 dark:text-gray-500">
@@ -280,12 +393,11 @@
                 <div
                   v-for="match in matchesStore.recentMatches"
                   :key="match.id"
-                  class="p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors rounded"
-                  @click="toggleMatch(match.id)"
+                  class="cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div
-                    class="flex items-center justify-between p-3 cursor-pointer bg-white dark:bg-gray-800"
-                    @click="toggleMatch(match.id)"
+                    class="flex items-center justify-between p-4 cursor-pointer"
+                    @click.stop="toggleMatch(match.id)"
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -345,13 +457,21 @@
                     <div class="text-right">
                       <span
                         class="text-xs font-bold px-2 py-1 rounded border"
-                        :class="isWinner(match) === true
-                          ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
-                          : isWinner(match) === false
-                            ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900 dark:text-red-300 dark:border-red-700'
-                            : 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700'"
+                        :class="
+                          isWinner(match) === true
+                            ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
+                            : isWinner(match) === false
+                              ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900 dark:text-red-300 dark:border-red-700'
+                              : 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700'
+                        "
                       >
-                        {{ isWinner(match) === true ? 'VITÓRIA' : isWinner(match) === false ? 'DERROTA' : 'EMPATE' }}
+                        {{
+                          isWinner(match) === true
+                            ? 'VITÓRIA'
+                            : isWinner(match) === false
+                              ? 'DERROTA'
+                              : 'EMPATE'
+                        }}
                       </span>
                     </div>
                   </div>
@@ -379,7 +499,9 @@
                           <div class="flex flex-col min-w-0 flex-1">
                             <div class="flex items-center gap-2 mb-1">
                               <span class="text-sm text-slate-800 truncate">
-                                Bisca vs
+                                Bisca de
+                                <!-- Opponent information commented out -->
+                                <!--
                                 <RouterLink
                                   v-if="g.opponent?.id"
                                   :to="{ name: 'profile', params: { id: g.opponent.id } }"
@@ -408,6 +530,7 @@
                                       : 'Desconhecido'
                                   }}
                                 </span>
+                                -->
                               </span>
                               <span
                                 class="text-[9px] text-slate-400 uppercase bg-slate-100 px-1.5 py-0.5 rounded shrink-0"
@@ -473,6 +596,10 @@
                         </div>
                       </div>
                     </div>
+
+                    <div v-else class="text-xs text-slate-500 p-2 italic text-center">
+                      Nenhum jogo encontrado para esta partida
+                    </div>
                   </div>
                 </div>
               </div>
@@ -481,28 +608,58 @@
         </div>
 
         <div v-if="isOwner" class="lg:col-span-4 space-y-6">
-          <div class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm sticky top-6 border-slate-200 dark:border-gray-700">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm sticky top-6 border-slate-200 dark:border-gray-700"
+          >
             <div class="p-5 border-b bg-slate-50/50 dark:bg-gray-700/50">
               <h3 class="font-semibold text-lg text-slate-800 dark:text-gray-100">Editar Dados</h3>
-              <p class="text-sm text-slate-500 dark:text-gray-300 mt-0.5">Atualiza as tuas informações</p>
+              <p class="text-sm text-slate-500 dark:text-gray-300 mt-0.5">
+                Atualiza as tuas informações
+              </p>
             </div>
 
             <div class="p-5 space-y-4">
               <div class="space-y-1.5">
-                <Label for="name" class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider">Nome</Label>
-                <Input id="name" v-model="formData.name" class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100"/>
+                <Label
+                  for="name"
+                  class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider"
+                  >Nome</Label
+                >
+                <Input
+                  id="name"
+                  v-model="formData.name"
+                  class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100"
+                />
               </div>
 
               <div class="space-y-1.5">
-                <Label for="email" class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider">Email</Label>
-                <Input id="email" v-model="formData.email" type="email" class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100"/>
+                <Label
+                  for="email"
+                  class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider"
+                  >Email</Label
+                >
+                <Input
+                  id="email"
+                  v-model="formData.email"
+                  type="email"
+                  class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100"
+                />
               </div>
 
               <div class="pt-4 space-y-3">
-                <Button @click="saveProfile" class="w-full font-semibold shadow-sm">Guardar Alterações</Button>
+                <Button @click="saveProfile" class="w-full font-semibold shadow-sm"
+                  >Guardar Alterações</Button
+                >
 
-                <div v-if="authStore.currentUser?.type !== 'A'" class="pt-2 border-t border-slate-100 dark:border-gray-700">
-                  <Button @click="confirmDelete" variant="ghost" class="w-full text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 text-sm h-9">
+                <div
+                  v-if="authStore.currentUser?.type !== 'A'"
+                  class="pt-2 border-t border-slate-100 dark:border-gray-700"
+                >
+                  <Button
+                    @click="confirmDelete"
+                    variant="ghost"
+                    class="w-full text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 text-sm h-9"
+                  >
                     Eliminar Conta
                   </Button>
                 </div>
@@ -510,7 +667,6 @@
             </div>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -540,7 +696,6 @@ import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import UserAvatar from '@/components/UserAvatar.vue'
 
 const route = useRoute()
@@ -551,7 +706,7 @@ const matchesStore = useMatchesStore()
 const gamesStore = useGamesStore()
 const statisticsStore = useStatisticsStore()
 
-const serverBaseURL = inject('serverBaseURL')
+// const serverBaseURL = inject('serverBaseURL') // Unused variable
 const apiBaseURL = inject('apiBaseURL')
 
 // --- Estados ---
@@ -699,19 +854,20 @@ const formatDate = (dateStr) => {
   )
 }
 
-const getOpponentName = (match) => {
-  if (!displayedUser.value) return '...'
-
-  // Usar os dados pré-processados da store se disponíveis
-  if (match.opponent) {
-    return match.opponent.nickname || match.opponent.name
-  }
-
-  // Fallback para o método original (compatibilidade)
-  const myId = displayedUser.value.id
-  const op = match.layer1_user_id === myId ? match.player2 : match.player1
-  return op ? op.nickname || op.name : 'Desconhecido'
-}
+// Unused function - commented out
+// const getOpponentName = (match) => {
+//   if (!displayedUser.value) return '...'
+//
+//   // Usar os dados pré-processados da store se disponíveis
+//   if (match.opponent) {
+//     return match.opponent.nickname || match.opponent.name
+//   }
+//
+//   // Fallback para o método original (compatibilidade)
+//   const myId = displayedUser.value.id
+//   const op = match.layer1_user_id === myId ? match.player2 : match.player1
+//   return op ? op.nickname || op.name : 'Desconhecido'
+// }
 
 const isWinner = (match) => {
   // Usar dados pré-processados se disponíveis
@@ -806,7 +962,9 @@ const saveProfile = async () => {
 }
 
 const confirmDelete = async () => {
+  // eslint-disable-next-line no-undef
   if (!confirm('Eliminar conta?')) return
+  // eslint-disable-next-line no-undef
   const pwd = prompt('Password:')
   if (!pwd) return
 

@@ -23,6 +23,7 @@ class UserResource extends JsonResource
             "type" => $this->type,
             "coins_balance" => $this->coins_balance,
             "blocked" => $this->blocked,
+            "custom" => $this->custom,
             "created_at" => $this->created_at,
             "updated_at" => $this->updated_at,
         ];

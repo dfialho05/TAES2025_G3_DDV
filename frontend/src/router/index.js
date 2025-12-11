@@ -7,6 +7,7 @@ import SinglePlayerGamePage from '@/pages/game/SinglePlayerGamePage.vue'
 import LoginPage from '@/pages/login/LoginPage.vue'
 import RegisterPage from '@/pages/register/RegisterPage.vue'
 import ProfilePage from '@/pages/profile/ProfilePage.vue'
+import HistoryPage from '@/pages/history/HistoryPage.vue'
 import ThemesListPage from '@/pages/themes/ThemesListPage.vue'
 import ThemeEditorPage from '@/pages/themes/ThemeEditorPage.vue'
 import PurchasePage from '@/pages/purchase/PurchasePage.vue'
@@ -84,6 +85,13 @@ const router = createRouter({
       // Nota: Removemos o meta: { requiresAuth: true } para ser público
     },
 
+    // --- Rota de Histórico ---
+    {
+      path: '/history/:id',
+      name: 'history',
+      component: HistoryPage,
+    },
+
     {
       path: '/themes',
       name: 'themes',
@@ -109,10 +117,10 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-        path: '/shop',
-        name: 'Shop',
-        component: ShopPage,
-        meta: { requiresAuth: true } // Se usares proteção de rotas
+      path: '/shop',
+      name: 'Shop',
+      component: ShopPage,
+      meta: { requiresAuth: true }, // Se usares proteção de rotas
     },
   ],
 })
@@ -136,7 +144,7 @@ router.beforeEach(async (to, from, next) => {
         await authStore.getUser()
         // success — allow navigation
         return next()
-      } catch (err) {
+      } catch {
         // token invalid/expired -> clear sessionStorage and axios header and redirect to login
         sessionStorage.removeItem(SESSION_TOKEN_KEY)
         delete axios.defaults.headers.common['Authorization']

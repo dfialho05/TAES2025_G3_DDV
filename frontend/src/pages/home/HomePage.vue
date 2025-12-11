@@ -7,6 +7,8 @@ import { useRouter } from 'vue-router'
 
 import { useBiscaStore } from '@/stores/biscaStore'
 import { useAPIStore } from '@/stores/api'
+import UserAvatar from '@/components/UserAvatar.vue'
+
 
 const gameStore = useBiscaStore()
 const apiStore = useAPIStore()
@@ -15,7 +17,7 @@ const router = useRouter()
 
 const selectedDifficulty = ref('')
 
-const startGameSingleplayer = (tipo) => {
+const startGame = (tipo) => {
   router.push({
     name: 'singleplayer',
     query: { mode: tipo },

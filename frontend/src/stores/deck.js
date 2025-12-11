@@ -53,12 +53,15 @@ export const useDeckStore = defineStore('deck', () => {
       const url = `${API_BASE_URL}/store/buy`
       const response = await axios.post(url, { deck_id: deckId })
 
-      // Atualizar o AuthStore imediatamente (UX)
-      if (authStore.currentUser) {
-        authStore.currentUser.coins_balance = response.data.balance
+      // Atualizar o AuthStore imediatamente (UX) - usando métodos reativos
+      authStore.updateCoinsBalance(response.data.balance)
+      authStore.updateCustomData({ decks: response.data.my_decks })
 
-        if (!authStore.currentUser.custom) authStore.currentUser.custom = {}
-        authStore.currentUser.custom.decks = response.data.my_decks
+      // Fallback: refresh user data from server to ensure consistency
+      try {
+        await authStore.refreshUser()
+      } catch (err) {
+        console.warn('Failed to refresh user data after deck purchase:', err)
       }
 
       return { success: true, message: response.data.message }
@@ -80,9 +83,14 @@ export const useDeckStore = defineStore('deck', () => {
       const url = `${API_BASE_URL}/store/equip`
       const response = await axios.post(url, { deck_id: deckId })
 
-      if (authStore.currentUser) {
-        if (!authStore.currentUser.custom) authStore.currentUser.custom = {}
-        authStore.currentUser.custom.active_deck_id = response.data.active_deck_id
+      // Atualizar deck ativo usando método reativo
+      authStore.updateCustomData({ active_deck_id: response.data.active_deck_id })
+
+      // Fallback: refresh user data from server to ensure consistency
+      try {
+        await authStore.refreshUser()
+      } catch (err) {
+        console.warn('Failed to refresh user data after deck equip:', err)
       }
 
       // Limpar cache de assets do deck anterior
