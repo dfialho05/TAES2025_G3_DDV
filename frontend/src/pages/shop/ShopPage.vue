@@ -2,7 +2,7 @@
   <div class="max-w-6xl mx-auto p-6">
     <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
       <h1 class="text-3xl font-bold">Skin Shop</h1>
-      
+
       <div class="bg-secondary/50 px-6 py-3 rounded-xl flex items-center gap-2 border">
         <span class="text-muted-foreground font-medium">Balance:</span>
         <span class="text-2xl font-bold text-yellow-600">{{ userBalance }} 💰</span>
@@ -14,9 +14,8 @@
     </div>
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      
-      <Card 
-        v-for="deck in deckStore.decks" 
+      <Card
+        v-for="deck in deckStore.decks"
         :key="deck.id"
         :class="{ 'border-green-500 ring-1 ring-green-500 bg-green-50/10': isActive(deck.id) }"
         class="transition-all hover:shadow-md"
@@ -24,11 +23,17 @@
         <CardHeader class="pb-2">
           <div class="flex justify-between items-start">
             <CardTitle class="text-xl">{{ deck.name }}</CardTitle>
-            
-            <span v-if="isActive(deck.id)" class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
+
+            <span
+              v-if="isActive(deck.id)"
+              class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full"
+            >
               ACTIVE
             </span>
-            <span v-else-if="isOwned(deck.id)" class="bg-secondary text-secondary-foreground text-xs font-bold px-2 py-1 rounded-full">
+            <span
+              v-else-if="isOwned(deck.id)"
+              class="bg-secondary text-secondary-foreground text-xs font-bold px-2 py-1 rounded-full"
+            >
               OWNED
             </span>
           </div>
@@ -36,11 +41,11 @@
 
         <CardContent class="text-center py-4">
           <div class="relative aspect-video w-full overflow-hidden rounded-md mb-4 shadow-sm">
-            <img 
-              :src="getDeckPreview(deck.slug)" 
+            <img
+              :src="getDeckPreview(deck.slug)"
               :alt="deck.name"
               class="object-cover w-full h-full hover:scale-110 transition-transform duration-500"
-            >
+            />
           </div>
 
           <p v-if="!isOwned(deck.id)" class="text-lg font-semibold text-muted-foreground">
@@ -49,8 +54,8 @@
         </CardContent>
 
         <CardFooter>
-          <Button 
-            @click="handleAction(deck)" 
+          <Button
+            @click="handleAction(deck)"
             class="w-full font-bold"
             :variant="getButtonVariant(deck)"
             :disabled="isButtonDisabled(deck)"
@@ -59,7 +64,6 @@
           </Button>
         </CardFooter>
       </Card>
-
     </div>
   </div>
 </template>
@@ -71,20 +75,14 @@ import { useAuthStore } from '@/stores/auth'
 import { toast } from 'vue-sonner' // Usar o toast bonito como no Perfil
 
 // Importar os componentes UI (Shadcn/Tailwind)
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 const deckStore = useDeckStore()
 const authStore = useAuthStore()
 
 onMounted(async () => {
-  // Não precisamos de lógica manual de "init". 
+  // Não precisamos de lógica manual de "init".
   // O authStore é reativo. Se o user existir, aparece.
   await deckStore.fetchDecks()
 })
@@ -123,7 +121,7 @@ const getButtonText = (deck) => {
 // Define a cor do botão baseado no estado
 const getButtonVariant = (deck) => {
   if (isActive(deck.id)) return 'secondary' // Cinzento/Desativado
-  if (isOwned(deck.id)) return 'default'    // Preto/Padrão (Para equipar)
+  if (isOwned(deck.id)) return 'default' // Preto/Padrão (Para equipar)
   if (!canAfford(deck.price)) return 'destructive' // Vermelho/Aviso
   return 'default' // Azul/Normal (depende do teu tema)
 }
@@ -146,7 +144,7 @@ const handleAction = async (deck) => {
   if (!confirm(`Buy "${deck.name}" for ${deck.price} coins?`)) return
 
   const result = await deckStore.buyDeck(deck.id)
-  
+
   if (result.success) {
     toast.success('Purchase successful! Deck added to collection.')
   } else {
@@ -154,8 +152,8 @@ const handleAction = async (deck) => {
   }
 }
 
-// Helper de Imagem (Vite)
+// Helper de Imagem (Nova API)
 const getDeckPreview = (slug) => {
-  return new URL(`../../assets/cards/${slug}/preview.png`, import.meta.url).href
+  return deckStore.getDeckPreviewUrl(slug)
 }
 </script>

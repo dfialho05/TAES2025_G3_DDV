@@ -33,14 +33,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   const getUser = async () => {
     const response = await apiStore.getAuthUser()
-    currentUser.value = response.data
+    // Handle UserResource format: response.data.data contains the actual user data
+    currentUser.value = response.data.data || response.data
   }
 
   const register = async (payload) => {
     const response = await apiStore.postRegister(payload)
 
     if (response?.data?.user) {
-      currentUser.value = response.data.user
+      // Handle UserResource format: response.data.user.data contains the actual user data
+      currentUser.value = response.data.user.data || response.data.user
     } else {
       await getUser()
     }

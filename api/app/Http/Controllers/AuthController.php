@@ -8,6 +8,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use App\Models\User;
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
@@ -103,13 +104,13 @@ class AuthController extends Controller
         return response()->json(
             [
                 "token" => $token,
-                "user" => $user,
+                "user" => new UserResource($user),
             ],
             201,
         );
     }
 
-    public function updateProfile(Request $request): JsonResponse
+    public function updateProfile(Request $request)
     {
         $user = $request->user();
 
@@ -146,7 +147,7 @@ class AuthController extends Controller
 
         $user->update($data);
 
-        return response()->json($user);
+        return new UserResource($user);
     }
 
     public function deleteAccount(Request $request)

@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Game extends Model
@@ -14,17 +13,29 @@ class Game extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'player1_user_id',
-        'player2_user_id',
-        'winner_user_id',
-        'deck_id',
-        'type',
-        'status',
-        'began_at',
-        'ended_at',
-        'total_time',
-        'player1_moves',
-        'player2_moves',
+        "match_id",
+        "player1_user_id",
+        "player2_user_id",
+        "winner_user_id",
+        "deck_id",
+        "loser_user_id",
+        "type",
+        "status",
+        "began_at",
+        "ended_at",
+        "total_time",
+        "player1_points",
+        "player2_points",
+        "is_draw",
+        "custom",
+    ];
+
+    protected $casts = [
+        "began_at" => "datetime",
+        "ended_at" => "datetime",
+        "player1_points" => "integer",
+        "player2_points" => "integer",
+        "is_draw" => "boolean",
     ];
 
     public function deck(): BelongsTo
@@ -32,18 +43,94 @@ class Game extends Model
         return $this->belongsTo(Deck::class);
     }
 
-    public function player1(): HasOne
+    /**
+     * Relação com o Player 1
+     */
+    public function player1(): BelongsTo
     {
-        return $this->hasOne(User::class, 'id', 'player1_user_id');
+        return $this->belongsTo(User::class, "player1_user_id", "id");
     }
 
-    public function player2(): HasOne
+    /**
+     * Relação com o Player 2
+     */
+    public function player2(): BelongsTo
     {
-        return $this->hasOne(User::class, 'id', 'player2_user_id');
+        return $this->belongsTo(User::class, "player2_user_id", "id");
     }
 
-    public function winner(): HasOne
+    /**
+     * Relação com o vencedor
+     */
+    public function winner(): BelongsTo
     {
-        return $this->hasOne(User::class, 'id', 'winner_user_id');
+        return $this->belongsTo(User::class, "winner_user_id", "id");
+    }
+
+    /**
+     * Relação com a partida (match) pai
+     */
+    public function match(): BelongsTo
+    {
+        return $this->belongsTo(Matches::class, "match_id", "id");
+    }
+
+    /**
+     * Scope para filtrar jogos de um utilizador específico
+     */
+    public function scopeForUser($query, $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+            $q->where("player1_user_id", $userId)->orWhere(
+                "player2_user_id",
+                $userId,
+            );
+        });
+    }
+
+    /**
+     * Scope para jogos finalizados
+     */
+    public function scopeFinished($query)
+    {
+        return $query->where("status", "Ended");
+    }
+
+    /**
+     * Scope para ordenar por data de início (mais recente primeiro)
+     */
+    public function scopeLatest($query)
+    {
+        return $query->orderBy("began_at", "desc");
+    }
+
+    /**
+     * Método auxiliar para verificar se um utilizador participou neste jogo
+     */
+    public function hasPlayer($userId): bool
+    {
+        return $this->player1_user_id == $userId ||
+            $this->player2_user_id == $userId;
+    }
+
+    /**
+     * Método auxiliar para obter o oponente de um utilizador
+     */
+    public function getOpponent($userId)
+    {
+        if ($this->player1_user_id == $userId) {
+            return $this->player2;
+        } elseif ($this->player2_user_id == $userId) {
+            return $this->player1;
+        }
+        return null;
+    }
+
+    /**
+     * Método auxiliar para verificar se um utilizador venceu este jogo
+     */
+    public function isWinner($userId): bool
+    {
+        return $this->winner_user_id == $userId;
     }
 }
