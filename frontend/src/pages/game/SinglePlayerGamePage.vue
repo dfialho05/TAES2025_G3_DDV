@@ -1,10 +1,10 @@
 <script setup>
-import { onMounted, onUnmounted, computed, watch } from 'vue';
+import { onMounted, onUnmounted, computed, watch, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useDeckStore } from '@/stores/deck'
-import { useBiscaStore } from '@/stores/biscaStore'; // Store de Dados
-import { useSocketStore } from '@/stores/socket';     // Store de Comunicação
+import { useBiscaStore } from '@/stores/biscaStore';
+import { useSocketStore } from '@/stores/socket';
 import Card from '@/components/game/Card.vue';
 
 const route = useRoute();
@@ -14,69 +14,81 @@ const gameStore = useBiscaStore();
 const deckStore = useDeckStore()
 const socketStore = useSocketStore();
 
-
-// Alias para compatibilidade visual
+// Dados da Store
 const {
   playerHand, opponentHandCount: botCardCount, trunfo, tableCards, opponentName, isWaiting,
-  score, logs, currentTurn, isGameOver, cardsLeft, gameID
+  score, logs, currentTurn, isGameOver, cardsLeft, gameID,
+  sessionScore, gameTarget
 } = storeToRefs(gameStore);
 
 const isConnected = computed(() => socketStore.joined);
 
-onMounted(async () => {
-  // Garante que o ouvinte de conexão base está ligado
-  socketStore.handleConnection();
+// --- LÓGICA DE RESULTADOS (SEM MOEDAS) ---
+const gameResult = computed(() => {
+  if (!isGameOver.value) return null;
 
-  if (deckStore.decks.length === 0) {
-    await deckStore.fetchDecks()
+  const iWon = sessionScore.value.me >= gameTarget.value;
+
+  // Pontuação da última rodada para determinar conquistas
+  const finalScore = score.value.me;
+  const oppScore = score.value.opponent;
+
+  let achievement = null;
+
+  // Lógica de Conquistas (Capote / Bandeira)
+  if (finalScore === 120) {
+    achievement = 'BANDEIRA';
+  } else if (finalScore >= 91) {
+    achievement = 'CAPOTE';
+  } else if (oppScore === 120) {
+    achievement = 'SOFREU BANDEIRA'; // Opcional: mostrar se perdeste feio
   }
 
-  // 1. LIGAR OS OUVIDOS (CRUCIAL) 👂
-  // Alteração: Agora chamamos o socketStore, não o gameStore
+  return {
+    title: iWon ? 'VITÓRIA!' : 'DERROTA',
+    isWin: iWon,
+    achievement,
+    finalScore: `${finalScore} - ${oppScore}`, // Ex: 120 - 0
+    sessionResult: `${sessionScore.value.me} - ${sessionScore.value.opponent}` // Ex: 4 - 0
+  };
+});
+
+onMounted(async () => {
+  socketStore.handleConnection();
+  if (deckStore.decks.length === 0) await deckStore.fetchDecks();
   socketStore.bindGameEvents();
 
-  // 2. Lógica de Inicialização
   if (route.query.mode) {
-      // Modo Singleplayer
-      const mode = parseInt(route.query.mode);
+      const cards = parseInt(route.query.mode);
+      const targetWins = parseInt(route.query.wins) || 1;
       if (!gameID.value) {
-          console.log("Iniciando novo jogo Singleplayer...");
-          setTimeout(() => gameStore.startGame(mode), 100);
+          setTimeout(() => {
+              gameStore.startGame(cards, 'singleplayer', targetWins);
+          }, 100);
       }
   } else {
-      // Modo Multiplayer (Vem do Lobby)
       if (!gameID.value) {
-          console.warn("Sem ID de jogo! Redirecionando para o Lobby...");
-          router.push('/games/lobby'); // Ajusta a rota se necessário
-      } else {
-          console.log(`Reconectado à mesa ${gameID.value}`);
-          // Opcional: Pedir refresh de estado
-          // socketStore.socket.emit('get-game-state', gameID.value);
+          router.push('/games/lobby');
       }
   }
 })
 
-// Watcher de Segurança: Se o jogo acabar ou formos expulsos
 watch(gameID, (newVal) => {
-    if (!newVal) {
-        console.log("Jogo terminado ou desconectado.");
-        // router.push('/games/lobby');
-    }
+    if (!newVal) console.log("Jogo terminado.");
 });
 
 onUnmounted(() => {
-  // CORREÇÃO CRÍTICA (Resolver o teu Bug de Salas Fantasma):
-  // Se sairmos do componente (voltar atrás), forçamos a saída do jogo no servidor.
-  if (gameID.value) {
-      console.log("🧹 A desmontar mesa... a sair do jogo.");
-      // Isto chama socket.emit('leave_game') e limpa o servidor
-      gameStore.quitGame();
-  }
-
-  // Limpa os listeners do socket para não duplicar eventos se voltares a entrar
-  // O bindGameEvents do socketStore já faz .off() antes de .on(), mas limpar aqui é boa prática
-  // Se tivesses um unbind público no socketStore, usavas aqui.
+  if (gameID.value) gameStore.quitGame();
 });
+
+// Botões do Modal
+const handleRestart = () => {
+  gameStore.startGame(route.query.mode || 3, 'singleplayer', route.query.wins || 1);
+};
+
+const handleExit = () => {
+  router.push('/games/lobby');
+};
 </script>
 
 <template>
@@ -87,41 +99,74 @@ onUnmounted(() => {
         <div class="spinner">⏳</div>
         <h2>Sala Criada!</h2>
         <p>A aguardar entrada do oponente...</p>
-        <div class="room-info">
-            ID da Sala: <strong>{{ gameID }}</strong>
-        </div>
+        <div class="room-info">ID: <strong>{{ gameID }}</strong></div>
       </div>
     </div>
 
     <div v-if="!isConnected" class="overlay">
       <h2>A ligar ao servidor...</h2>
-      <p>Certifica-te que o backend está a correr na porta 3000</p>
     </div>
 
-    <!-- ÁREA DO BOT -->
+    <Transition name="pop">
+      <div v-if="isGameOver && gameResult" class="overlay result-overlay">
+        <div class="result-card" :class="{ 'win-card': gameResult.isWin, 'lose-card': !gameResult.isWin }">
+
+          <div class="result-header">
+            <h1>{{ gameResult.title }}</h1>
+            <div class="stars" v-if="gameResult.isWin">⭐⭐⭐</div>
+          </div>
+
+          <div class="result-body">
+
+            <div class="match-score">
+              <p>Placar do Campeonato</p>
+              <div class="big-score">{{ gameResult.sessionResult }}</div>
+            </div>
+
+            <hr>
+
+            <div class="hand-details">
+              <p>Última Rodada: <strong>{{ gameResult.finalScore }}</strong> pts</p>
+
+              <div v-if="gameResult.achievement" class="achievement-badge" :class="gameResult.achievement.toLowerCase().replace(' ', '-')">
+                🏅 {{ gameResult.achievement }}
+              </div>
+            </div>
+          </div>
+
+          <div class="result-actions">
+            <button @click="handleExit" class="btn-secondary">Sair</button>
+            <button @click="handleRestart" class="btn-primary">Jogar Novamente</button>
+          </div>
+
+        </div>
+      </div>
+    </Transition>
+
     <div class="bot-area">
-      <div class="avatar"> {{ opponentName }}</div>
+      <div class="avatar-group">
+        <div class="avatar"> {{ opponentName }}</div>
+        <div class="marks-container">
+           <div v-for="n in gameTarget" :key="n" class="mark-dot" :class="{ 'filled': n <= sessionScore.opponent }"></div>
+        </div>
+      </div>
       <div class="bot-hand">
         <Card v-for="n in botCardCount" :key="n" :face-down="true" class="small-card" />
       </div>
-      <div class="score-badge">Pontos: {{ score.opponent }}</div>
+      <div class="score-badge">Pontos Cartas: {{ score.opponent }}</div>
     </div>
 
-    <!-- MESA DE JOGO -->
     <div class="table-area">
-      <!-- Baralho -->
       <div v-if="cardsLeft > 0" class="deck-pile">
         <Card :face-down="true" />
         <span class="deck-count">{{ cardsLeft }}</span>
       </div>
 
-      <!-- Trunfo -->
       <div class="trunfo-area" v-if="trunfo">
         <span>Trunfo:</span>
         <Card :card="trunfo" class="mini-card" />
       </div>
 
-      <!-- CARTAS JOGADAS (Com Animação) -->
       <TransitionGroup name="table-anim" tag="div" class="played-cards">
         <div v-for="move in tableCards" :key="move.player" class="move-wrapper">
           <Card :card="move.card" />
@@ -129,38 +174,38 @@ onUnmounted(() => {
         </div>
       </TransitionGroup>
 
-      <div class="game-log">{{ logs }}</div>
-
-      <button v-if="isGameOver" @click="gameStore.startGame()" class="restart-btn">
-        Jogar Novamente
-      </button>
+      <div class="game-log" v-if="!isGameOver">{{ logs }}</div>
     </div>
 
-    <!-- ÁREA DO JOGADOR -->
     <div class="player-area">
-      <div class="score-badge" :class="{ 'active-turn': currentTurn === 'user' }">
-        Teus Pontos: {{ score.me }}
-        <span v-if="currentTurn === 'user'" class="turn-text">(Sua vez!)</span>
+      <div class="player-info-row">
+         <div class="marks-container">
+           <div v-for="n in gameTarget" :key="n" class="mark-dot" :class="{ 'filled': n <= sessionScore.me }"></div>
+        </div>
+        <div class="score-badge" :class="{ 'active-turn': currentTurn === 'user' }">
+          Teus Pontos: {{ score.me }}
+          <span v-if="currentTurn === 'user'" class="turn-text">(Sua vez!)</span>
+        </div>
       </div>
 
-      <!-- MÃO DO JOGADOR (Com Animação) -->
       <TransitionGroup name="hand-anim" tag="div" class="player-hand">
-        <Card v-for="(card, index) in playerHand" :key="card.id" :card="card" :interactable="currentTurn === 'user'"
-          :class="{ 'disabled': currentTurn !== 'user' }" @click="gameStore.playCard(index)" />
+        <Card v-for="(card, index) in playerHand" :key="card.id" :card="card" :interactable="currentTurn === 'user' && tableCards.length < 2"
+          :class="{ 'disabled': currentTurn !== 'user' || tableCards.length >= 2 }" @click="gameStore.playCard(index)" />
       </TransitionGroup>
     </div>
   </div>
 </template>
 
 <style scoped>
-/*pc*/
+/* =========================================
+   ESTILOS GERAIS
+   ========================================= */
 .game-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   background-color: #2e7d32;
   overflow-x: hidden;
-  overflow-y: visible;
   color: white;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
@@ -168,10 +213,7 @@ onUnmounted(() => {
 
 .overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0, 0, 0, 0.85);
   z-index: 100;
   display: flex;
@@ -180,286 +222,210 @@ onUnmounted(() => {
   align-items: center;
 }
 
-/* ÁREAS */
-.bot-area,
-.player-area {
-  padding: 15px;
+/* =========================================
+   RESULT SCREEN (SEM MOEDAS)
+   ========================================= */
+.result-overlay {
+  background: rgba(0, 0, 0, 0.9) !important;
+  z-index: 300;
+}
+
+.result-card {
+  background: white;
+  color: #333;
+  width: 90%;
+  max-width: 380px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 0 50px rgba(0,0,0,0.5);
+  text-align: center;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.result-header {
+  padding: 20px;
+  color: white;
+}
+
+.win-card .result-header {
+  background: linear-gradient(135deg, #fbc02d, #f57f17); /* Dourado */
+}
+
+.lose-card .result-header {
+  background: linear-gradient(135deg, #546e7a, #37474f); /* Cinza */
+}
+
+.result-header h1 {
+  margin: 0;
+  font-size: 2.2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.result-body {
+  padding: 20px;
+}
+
+.big-score {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #333;
+  line-height: 1;
+  margin: 10px 0;
+}
+
+.match-score p {
+  margin: 0;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: bold;
+}
+
+/* Badge de Conquistas */
+.achievement-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-weight: bold;
+  color: white;
+  margin-top: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  animation: pulse 2s infinite;
+}
+
+.achievement-badge.capote { background: #d32f2f; } /* Vermelho */
+.achievement-badge.bandeira { background: #7b1fa2; } /* Roxo */
+.achievement-badge.sofreu-bandeira { background: #424242; }
+
+.result-actions {
+  padding: 20px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 10px;
-  overflow: visible;
+  justify-content: center;
+  background: #f5f5f5;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: transform 0.2s;
+}
+
+.btn-primary { background: #2e7d32; color: white; flex: 2; }
+.btn-secondary { background: #cfd8dc; color: #333; flex: 1; }
+
+.btn-primary:hover { transform: scale(1.05); background: #1b5e20; }
+.btn-secondary:hover { transform: scale(1.05); }
+
+
+/* =========================================
+   UI DO JOGO
+   ========================================= */
+.avatar-group, .player-info-row {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+
+.marks-container {
+  display: flex; gap: 6px; background: rgba(0,0,0,0.3);
+  padding: 5px 10px; border-radius: 10px; margin-bottom: 5px;
+}
+
+.mark-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background-color: #1b5e20; border: 1px solid #81c784;
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
+}
+
+.mark-dot.filled {
+  background-color: #ffeb3b; border-color: #fff;
+  box-shadow: 0 0 5px #ffeb3b; transform: scale(1.2);
+}
+
+.bot-area, .player-area {
+  padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px;
 }
 
 .table-area {
-  flex: 1;
-  background: rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  flex: 1; background: rgba(0, 0, 0, 0.1);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
   position: relative;
 }
 
-/* Tamanhos de cartas especiais */
-.small-card {
-  width: 50px;
-  height: 75px;
+.small-card { width: 50px; height: 75px; }
+.mini-card { width:60px; height:85px; }
+
+.player-hand, .bot-hand {
+  display: flex; gap: 5px; justify-content: center; min-height: 100px;
 }
 
-.mini-card {
-  width:60px;
-  height:85px;
-}
+.disabled { filter: grayscale(0.6); cursor: not-allowed !important; }
 
-/* Mãos */
-.player-hand,
-.bot-hand {
-  display: flex;
-  gap: 5px;
-  justify-content: center;
-  min-height: 100px;
-  overflow: visible;
-  /* Garante altura para a animação não cortar */
-}
-
-.bot-hand {
-  margin-bottom: 5px;
-
-}
-
-/* Disabled state */
-.disabled {
-  filter: grayscale(0.6);
-  cursor: not-allowed !important;
-}
-
-.disabled:hover {
-  transform: none !important;
-}
-
-/* Mesa */
 .played-cards {
-  display: flex;
-  gap: 40px;
-  margin: 20px 0;
-  min-height: 120px;
-  /* Espaço reservado para evitar pulos de layout */
-  align-items: flex-end;
+  display: flex; gap: 40px; margin: 20px 0; min-height: 120px; align-items: flex-end;
 }
 
-.move-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-}
-
-.label {
-  font-size: 0.8rem;
-  opacity: 0.8;
-}
-
-/* Deck e Trunfo */
 .deck-pile {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
 }
-
 .deck-count {
-  position: absolute;
-  top: 50%;
-  left: 50%;
+  position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  font-weight: bold;
-  font-size: 1.5rem;
-  text-shadow: 1px 1px 2px black;
+  font-weight: bold; font-size: 1.5rem; text-shadow: 1px 1px 2px black;
   pointer-events: none;
 }
-
 .trunfo-area {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  position: absolute; top: 20px; left: 20px;
+  display: flex; flex-direction: column; align-items: center;
 }
 
-/* UI */
 .game-log {
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  font-weight: bold;
-  padding: 8px 20px;
-  border-radius: 20px;
-  font-size: 1.1rem;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
+  background: rgba(0, 0, 0, 0.6); color: white; font-weight: bold;
+  padding: 8px 20px; border-radius: 20px;
+  min-height: 40px; display: flex; align-items: center;
 }
 
-.restart-btn {
-  margin-top: 10px;
-  padding: 10px 20px;
-  background: #ffb74d;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-  color: #333;
-}
+.score-badge { font-weight: bold; font-size: 1.1rem; }
+.active-turn { color: #ffeb3b; text-shadow: 0 0 5px rgba(255, 235, 59, 0.5); }
+.turn-text { font-size: 0.9rem; margin-left: 5px; }
 
-.score-badge {
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.active-turn {
-  color: #ffeb3b;
-  text-shadow: 0 0 5px rgba(255, 235, 59, 0.5);
-}
-
-.turn-text {
-  font-size: 0.9rem;
-  margin-left: 5px;
-}
-
-/*mobile*/
+/* MEDIA QUERIES */
 @media (max-width: 600px) {
-  .small-card{
-    width: 35px;
-    height: 55px;
-  }
-
-  .mini-card{
-    width: 45px;
-    height: 65px;
-  }
-
-  .player-hand,
-  .bot-hand {
-    flex-wrap:wrap;
-    gap:4px;
-    min-height: 120px;
-  }
-
-  .played-cards {
-    gap: 15px;
-    margin: 10px 0;
-    min-height: 90px;
-  }
-
-  .deck-pile {
-    right: 10px;
-    top: 55%;
-    transform: translateY(-55%);
-
-  }
-  .trunfo-area {
-    top: 10px;
-    left: 10px;
-  }
-
-  .table-area {
-    padding: 8px;
-  }
-
-  .game-log {
-    font-size: 0.9rem;
-    padding: 6px 12px;
-  }
-
-  .bot-area,
-  .player-area {
-    padding: 10px;
-    gap: 8px;
-  }
+  .small-card{ width: 35px; height: 55px; }
+  .mini-card{ width: 45px; height: 65px; }
+  .played-cards { gap: 15px; margin: 10px 0; min-height: 90px; }
+  .deck-pile { right: 10px; top: 55%; }
+  .trunfo-area { top: 10px; left: 10px; }
+  .mark-dot { width: 10px; height: 10px; }
+  .result-card { width: 95%; }
 }
 
-/* =========================================
-   ANIMAÇÕES (CSS Mágico)
-   ========================================= */
+/* ANIMAÇÕES */
+.hand-anim-move, .hand-anim-enter-active, .hand-anim-leave-active { transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1); }
+.hand-anim-enter-from { opacity: 0; transform: translateY(30px) scale(0.9); }
+.hand-anim-leave-to { opacity: 0; transform: translateY(-50px) scale(0.5); }
+.hand-anim-leave-active { position: relative; }
+.table-anim-enter-active { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.table-anim-enter-from { opacity: 0; transform: scale(0.5) translateY(50px); }
 
-/* --- ANIMAÇÃO DA MÃO DO JOGADOR (hand-anim) --- */
-
-/* 1. Movimento suave (Move, Enter, Leave) */
-.hand-anim-move,
-.hand-anim-enter-active,
-.hand-anim-leave-active {
-  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
-}
-
-/* 2. Entrada (Quando pescas cartas) */
-.hand-anim-enter-from {
-  opacity: 0;
-  transform: translateY(30px) scale(0.9);
-}
-
-/* 3. Saída (Quando jogas a carta -> Sobe em direção à mesa) */
-.hand-anim-leave-to {
-  opacity: 0;
-  transform: translateY(-50px) scale(0.5);
-}
-
-/* 4. CRUCIAL: Remove a carta do fluxo para as outras deslizarem */
-.hand-anim-leave-active {
-  position: relative;
-}
-
-/* --- ANIMAÇÃO DA MESA (table-anim) --- */
-.table-anim-enter-active {
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  /* Efeito elástico */
-}
-
-.table-anim-enter-from {
-  opacity: 0;
-  transform: scale(0.5) translateY(50px);
-}
-
-.waiting-overlay {
-  background: rgba(46, 125, 50, 0.98) !important; /* Verde quase opaco */
-  z-index: 200; /* Garante que fica por cima de tudo */
-}
-
+.waiting-overlay { background: rgba(46, 125, 50, 0.98) !important; z-index: 200; }
 .waiting-box {
-  background: white;
-  padding: 40px;
-  border-radius: 16px;
-  text-align: center;
-  color: #333;
+  background: white; padding: 40px; border-radius: 16px;
+  text-align: center; color: #333;
   box-shadow: 0 20px 50px rgba(0,0,0,0.3);
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  min-width: 300px;
 }
 
-.spinner {
-  font-size: 3rem;
-  margin-bottom: 20px;
-  display: inline-block;
-  animation: spin 2s infinite linear;
-}
-
-.room-info {
-    margin-top: 15px;
-    padding: 10px;
-    background: #f1f8e9;
-    border-radius: 6px;
-    color: #2e7d32;
-    font-family: monospace;
-    font-size: 1.2rem;
-    border: 1px dashed #2e7d32;
-}
-
-@keyframes popIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
+@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.pop-enter-active, .pop-leave-active { transition: all 0.4s ease; }
+.pop-enter-from, .pop-leave-to { opacity: 0; transform: scale(0.9); }
+.spinner { font-size: 3rem; margin-bottom: 20px; display: inline-block; animation: spin 2s infinite linear; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 </style>

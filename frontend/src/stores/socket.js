@@ -45,9 +45,10 @@ export const useSocketStore = defineStore('socket', () => {
       socket.emit('get-games')
   }
 
-  const emitCreateGame = (difficulty, mode = 'singleplayer') => {
-    console.log(`[Socket] A criar jogo: Tipo=${difficulty}, Modo=${mode}`);
-      socket.emit('create-game', difficulty, mode)
+  const emitCreateGame = (difficulty, mode = 'singleplayer', targetWins = 1) => {
+    console.log(`[Socket] A criar: Tipo=${difficulty}, Modo=${mode}, Wins=${targetWins}`);
+    // Envia os 3 argumentos
+    socket.emit('create-game', difficulty, mode, targetWins)
   }
 
   const emitJoinGame = (gameID) => {

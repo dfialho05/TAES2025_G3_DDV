@@ -1,81 +1,66 @@
 // stores/biscaStore.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useSocketStore } from './socket' // <--- A nossa "Lista de Contactos" para o servidor
+import { useSocketStore } from './socket'
 
 export const useBiscaStore = defineStore('bisca', () => {
-  // Acesso à store de comunicação (para enviarmos ordens)
   const socketStore = useSocketStore()
 
   // =========================================
-  // 1. ESTADO (A Memória do Jogo)
+  // 1. ESTADO
   // =========================================
-  const gameID = ref(null)             // Em que sala estou?
-  const mySide = ref('player1')        // Sou o Jogador 1 ou 2?
+  const gameID = ref(null)
+  const mySide = ref('player1')
+  const opponentName = ref('Oponente')
+  const isWaiting = ref(false)
 
-  const opponentName = ref('Oponente')      // Nome do Player 1
-  const isWaiting = ref(false)         // Estou à espera de adversário?
+  const playerHand = ref([])
+  const opponentHandCount = ref(0)
+  const trunfo = ref(null)
+  const trunfoNaipe = ref(null)
+  const tableCards = ref([])
+  const cardsLeft = ref(0)
 
-  const playerHand = ref([])           // As minhas cartas visíveis
-  const opponentHandCount = ref(0)     // Quantas cartas o inimigo tem (não vemos quais são)
-
-  const trunfo = ref(null)             // Carta do trunfo
-  const trunfoNaipe = ref(null)        // Naipe do trunfo (importante se o trunfo for puxado)
-  const tableCards = ref([])           // Cartas jogadas na mesa
-  const cardsLeft = ref(0)             // Cartas no baralho
-
-  const score = ref({ me: 0, opponent: 0 }) // Pontuação
-  const currentTurn = ref(null)        // De quem é a vez? ('user' ou 'bot')
-
+  const score = ref({ me: 0, opponent: 0 })
+  const currentTurn = ref(null)
   const sessionScore = ref({ me: 0, opponent: 0 })
 
-  const isGameOver = ref(false)        // O jogo acabou?
-  const logs = ref('À espera de jogo...') // Mensagens de texto (ex: "Player 1 jogou...")
-  const availableGames = ref([])       // Lista de salas do Lobby
+  // [NOVO] Para o frontend saber se desenha 1 ou 4 bolas brancas
+  const gameTarget = ref(1)
 
-  // Alias para compatibilidade com o teu template antigo (Singleplayer)
+  const isGameOver = ref(false)
+  const logs = ref('À espera de jogo...')
+  const availableGames = ref([])
+
   const botCardCount = computed(() => opponentHandCount.value)
 
   // =========================================
-  // 2. LÓGICA DE DADOS (O Cérebro)
+  // 2. LÓGICA DE DADOS
   // =========================================
-
-  // Recebe os dados brutos do servidor e organiza nas gavetas certas
   const processGameState = (data) => {
-      // 🛡️ PROTEÇÃO ANTI-FANTASMA:
-      if (gameID.value && data.id && String(data.id) !== String(gameID.value)) {
-          console.warn("👻 Ignorando dados de jogo antigo/fantasma.")
-          return
-      }
-
-      // Atualiza o ID se for novo
+      // Proteção Fantasma
+      if (gameID.value && data.id && String(data.id) !== String(gameID.value)) return;
       if (data.id) gameID.value = data.id
 
-      // A. Gestão de Mãos (Perspetiva)
+      // A. Gestão de Mãos e Nomes
       if (mySide.value === 'player1') {
           playerHand.value = data.player1Hand || []
-
-          // --- [INICIO ALTERAÇÃO] LÓGICA DE ESPERA ---
-          if (data.p2Name === null) {             // <--- Se o servidor enviar null, a cadeira está vazia
-              isWaiting.value = true              // <--- Ativamos o overlay de espera
+          if (data.p2Name === null) {
+              isWaiting.value = true
               opponentName.value = "Aguardando..."
           } else {
-              isWaiting.value = false             // <--- Se vier nome (ou "Bot"), desativamos a espera
-              opponentName.value = data.p2Name    // <--- Usamos o nome real
+              isWaiting.value = false
+              opponentName.value = data.p2Name
           }
-
-          // Se houver Player 2, pegamos o tamanho da mão dele. Se for Bot, idem.
           opponentHandCount.value = (data.player2Hand || []).length || data.botCardCount || 0
       } else {
-          // Sou Player 2
-          isWaiting.value = false                 // <--- [NOVO] Quem entra nunca espera, o jogo começa logo
+          isWaiting.value = false
           opponentName.value = data.p1Name || 'Player 1'
-
           playerHand.value = data.player2Hand || []
           opponentHandCount.value = (data.player1Hand || []).length || 0
       }
 
-      // B. Atualizar Mesa e Regras
+      // B. Dados Gerais
       trunfo.value = data.trunfo
       trunfoNaipe.value = data.trunfoNaipe
       tableCards.value = data.tableCards
@@ -83,73 +68,64 @@ export const useBiscaStore = defineStore('bisca', () => {
       isGameOver.value = data.gameOver
       logs.value = data.logs
 
-      // C. Pontuação (Mapear Player1/2 para Eu/Oponente)
+      // C. Pontuação
       const p1 = data.score.player1 || 0
       const p2 = data.score.player2 || 0
-
       const p1Wins = data.matchWins?.player1 || 0;
       const p2Wins = data.matchWins?.player2 || 0;
 
       if (mySide.value === 'player1') {
-          score.value = { me: p1, opponent: p2 };
-          sessionScore.value = { me: p1Wins, opponent: p2Wins };
+          score.value = { user: p1, bot: p2, me: p1, opponent: p2 } // mantem keys antigas por segurança
+          sessionScore.value = { me: p1Wins, opponent: p2Wins }
       } else {
-          score.value = { me: p2, opponent: p1 };
-          sessionScore.value = { me: p2Wins, opponent: p1Wins };
+          score.value = { user: p2, bot: p1, me: p2, opponent: p1 }
+          sessionScore.value = { me: p2Wins, opponent: p1Wins }
       }
 
-      // D. De quem é a vez?
+      // D. Turno
       if (data.turn === mySide.value) currentTurn.value = 'user'
       else if (data.turn) currentTurn.value = 'bot'
       else currentTurn.value = null
   }
 
-  // Atualiza a lista do Lobby
   const setAvailableGames = (games) => {
       availableGames.value = games
   }
 
   // =========================================
-  // 3. AÇÕES DO UTILIZADOR (O Comando Remoto)
+  // 3. AÇÕES
   // =========================================
 
-  // Pede a lista de jogos ao servidor
-  const fetchGames = () => {
-      socketStore.emitGetGames()
-  }
+  const fetchGames = () => { socketStore.emitGetGames() }
 
-  // Cria um jogo novo (Sou Player 1)
-  const startGame = (type = 3, mode = 'singleplayer') => {
+  // [CORREÇÃO AQUI] Adicionado 'targetWins'
+  const startGame = (type = 3, mode = 'singleplayer', targetWins = 1) => {
       mySide.value = 'player1'
       logs.value = "A criar sala..."
       isGameOver.value = false
-      socketStore.emitCreateGame(type, mode)
+      gameTarget.value = targetWins // Guardamos localmente para usar no template
+
+      // Enviamos os 3 argumentos para o socket
+      socketStore.emitCreateGame(type, mode, targetWins)
   }
 
-  // Entra num jogo existente (Sou Player 2)
   const joinGame = (id) => {
       mySide.value = 'player2'
       logs.value = "A entrar..."
       socketStore.emitJoinGame(id)
   }
 
-  // Joga uma carta
   const playCard = (index) => {
-  // Garante que currentTurn é 'user' (mapeado no processGameState)
-  if (currentTurn.value === 'user' && gameID.value) {
-      socketStore.emitPlayCard(gameID.value, index);
-  } else {
-      console.warn("⛔ Não é a tua vez. Turno atual:", currentTurn.value);
+    if (currentTurn.value === 'user' && gameID.value) {
+        socketStore.emitPlayCard(gameID.value, index)
+    } else {
+        console.warn("⛔ Não é a tua vez.")
+    }
   }
-}
 
-  // Sai do jogo (A "Faxina")
   const quitGame = () => {
     if (gameID.value) {
-        // 1. Avisa o servidor para nos tirar da sala
         socketStore.emitLeaveGame(gameID.value)
-
-        // 2. Limpa a memória local
         gameID.value = null
         playerHand.value = []
         tableCards.value = []
@@ -161,7 +137,8 @@ export const useBiscaStore = defineStore('bisca', () => {
   return {
     gameID, mySide, playerHand, opponentHandCount, botCardCount, opponentName, isWaiting,
     trunfo, trunfoNaipe, tableCards, score, logs, currentTurn,
-    isGameOver, cardsLeft, availableGames, sessionScore,
+    isGameOver, cardsLeft, availableGames,
+    sessionScore, gameTarget, // <--- Exportar gameTarget
     processGameState, setAvailableGames,
     startGame, joinGame, fetchGames, playCard, quitGame
   }
