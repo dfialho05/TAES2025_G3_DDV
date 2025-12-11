@@ -47,7 +47,7 @@ return new class extends Migration
             $table->foreign('player1_user_id')->references('id')->on('users');
 
             // Player 2 (usually, joins the match)
-            $table->unsignedBigInteger('player2_user_id');
+            $table->unsignedBigInteger('player2_user_id')->nullable();
             $table->foreign('player2_user_id')->references('id')->on('users');
 
             // Winner (null when not ended)
@@ -101,11 +101,11 @@ return new class extends Migration
             $table->enum('type', ['3', '9'])->default('3');
 
             // Player 1 (usually, creates the game)
-            $table->unsignedBigInteger('player1_user_id');
+            $table->unsignedBigInteger('player1_user_id')->nullable();
             $table->foreign('player1_user_id')->references('id')->on('users');
 
             // Player 2 (usually, joins the game)
-            $table->unsignedBigInteger('player2_user_id');
+            $table->unsignedBigInteger('player2_user_id')->nullable();
             $table->foreign('player2_user_id')->references('id')->on('users');
 
             // True when the game has ended with a draw

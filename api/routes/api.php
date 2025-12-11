@@ -16,8 +16,7 @@ Route::post("/register", [AuthController::class, "register"]);
 
 Route::apiResource("games", GameController::class)->only([
     "index",
-    "show",
-    "store",
+    "show"
 ]);
 
 Route::middleware("auth:sanctum")->group(function () {
@@ -42,8 +41,7 @@ Route::middleware("auth:sanctum")->group(function () {
 
     Route::apiResource("games", GameController::class)->except([
         "index",
-        "show",
-        "store",
+        "show"
     ]);
 
     Route::apiResources([

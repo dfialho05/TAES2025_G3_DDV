@@ -20,6 +20,7 @@ class GameResource extends JsonResource
             'status' => $this->status,
             'player1_moves' => $this->player1_moves,
             'total_time' => $this->total_time,
+            'deck_slug' => $this->deck ? $this->deck->slug : 'default',
         ];
     }
 }

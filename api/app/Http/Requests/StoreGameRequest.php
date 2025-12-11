@@ -18,17 +18,20 @@ class StoreGameRequest extends FormRequest
 
     protected function prepareForValidation()
     {
-        // 1. Define o Default (Clássico = 1)
+        // 1. Define o Default
         $deckIdToUse = 1;
+        $userId = null;
 
         // 2. Se for um User Autenticado, tenta buscar a preferência dele
         if ($this->user()) {
             $deckIdToUse = $this->user()->custom['active_deck_id'] ?? 1;
+            $userId = $this->user()->id;
         }
-
         // 3. Injeta no pedido (sobrescreve qualquer coisa que venha do frontend)
         $this->merge([
             'deck_id' => $deckIdToUse,
+            'player1_user_id' => $userId,
+            'player2_user_id' => null, 
         ]);
     }
 
@@ -40,8 +43,8 @@ class StoreGameRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'player1_id' => [
-                'sometimes',
+            'player1_user_id' => [
+                'nullable',
                 'integer',
                 'exists:users,id',
                 
