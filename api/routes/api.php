@@ -201,6 +201,31 @@ Route::middleware("auth:sanctum")->group(function () {
     Route::post("/matches", [MatchController::class, "store"]);
     Route::patch("/matches/{id}", [MatchController::class, "update"]);
 
+    // Enhanced match management
+    Route::post("/matches/{id}/start", [MatchController::class, "startMatch"]);
+    Route::post("/matches/{id}/finish", [
+        MatchController::class,
+        "finishMatch",
+    ]);
+    Route::post("/matches/{id}/cancel", [
+        MatchController::class,
+        "cancelMatch",
+    ]);
+    Route::get("/matches/{id}/transactions", [
+        MatchController::class,
+        "getMatchTransactions",
+    ]);
+
+    // Game management within matches
+    Route::post("/matches/{matchId}/games", [
+        GameController::class,
+        "createGameForMatch",
+    ]);
+
+    // Enhanced game management
+    Route::post("/games/{id}/start", [GameController::class, "startGame"]);
+    Route::post("/games/{id}/finish", [GameController::class, "finishGame"]);
+
     /*
     |--------------------------------------------------------------------------
     | User & Resource Management

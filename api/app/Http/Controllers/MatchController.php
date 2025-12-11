@@ -4,12 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Models\Matches;
 use App\Models\User;
+use App\Models\Game;
+use App\Http\Requests\StoreMatchRequest;
+use App\Services\CoinTransactionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class MatchController extends Controller
 {
+    protected CoinTransactionService $coinService;
+
+    public function __construct(CoinTransactionService $coinService)
+    {
+        $this->coinService = $coinService;
+    }
     /**
      * Lista completa de partidas (apenas para Admin)
      */
@@ -305,25 +316,91 @@ class MatchController extends Controller
     /**
      * Criar uma nova partida
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreMatchRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            "type" => "required|string",
-            "player1_user_id" => "required|integer|exists:users,id",
-            "player2_user_id" => "required|integer|exists:users,id",
-            "stake" => "nullable|numeric|min:0",
-        ]);
+        try {
+            DB::beginTransaction();
 
-        $match = new Matches($validated);
-        $match->save();
+            $validated = $request->validated();
 
-        return response()->json(
+            // Create the match
+            $match = new Matches($validated);
+
+            // If status is Playing, set began_at
+            if ($match->status === "Playing") {
+                $match->began_at = Carbon::now();
+            }
+
+            $match->save();
+
+            // Process entry fees if stake > 0
+            if ($match->stake > 0) {
+                $player1 = User::findOrFail($match->player1_user_id);
+                $player2 = User::findOrFail($match->player2_user_id);
+
+                // Debit entry fee from both players
+                $this->coinService->createDebitTransaction(
+                    $player1,
+                    "Match stake",
+                    (int) $match->stake,
+                    ["match_id" => $match->id],
+                    [
+                        "match_type" => $match->type,
+                        "opponent_id" => $match->player2_user_id,
+                    ],
+                );
+
+                $this->coinService->createDebitTransaction(
+                    $player2,
+                    "Match stake",
+                    (int) $match->stake,
+                    ["match_id" => $match->id],
+                    [
+                        "match_type" => $match->type,
+                        "opponent_id" => $match->player1_user_id,
+                    ],
+                );
+
+                Log::info("[MatchController] Entry fees processed", [
+                    "match_id" => $match->id,
+                    "stake_per_player" => $match->stake,
+                    "total_pot" => $match->stake * 2,
+                ]);
+            }
+
+            // Load relationships for response
             $match->load([
-                "player1:id,name,nickname",
-                "player2:id,name,nickname",
-            ]),
-            201,
-        );
+                "player1:id,name,nickname,photo_avatar_filename",
+                "player2:id,name,nickname,photo_avatar_filename",
+            ]);
+
+            DB::commit();
+
+            Log::info("[MatchController] Match created successfully", [
+                "match_id" => $match->id,
+                "player1_id" => $match->player1_user_id,
+                "player2_id" => $match->player2_user_id,
+                "type" => $match->type,
+                "stake" => $match->stake,
+            ]);
+
+            return response()->json($match, 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error("[MatchController] Error creating match", [
+                "error" => $e->getMessage(),
+                "request_data" => $request->validated(),
+            ]);
+
+            return response()->json(
+                [
+                    "message" => "Failed to create match",
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
+        }
     }
 
     /**
@@ -331,38 +408,481 @@ class MatchController extends Controller
      */
     public function update(Request $request, $id): JsonResponse
     {
-        $match = Matches::where("id", $id)->first();
-        if (!$match) {
-            return response()->json(["message" => "Match not found"], 404);
+        try {
+            $match = Matches::where("id", $id)->first();
+            if (!$match) {
+                return response()->json(["message" => "Match not found"], 404);
+            }
+
+            $user = $request->user();
+            $isParticipant = $match->hasPlayer($user->id);
+            $isAdmin = $user->type === "A";
+
+            if (!$isAdmin && !$isParticipant) {
+                return response()->json(["message" => "Unauthorized"], 403);
+            }
+
+            $validated = $request->validate([
+                "status" =>
+                    "sometimes|string|in:Pending,Playing,Ended,Interrupted",
+                "winner_user_id" => "sometimes|integer|exists:users,id",
+                "loser_user_id" => "sometimes|integer|exists:users,id",
+                "ended_at" => "sometimes|date",
+                "total_time" => "sometimes|numeric|min:0",
+                "player1_marks" => "sometimes|integer|min:0",
+                "player2_marks" => "sometimes|integer|min:0",
+                "player1_points" => "sometimes|integer|min:0",
+                "player2_points" => "sometimes|integer|min:0",
+            ]);
+
+            DB::beginTransaction();
+
+            // Handle status changes with automatic timestamps
+            if (isset($validated["status"])) {
+                if (
+                    $validated["status"] === "Playing" &&
+                    $match->status === "Pending"
+                ) {
+                    $validated["began_at"] = Carbon::now();
+                } elseif (
+                    $validated["status"] === "Ended" &&
+                    $match->status !== "Ended"
+                ) {
+                    $validated["ended_at"] = Carbon::now();
+
+                    // Calculate total time if began_at exists
+                    if ($match->began_at) {
+                        $validated["total_time"] = Carbon::now()->diffInSeconds(
+                            $match->began_at,
+                        );
+                    }
+                }
+            }
+
+            $match->update($validated);
+
+            DB::commit();
+
+            Log::info("[MatchController] Match updated successfully", [
+                "match_id" => $match->id,
+                "updated_fields" => array_keys($validated),
+                "updated_by" => $user->id,
+            ]);
+
+            return response()->json(
+                $match->fresh([
+                    "player1:id,name,nickname,photo_avatar_filename",
+                    "player2:id,name,nickname,photo_avatar_filename",
+                    "winner:id,name,nickname",
+                ]),
+            );
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error("[MatchController] Error updating match", [
+                "match_id" => $id,
+                "error" => $e->getMessage(),
+                "updated_by" => $request->user()?->id,
+            ]);
+
+            return response()->json(
+                [
+                    "message" => "Failed to update match",
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
         }
+    }
 
-        $user = $request->user();
-        $isParticipant = $match->hasPlayer($user->id);
-        $isAdmin = $user->type === "A";
+    /**
+     * Iniciar uma partida
+     */
+    public function startMatch(Request $request, $id): JsonResponse
+    {
+        try {
+            $match = Matches::find($id);
+            if (!$match) {
+                return response()->json(["message" => "Match not found"], 404);
+            }
 
-        if (!$isAdmin && !$isParticipant) {
-            return response()->json(["message" => "Unauthorized"], 403);
+            $user = $request->user();
+            $isParticipant = $match->hasPlayer($user->id);
+            $isAdmin = $user->type === "A";
+
+            if (!$isAdmin && !$isParticipant) {
+                return response()->json(["message" => "Unauthorized"], 403);
+            }
+
+            if ($match->status !== "Pending") {
+                return response()->json(
+                    [
+                        "message" =>
+                            "Match cannot be started. Current status: " .
+                            $match->status,
+                    ],
+                    400,
+                );
+            }
+
+            DB::beginTransaction();
+
+            $match->update([
+                "status" => "Playing",
+                "began_at" => Carbon::now(),
+            ]);
+
+            DB::commit();
+
+            Log::info("[MatchController] Match started", [
+                "match_id" => $match->id,
+                "started_by" => $user->id,
+            ]);
+
+            return response()->json([
+                "message" => "Match started successfully",
+                "match" => $match->fresh([
+                    "player1:id,name,nickname",
+                    "player2:id,name,nickname",
+                ]),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error("[MatchController] Error starting match", [
+                "match_id" => $id,
+                "error" => $e->getMessage(),
+            ]);
+
+            return response()->json(
+                [
+                    "message" => "Failed to start match",
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
         }
+    }
 
-        $validated = $request->validate([
-            "status" => "sometimes|string",
-            "winner_user_id" => "sometimes|integer|exists:users,id",
-            "loser_user_id" => "sometimes|integer|exists:users,id",
-            "ended_at" => "sometimes|date",
-            "total_time" => "sometimes|integer",
-            "player1_marks" => "sometimes|integer",
-            "player2_marks" => "sometimes|integer",
-        ]);
+    /**
+     * Finalizar uma partida
+     */
+    public function finishMatch(Request $request, $id): JsonResponse
+    {
+        try {
+            $match = Matches::find($id);
+            if (!$match) {
+                return response()->json(["message" => "Match not found"], 404);
+            }
 
-        $match->update($validated);
+            $user = $request->user();
+            $isParticipant = $match->hasPlayer($user->id);
+            $isAdmin = $user->type === "A";
 
-        return response()->json(
-            $match->fresh([
-                "player1:id,name,nickname",
-                "player2:id,name,nickname",
-                "winner:id,name,nickname",
-            ]),
-        );
+            if (!$isAdmin && !$isParticipant) {
+                return response()->json(["message" => "Unauthorized"], 403);
+            }
+
+            if ($match->status !== "Playing") {
+                return response()->json(
+                    [
+                        "message" =>
+                            "Match cannot be finished. Current status: " .
+                            $match->status,
+                    ],
+                    400,
+                );
+            }
+
+            $validated = $request->validate([
+                "winner_user_id" => "required|integer|exists:users,id",
+                "player1_marks" => "sometimes|integer|min:0",
+                "player2_marks" => "sometimes|integer|min:0",
+                "player1_points" => "sometimes|integer|min:0",
+                "player2_points" => "sometimes|integer|min:0",
+            ]);
+
+            // Ensure winner is one of the players
+            if (
+                !in_array($validated["winner_user_id"], [
+                    $match->player1_user_id,
+                    $match->player2_user_id,
+                ])
+            ) {
+                return response()->json(
+                    [
+                        "message" => "Winner must be one of the match players",
+                    ],
+                    400,
+                );
+            }
+
+            DB::beginTransaction();
+
+            // Set loser
+            $loser_id =
+                $validated["winner_user_id"] === $match->player1_user_id
+                    ? $match->player2_user_id
+                    : $match->player1_user_id;
+
+            $endTime = Carbon::now();
+            $totalTime = $match->began_at
+                ? $endTime->diffInSeconds($match->began_at)
+                : null;
+
+            $match->update([
+                "status" => "Ended",
+                "winner_user_id" => $validated["winner_user_id"],
+                "loser_user_id" => $loser_id,
+                "ended_at" => $endTime,
+                "total_time" => $totalTime,
+                "player1_marks" => $validated["player1_marks"] ?? null,
+                "player2_marks" => $validated["player2_marks"] ?? null,
+                "player1_points" => $validated["player1_points"] ?? null,
+                "player2_points" => $validated["player2_points"] ?? null,
+            ]);
+
+            // Process match payout if there was a stake
+            if ($match->stake > 0) {
+                $winner = User::findOrFail($validated["winner_user_id"]);
+                $totalPot = $match->stake * 2; // Both players paid stake
+
+                // Credit the winner with the total pot
+                $this->coinService->createCreditTransaction(
+                    $winner,
+                    "Match payout",
+                    (int) $totalPot,
+                    ["match_id" => $match->id],
+                    [
+                        "match_type" => $match->type,
+                        "defeated_opponent_id" => $loser_id,
+                        "original_stake" => $match->stake,
+                    ],
+                );
+
+                Log::info("[MatchController] Match payout processed", [
+                    "match_id" => $match->id,
+                    "winner_id" => $validated["winner_user_id"],
+                    "payout_amount" => $totalPot,
+                    "original_stake" => $match->stake,
+                ]);
+            }
+
+            DB::commit();
+
+            Log::info("[MatchController] Match finished", [
+                "match_id" => $match->id,
+                "winner_id" => $validated["winner_user_id"],
+                "finished_by" => $user->id,
+            ]);
+
+            return response()->json([
+                "message" => "Match finished successfully",
+                "match" => $match->fresh([
+                    "player1:id,name,nickname",
+                    "player2:id,name,nickname",
+                    "winner:id,name,nickname",
+                ]),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error("[MatchController] Error finishing match", [
+                "match_id" => $id,
+                "error" => $e->getMessage(),
+            ]);
+
+            return response()->json(
+                [
+                    "message" => "Failed to finish match",
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Cancel a match and refund entry fees
+     */
+    public function cancelMatch(Request $request, $id): JsonResponse
+    {
+        try {
+            $match = Matches::find($id);
+            if (!$match) {
+                return response()->json(["message" => "Match not found"], 404);
+            }
+
+            $user = $request->user();
+            $isParticipant = $match->hasPlayer($user->id);
+            $isAdmin = $user->type === "A";
+
+            if (!$isAdmin && !$isParticipant) {
+                return response()->json(["message" => "Unauthorized"], 403);
+            }
+
+            // Only pending matches can be cancelled
+            if ($match->status !== "Pending") {
+                return response()->json(
+                    [
+                        "message" =>
+                            "Only pending matches can be cancelled. Current status: " .
+                            $match->status,
+                    ],
+                    400,
+                );
+            }
+
+            DB::beginTransaction();
+
+            // Refund entry fees if there was a stake
+            if ($match->stake > 0) {
+                $player1 = User::findOrFail($match->player1_user_id);
+                $player2 = User::findOrFail($match->player2_user_id);
+
+                // Refund entry fee to both players
+                $this->coinService->createCreditTransaction(
+                    $player1,
+                    "Match stake",
+                    (int) $match->stake,
+                    ["match_id" => $match->id],
+                    [
+                        "refund_reason" => "match_cancelled",
+                        "match_type" => $match->type,
+                        "opponent_id" => $match->player2_user_id,
+                    ],
+                );
+
+                $this->coinService->createCreditTransaction(
+                    $player2,
+                    "Match stake",
+                    (int) $match->stake,
+                    ["match_id" => $match->id],
+                    [
+                        "refund_reason" => "match_cancelled",
+                        "match_type" => $match->type,
+                        "opponent_id" => $match->player1_user_id,
+                    ],
+                );
+
+                Log::info("[MatchController] Entry fees refunded", [
+                    "match_id" => $match->id,
+                    "refunded_per_player" => $match->stake,
+                    "cancelled_by" => $user->id,
+                ]);
+            }
+
+            // Mark match as interrupted (cancelled)
+            $match->update([
+                "status" => "Interrupted",
+                "ended_at" => Carbon::now(),
+            ]);
+
+            DB::commit();
+
+            Log::info("[MatchController] Match cancelled", [
+                "match_id" => $match->id,
+                "cancelled_by" => $user->id,
+            ]);
+
+            return response()->json([
+                "message" => "Match cancelled successfully",
+                "refunded_coins" => $match->stake,
+                "match" => $match->fresh([
+                    "player1:id,name,nickname",
+                    "player2:id,name,nickname",
+                ]),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error("[MatchController] Error cancelling match", [
+                "match_id" => $id,
+                "error" => $e->getMessage(),
+            ]);
+
+            return response()->json(
+                [
+                    "message" => "Failed to cancel match",
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Get coin transactions history for a match
+     */
+    public function getMatchTransactions(Request $request, $id): JsonResponse
+    {
+        try {
+            $match = Matches::find($id);
+            if (!$match) {
+                return response()->json(["message" => "Match not found"], 404);
+            }
+
+            $user = $request->user();
+            $isParticipant = $match->hasPlayer($user->id);
+            $isAdmin = $user->type === "A";
+
+            if (!$isAdmin && !$isParticipant) {
+                return response()->json(["message" => "Unauthorized"], 403);
+            }
+
+            // Get all coin transactions related to this match
+            $transactions = \App\Models\CoinTransaction::with([
+                "user:id,name,nickname",
+                "coinTransactionType:id,name,type",
+            ])
+                ->where("match_id", $id)
+                ->orderBy("transaction_datetime", "desc")
+                ->get()
+                ->map(function ($transaction) {
+                    return [
+                        "id" => $transaction->id,
+                        "transaction_datetime" =>
+                            $transaction->transaction_datetime,
+                        "user" => $transaction->user,
+                        "coins" => $transaction->coins,
+                        "type" => $transaction->coinTransactionType,
+                        "custom" => $transaction->custom,
+                    ];
+                });
+
+            // Calculate totals
+            $totalDebits = $transactions->where("coins", "<", 0)->sum("coins");
+            $totalCredits = $transactions->where("coins", ">", 0)->sum("coins");
+
+            return response()->json([
+                "match" => [
+                    "id" => $match->id,
+                    "stake" => $match->stake,
+                    "status" => $match->status,
+                    "type" => $match->type,
+                ],
+                "transactions" => $transactions,
+                "summary" => [
+                    "total_debits" => abs($totalDebits),
+                    "total_credits" => $totalCredits,
+                    "net_flow" => $totalCredits + $totalDebits,
+                    "transaction_count" => $transactions->count(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error("[MatchController] Error getting match transactions", [
+                "match_id" => $id,
+                "error" => $e->getMessage(),
+            ]);
+
+            return response()->json(
+                [
+                    "message" => "Failed to get match transactions",
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
+        }
     }
 
     /**
