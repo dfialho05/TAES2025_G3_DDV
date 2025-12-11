@@ -175,7 +175,28 @@
               <div
                 class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center"
               >
-                <h3 class="font-bold text-gray-900 flex items-center gap-2">🎲 Últimos Jogos</h3>
+                <h3 class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  🎲 Últimos Jogos
+                </h3>
+                <RouterLink
+                  :to="{ name: 'history', params: { id: displayedUser.id } }"
+                  class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
+                >
+                  Ver Histórico Completo
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </RouterLink>
               </div>
 
               <div class="divide-y divide-slate-50 dark:divide-gray-700">
@@ -313,7 +334,28 @@
               <div
                 class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center"
               >
-                <h3 class="font-bold text-gray-900 flex items-center gap-2">🏆 Últimas Partidas</h3>
+                <h3 class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  🏆 Últimas Partidas
+                </h3>
+                <RouterLink
+                  :to="{ name: 'history', params: { id: displayedUser.id } }"
+                  class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
+                >
+                  Ver Histórico Completo
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </RouterLink>
               </div>
 
               <div class="divide-y divide-slate-50 dark:divide-gray-700">
@@ -664,7 +706,7 @@ const matchesStore = useMatchesStore()
 const gamesStore = useGamesStore()
 const statisticsStore = useStatisticsStore()
 
-const serverBaseURL = inject('serverBaseURL')
+// const serverBaseURL = inject('serverBaseURL') // Unused variable
 const apiBaseURL = inject('apiBaseURL')
 
 // --- Estados ---
@@ -812,19 +854,20 @@ const formatDate = (dateStr) => {
   )
 }
 
-const getOpponentName = (match) => {
-  if (!displayedUser.value) return '...'
-
-  // Usar os dados pré-processados da store se disponíveis
-  if (match.opponent) {
-    return match.opponent.nickname || match.opponent.name
-  }
-
-  // Fallback para o método original (compatibilidade)
-  const myId = displayedUser.value.id
-  const op = match.layer1_user_id === myId ? match.player2 : match.player1
-  return op ? op.nickname || op.name : 'Desconhecido'
-}
+// Unused function - commented out
+// const getOpponentName = (match) => {
+//   if (!displayedUser.value) return '...'
+//
+//   // Usar os dados pré-processados da store se disponíveis
+//   if (match.opponent) {
+//     return match.opponent.nickname || match.opponent.name
+//   }
+//
+//   // Fallback para o método original (compatibilidade)
+//   const myId = displayedUser.value.id
+//   const op = match.layer1_user_id === myId ? match.player2 : match.player1
+//   return op ? op.nickname || op.name : 'Desconhecido'
+// }
 
 const isWinner = (match) => {
   // Usar dados pré-processados se disponíveis
@@ -919,7 +962,9 @@ const saveProfile = async () => {
 }
 
 const confirmDelete = async () => {
+  // eslint-disable-next-line no-undef
   if (!confirm('Eliminar conta?')) return
+  // eslint-disable-next-line no-undef
   const pwd = prompt('Password:')
   if (!pwd) return
 
