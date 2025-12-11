@@ -27,6 +27,8 @@ export const useBiscaStore = defineStore('bisca', () => {
   const score = ref({ me: 0, opponent: 0 }) // Pontuação
   const currentTurn = ref(null)        // De quem é a vez? ('user' ou 'bot')
 
+  const sessionScore = ref({ me: 0, opponent: 0 })
+
   const isGameOver = ref(false)        // O jogo acabou?
   const logs = ref('À espera de jogo...') // Mensagens de texto (ex: "Player 1 jogou...")
   const availableGames = ref([])       // Lista de salas do Lobby
@@ -61,7 +63,6 @@ export const useBiscaStore = defineStore('bisca', () => {
               isWaiting.value = false             // <--- Se vier nome (ou "Bot"), desativamos a espera
               opponentName.value = data.p2Name    // <--- Usamos o nome real
           }
-          // --- [FIM ALTERAÇÃO] ---
 
           // Se houver Player 2, pegamos o tamanho da mão dele. Se for Bot, idem.
           opponentHandCount.value = (data.player2Hand || []).length || data.botCardCount || 0
@@ -86,10 +87,15 @@ export const useBiscaStore = defineStore('bisca', () => {
       const p1 = data.score.player1 || 0
       const p2 = data.score.player2 || 0
 
+      const p1Wins = data.matchWins?.player1 || 0;
+      const p2Wins = data.matchWins?.player2 || 0;
+
       if (mySide.value === 'player1') {
-          score.value = { user: p1, bot: p2, me: p1, opponent: p2 }
+          score.value = { me: p1, opponent: p2 };
+          sessionScore.value = { me: p1Wins, opponent: p2Wins };
       } else {
-          score.value = { user: p2, bot: p1, me: p2, opponent: p1 }
+          score.value = { me: p2, opponent: p1 };
+          sessionScore.value = { me: p2Wins, opponent: p1Wins };
       }
 
       // D. De quem é a vez?
@@ -129,13 +135,13 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   // Joga uma carta
   const playCard = (index) => {
-    // Validação Local: Só enviamos se for a nossa vez (Evita spam no servidor)
-    if ((currentTurn.value === 'user' || currentTurn.value === 'me') && gameID.value) {
-        socketStore.emitPlayCard(gameID.value, index)
-    } else {
-        console.warn("⛔ Não é a tua vez.")
-    }
+  // Garante que currentTurn é 'user' (mapeado no processGameState)
+  if (currentTurn.value === 'user' && gameID.value) {
+      socketStore.emitPlayCard(gameID.value, index);
+  } else {
+      console.warn("⛔ Não é a tua vez. Turno atual:", currentTurn.value);
   }
+}
 
   // Sai do jogo (A "Faxina")
   const quitGame = () => {
@@ -155,7 +161,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   return {
     gameID, mySide, playerHand, opponentHandCount, botCardCount, opponentName, isWaiting,
     trunfo, trunfoNaipe, tableCards, score, logs, currentTurn,
-    isGameOver, cardsLeft, availableGames,
+    isGameOver, cardsLeft, availableGames, sessionScore,
     processGameState, setAvailableGames,
     startGame, joinGame, fetchGames, playCard, quitGame
   }

@@ -7,7 +7,7 @@ import { useRouter } from 'vue-router'
 
 import { useBiscaStore } from '@/stores/biscaStore'
 import { useAPIStore } from '@/stores/api'
-import UserAvatar from '@/components/UserAvatar.vue'  
+import UserAvatar from '@/components/UserAvatar.vue'
 
 
 const gameStore = useBiscaStore()
@@ -17,7 +17,7 @@ const router = useRouter()
 
 const selectedDifficulty = ref('')
 
-const startGameSingleplayer = (tipo) => {
+const startGame = (tipo) => {
   router.push({
     name: 'singleplayer',
     query: { mode: tipo },
@@ -60,7 +60,7 @@ const goToLobby = () => {
 
         <div class="grid grid-cols-2 gap-3 pt-2">
           <Button
-            @click="startGameSingleplayer(3)"
+            @click="startGame(3)"
             variant="outline"
             class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all group"
           >
@@ -72,7 +72,7 @@ const goToLobby = () => {
           </Button>
 
           <Button
-            @click="startGameSingleplayer(9)"
+            @click="startGame(9)"
             variant="outline"
             class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all group"
           >

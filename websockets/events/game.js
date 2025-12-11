@@ -55,6 +55,11 @@ export const gameHandlers = (io, socket) => {
             
             console.log(`[Game] ${user.name} entrou no jogo ${game.id}`);
 
+            if (game.mode === 'multiplayer') {
+                game.turn = 'player1'; // Define quem começa
+                game.logs = "Adversário entrou! O jogo começou.";
+            }
+            
             io.to(roomName).emit("game_state", game.getState()); 
             io.emit("games", GameState.getGames());
         }

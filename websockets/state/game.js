@@ -21,6 +21,11 @@ export const createGame = (gameType, user, mode = 'singleplayer') => {
     newGame.player1 = user; 
     newGame.player2 = null;
 
+    if (mode === 'multiplayer') {
+        newGame.turn = null; // Ninguém joga enquanto não houver 2 pessoas
+        newGame.logs = "À espera de adversário...";
+    }
+
     games.set(gameID, newGame);
     return newGame;
 };

@@ -104,7 +104,7 @@ onUnmounted(() => {
       <div class="bot-hand">
         <Card v-for="n in botCardCount" :key="n" :face-down="true" class="small-card" />
       </div>
-      <div class="score-badge">Pontos: {{ score.bot }}</div>
+      <div class="score-badge">Pontos: {{ score.opponent }}</div>
     </div>
 
     <!-- MESA DE JOGO -->
@@ -139,7 +139,7 @@ onUnmounted(() => {
     <!-- ÁREA DO JOGADOR -->
     <div class="player-area">
       <div class="score-badge" :class="{ 'active-turn': currentTurn === 'user' }">
-        Teus Pontos: {{ score.user }}
+        Teus Pontos: {{ score.me }}
         <span v-if="currentTurn === 'user'" class="turn-text">(Sua vez!)</span>
       </div>
 
@@ -225,7 +225,7 @@ onUnmounted(() => {
 
 .bot-hand {
   margin-bottom: 5px;
-  
+
 }
 
 /* Disabled state */
