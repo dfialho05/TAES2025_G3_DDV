@@ -87,6 +87,44 @@ export const useAPIStore = defineStore('api', () => {
     return axios.get(`${API_BASE_URL}/games`)
   }
 
+  // Fetch user by ID (public profile data)
+  const fetchUser = async (userId) => {
+    const response = await axios.get(`${API_BASE_URL}/users/${userId}/profile`)
+    return response.data
+  }
+
+  // Fetch all games for a specific user
+  const fetchAllUserGames = async (userId, options = {}) => {
+    const { page = 1, limit = 50 } = options
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users/${userId}/games`, {
+        params: { page, limit },
+      })
+      return response.data
+    } catch {
+      console.warn('Full games API not available, falling back to recent games')
+      // Fallback to existing recent games endpoint if full API doesn't exist
+      const response = await axios.get(`${API_BASE_URL}/users/${userId}/games/recent`)
+      return { games: response.data.games || [] }
+    }
+  }
+
+  // Fetch all matches for a specific user
+  const fetchAllUserMatches = async (userId, options = {}) => {
+    const { page = 1, limit = 50 } = options
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users/${userId}/matches`, {
+        params: { page, limit },
+      })
+      return response.data
+    } catch {
+      console.warn('Full matches API not available, falling back to recent matches')
+      // Fallback to existing recent matches endpoint if full API doesn't exist
+      const response = await axios.get(`${API_BASE_URL}/users/${userId}/matches/recent`)
+      return { matches: response.data.matches || [] }
+    }
+  }
+
   // LEADERBOARDS
   const getLeaderboardsAll = async (period = 'all', limit = 5) => {
     const response = await axios.get(`${API_BASE_URL}/leaderboards/all`, {
@@ -108,10 +146,13 @@ export const useAPIStore = defineStore('api', () => {
     postRegister,
     getAuthUser,
     putUser,
+    fetchUser,
     patchUserPhoto,
     postDeleteAccount,
     uploadProfilePhoto,
     getGames,
+    fetchAllUserGames,
+    fetchAllUserMatches,
     getLeaderboardsAll,
     getLeaderboard,
   }
