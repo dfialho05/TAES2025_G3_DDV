@@ -44,7 +44,7 @@ const goToLobby = () => {
 
         <div class="space-y-2">
             <h3 class="text-sm font-bold text-green-600 uppercase tracking-wide border-b border-green-100 pb-1">
-                🏆 Campeonato (Race to 4)
+                🏆 PARTIDA COMPLETA (Race to 4)
             </h3>
             <div class="grid grid-cols-2 gap-3">
                 <Button @click="startGame(3, 4)" variant="outline" class="h-auto py-3 border-2 border-green-100 hover:border-green-500 hover:bg-green-50">

@@ -24,8 +24,6 @@ export const useBiscaStore = defineStore('bisca', () => {
   const score = ref({ me: 0, opponent: 0 })
   const currentTurn = ref(null)
   const sessionScore = ref({ me: 0, opponent: 0 })
-
-  // [NOVO] Para o frontend saber se desenha 1 ou 4 bolas brancas
   const gameTarget = ref(1)
 
   const isGameOver = ref(false)
@@ -38,11 +36,9 @@ export const useBiscaStore = defineStore('bisca', () => {
   // 2. LÓGICA DE DADOS
   // =========================================
   const processGameState = (data) => {
-      // Proteção Fantasma
       if (gameID.value && data.id && String(data.id) !== String(gameID.value)) return;
       if (data.id) gameID.value = data.id
 
-      // A. Gestão de Mãos e Nomes
       if (mySide.value === 'player1') {
           playerHand.value = data.player1Hand || []
           if (data.p2Name === null) {
@@ -60,7 +56,6 @@ export const useBiscaStore = defineStore('bisca', () => {
           opponentHandCount.value = (data.player1Hand || []).length || 0
       }
 
-      // B. Dados Gerais
       trunfo.value = data.trunfo
       trunfoNaipe.value = data.trunfoNaipe
       tableCards.value = data.tableCards
@@ -68,21 +63,19 @@ export const useBiscaStore = defineStore('bisca', () => {
       isGameOver.value = data.gameOver
       logs.value = data.logs
 
-      // C. Pontuação
       const p1 = data.score.player1 || 0
       const p2 = data.score.player2 || 0
       const p1Wins = data.matchWins?.player1 || 0;
       const p2Wins = data.matchWins?.player2 || 0;
 
       if (mySide.value === 'player1') {
-          score.value = { user: p1, bot: p2, me: p1, opponent: p2 } // mantem keys antigas por segurança
+          score.value = { user: p1, bot: p2, me: p1, opponent: p2 }
           sessionScore.value = { me: p1Wins, opponent: p2Wins }
       } else {
           score.value = { user: p2, bot: p1, me: p2, opponent: p1 }
           sessionScore.value = { me: p2Wins, opponent: p1Wins }
       }
 
-      // D. Turno
       if (data.turn === mySide.value) currentTurn.value = 'user'
       else if (data.turn) currentTurn.value = 'bot'
       else currentTurn.value = null
@@ -93,19 +86,51 @@ export const useBiscaStore = defineStore('bisca', () => {
   }
 
   // =========================================
-  // 3. AÇÕES
+  // 3. LÓGICA COMPUTADA (CORRIGIDA)
+  // =========================================
+
+  const lastGameAchievement = computed(() => {
+     if (!isGameOver.value) return null;
+
+     const myPoints = score.value.me;
+     const oppPoints = score.value.opponent;
+
+     // 1. Verificações de Vitória
+     if (myPoints === 120) return 'BANDEIRA';
+     if (myPoints >= 91) return 'CAPOTE';
+     if (myPoints > 60) return 'RISCA'; // <--- CORREÇÃO: Adicionada a Risca
+
+     // 2. Verificações de Derrota
+     if (oppPoints === 120) return 'SOFREU BANDEIRA';
+     if (oppPoints >= 91) return 'LEVOU CAPOTE';
+
+     // 3. Empate (Raro na Bisca, mas possível 60-60)
+     if (myPoints === 60 && oppPoints === 60) return 'EMPATE';
+
+     return null;
+  });
+
+  const sessionWinner = computed(() => {
+     if (sessionScore.value.me >= gameTarget.value) return 'victory';
+     if (sessionScore.value.opponent >= gameTarget.value) return 'defeat';
+     // Se acabou o jogo mas ninguém atingiu o alvo (ex: empate técnico ou desistência), vê quem tem mais
+     if (isGameOver.value) {
+        return sessionScore.value.me > sessionScore.value.opponent ? 'victory' : 'defeat';
+     }
+     return null;
+  });
+
+  // =========================================
+  // 4. AÇÕES
   // =========================================
 
   const fetchGames = () => { socketStore.emitGetGames() }
 
-  // [CORREÇÃO AQUI] Adicionado 'targetWins'
   const startGame = (type = 3, mode = 'singleplayer', targetWins = 1) => {
       mySide.value = 'player1'
       logs.value = "A criar sala..."
       isGameOver.value = false
-      gameTarget.value = targetWins // Guardamos localmente para usar no template
-
-      // Enviamos os 3 argumentos para o socket
+      gameTarget.value = targetWins
       socketStore.emitCreateGame(type, mode, targetWins)
   }
 
@@ -138,7 +163,8 @@ export const useBiscaStore = defineStore('bisca', () => {
     gameID, mySide, playerHand, opponentHandCount, botCardCount, opponentName, isWaiting,
     trunfo, trunfoNaipe, tableCards, score, logs, currentTurn,
     isGameOver, cardsLeft, availableGames,
-    sessionScore, gameTarget, // <--- Exportar gameTarget
+    sessionScore, gameTarget,
+    lastGameAchievement, sessionWinner,
     processGameState, setAvailableGames,
     startGame, joinGame, fetchGames, playCard, quitGame
   }
