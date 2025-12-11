@@ -127,14 +127,33 @@ export const useBiscaStore = defineStore('bisca', () => {
   const fetchGames = () => { socketStore.emitGetGames() }
 
   const startGame = (type = 3, mode = 'singleplayer', targetWins = 1) => {
+      // 1. Limpar o ID antigo para não bloquear o novo jogo (A CORREÇÃO PRINCIPAL)
+      gameID.value = null;
+
+      // 2. Limpar visualmente a mesa para dar feedback imediato
+      playerHand.value = [];
+      tableCards.value = [];
+      trunfo.value = null;
+      score.value = { me: 0, opponent: 0 };
+      sessionScore.value = { me: 0, opponent: 0 }; // Reseta as "bolas" pois é um jogo novo
+
+      // 3. Definir estado inicial
       mySide.value = 'player1'
-      logs.value = "A criar sala..."
+      logs.value = "A criar nova sala..."
       isGameOver.value = false
       gameTarget.value = targetWins
+
+      // 4. Pedir ao servidor
       socketStore.emitCreateGame(type, mode, targetWins)
   }
 
   const joinGame = (id) => {
+      // Também aqui convém limpar antes de entrar
+      gameID.value = null;
+      playerHand.value = [];
+      tableCards.value = [];
+      score.value = { me: 0, opponent: 0 };
+
       mySide.value = 'player2'
       logs.value = "A entrar..."
       socketStore.emitJoinGame(id)
@@ -151,10 +170,13 @@ export const useBiscaStore = defineStore('bisca', () => {
   const quitGame = () => {
     if (gameID.value) {
         socketStore.emitLeaveGame(gameID.value)
+        // Reset Total
         gameID.value = null
         playerHand.value = []
         tableCards.value = []
         availableGames.value = []
+        score.value = { me: 0, opponent: 0 }
+        sessionScore.value = { me: 0, opponent: 0 }
         logs.value = 'Saiu do jogo.'
     }
   }
