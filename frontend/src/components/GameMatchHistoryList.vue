@@ -449,7 +449,7 @@ const filteredItems = computed(() => {
 })
 
 const applyCommonFilters = (item) => {
-  // Date filter
+  //Filtrar por datas
   if (filters.value.startDate) {
     const itemDate = new Date(item.began_at)
     const startDate = new Date(filters.value.startDate)
@@ -459,21 +459,31 @@ const applyCommonFilters = (item) => {
   if (filters.value.endDate) {
     const itemDate = new Date(item.began_at)
     const endDate = new Date(filters.value.endDate)
-    endDate.setHours(23, 59, 59, 999) // End of day
+    endDate.setHours(23, 59, 59, 999)
     if (itemDate > endDate) return false
   }
 
-  // Result filter
+  //Filtrar por resultado
   if (filters.value.result !== 'all') {
-    const winner = item.is_winner !== undefined ? item.is_winner : isWinner(item)
-
-    if (filters.value.result === 'win' && winner !== true) return false
-    if (filters.value.result === 'loss' && winner !== false) return false
-    if (filters.value.result === 'draw' && winner !== null) return false
+    if (item.games) {
+      // Se for uma match usar o resultado da match
+      const winner = isWinner(item)
+      if (filters.value.result === 'win' && winner !== true) return false
+      if (filters.value.result === 'loss' && winner !== false) return false
+      if (filters.value.result === 'draw' && winner !== null) return false
+    } else {
+      // Se for um jogo individual
+      const winner = item.is_winner
+      if (filters.value.result === 'win' && winner !== true) return false
+      if (filters.value.result === 'loss' && winner !== false) return false
+      if (filters.value.result === 'draw' && winner !== null) return false
+    }
   }
 
   return true
 }
+
+
 
 const toggleMatch = (matchId) => {
   expandedMatchId.value = expandedMatchId.value === matchId ? null : matchId
