@@ -1,7 +1,6 @@
 <script setup>
 import { computed, inject, onMounted, ref, watch } from 'vue'
 import { useDeckStore } from '@/stores/deck'
-import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   card: { type: Object, default: null },
@@ -11,7 +10,6 @@ const props = defineProps({
 })
 
 const deckStore = useDeckStore()
-const authStore = useAuthStore()
 const API_BASE_URL = inject('apiBaseURL') || '/api'
 
 // Estado para controlar fallback
@@ -123,20 +121,67 @@ const handleImageLoad = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0; /* Prevent cards from shrinking in flex containers */
+  border: 1px solid #ddd;
+  position: relative;
 }
 
 img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
+  border-radius: 5px;
 }
 
 .interactable {
   cursor: pointer;
 }
+
 .interactable:hover {
   transform: translateY(-15px);
   z-index: 10;
+}
+
+/* Mobile-specific card styling */
+@media (max-width: 600px) {
+  .card-wrapper {
+    width: 55px;
+    height: 80px;
+    min-width: 55px; /* Ensure minimum width is maintained */
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border: 1px solid #ccc;
+  }
+
+  img {
+    object-fit: contain;
+    border-radius: 3px;
+  }
+
+  /* Reduce hover effect on mobile for better touch interaction */
+  .interactable:hover {
+    transform: translateY(-10px);
+  }
+
+  /* Add touch feedback for mobile */
+  .interactable:active {
+    transform: translateY(-5px) scale(0.95);
+    transition: transform 0.1s;
+  }
+}
+
+/* Even smaller screens */
+@media (max-width: 400px) {
+  .card-wrapper {
+    width: 48px;
+    height: 70px;
+    min-width: 48px;
+    border-radius: 3px;
+  }
+
+  img {
+    border-radius: 2px;
+  }
 }
 </style>

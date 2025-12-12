@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, computed, watch } from 'vue'
+import { onMounted, onUnmounted, computed, watch, ref, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useDeckStore } from '@/stores/deck'
@@ -33,6 +33,43 @@ const {
 } = storeToRefs(gameStore)
 
 const isConnected = computed(() => socketStore.isConnected)
+
+// Scroll indicators state
+const playerHandRef = ref(null)
+const showLeftScroll = ref(false)
+const showRightScroll = ref(false)
+
+// Check scroll indicators visibility
+const checkScrollIndicators = () => {
+  if (!playerHandRef.value) return
+
+  const element = playerHandRef.value
+  const scrollLeft = element.scrollLeft
+  const scrollWidth = element.scrollWidth
+  const clientWidth = element.clientWidth
+
+  showLeftScroll.value = scrollLeft > 0
+  showRightScroll.value = scrollLeft < scrollWidth - clientWidth
+}
+
+// Update scroll indicators when player hand changes
+watch(playerHand, async () => {
+  await nextTick()
+  checkScrollIndicators()
+})
+
+// Smooth scroll functions
+const scrollLeft = () => {
+  if (playerHandRef.value) {
+    playerHandRef.value.scrollBy({ left: -60, behavior: 'smooth' })
+  }
+}
+
+const scrollRight = () => {
+  if (playerHandRef.value) {
+    playerHandRef.value.scrollBy({ left: 60, behavior: 'smooth' })
+  }
+}
 
 onMounted(async () => {
   // Detectar se é modo practice
@@ -165,8 +202,10 @@ const handleExit = () => {
         </div>
       </div>
 
-      <div class="bot-hand">
-        <Card v-for="n in botCardCount" :key="n" :face-down="true" class="small-card" />
+      <div class="bot-hand-container">
+        <div class="bot-hand">
+          <Card v-for="n in botCardCount" :key="n" :face-down="true" class="small-card" />
+        </div>
       </div>
 
       <div class="score-badge">Pontos: {{ score.opponent }}</div>
@@ -189,7 +228,9 @@ const handleExit = () => {
         </div>
       </TransitionGroup>
 
-      <div class="game-log">{{ logs }}</div>
+      <div class="game-log">
+        <div class="game-log-text">{{ logs }}</div>
+      </div>
     </div>
 
     <div class="player-area">
@@ -209,16 +250,26 @@ const handleExit = () => {
         </div>
       </div>
 
-      <TransitionGroup name="hand-anim" tag="div" class="player-hand">
-        <Card
-          v-for="(card, index) in playerHand"
-          :key="card.id"
-          :card="card"
-          :interactable="currentTurn === 'user' && tableCards.length < 2"
-          :class="{ disabled: currentTurn !== 'user' || tableCards.length >= 2 }"
-          @click="gameStore.playCard(index)"
-        />
-      </TransitionGroup>
+      <div class="player-hand-container">
+        <TransitionGroup
+          name="hand-anim"
+          tag="div"
+          class="player-hand"
+          ref="playerHandRef"
+          @scroll="checkScrollIndicators"
+        >
+          <Card
+            v-for="(card, index) in playerHand"
+            :key="card.id"
+            :card="card"
+            :interactable="currentTurn === 'user' && tableCards.length < 2"
+            :class="{ disabled: currentTurn !== 'user' || tableCards.length >= 2 }"
+            @click="gameStore.playCard(index)"
+          />
+        </TransitionGroup>
+        <div class="scroll-indicator left" v-show="showLeftScroll" @click="scrollLeft">‹</div>
+        <div class="scroll-indicator right" v-show="showRightScroll" @click="scrollRight">›</div>
+      </div>
     </div>
   </div>
 </template>
@@ -439,11 +490,74 @@ const handleExit = () => {
   height: 85px;
 }
 .player-hand,
+.bot-hand-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
 .bot-hand {
   display: flex;
   gap: 5px;
   justify-content: center;
   min-height: 100px;
+  flex-wrap: nowrap;
+  align-items: center;
+  max-width: 100%;
+}
+
+.player-hand-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.player-hand {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  min-height: 100px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  scroll-behavior: smooth;
+  padding: 0 10px;
+}
+
+.scroll-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  z-index: 10;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.scroll-indicator:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.scroll-indicator.left {
+  left: 5px;
+}
+
+.scroll-indicator.right {
+  right: 5px;
 }
 .disabled {
   filter: grayscale(0.6);
@@ -489,14 +603,31 @@ const handleExit = () => {
   align-items: center;
 }
 .game-log {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   font-weight: bold;
-  padding: 8px 20px;
-  border-radius: 20px;
+  padding: 8px 15px;
+  border-radius: 15px;
   min-height: 40px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  position: relative;
+  max-width: 85%;
+  margin: 10px auto;
+  box-sizing: border-box;
+}
+
+.game-log-text {
+  text-align: center;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  line-height: 1.3;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  max-width: 100%;
 }
 .score-badge {
   font-weight: bold;
@@ -513,6 +644,12 @@ const handleExit = () => {
 
 /* MEDIA QUERIES */
 @media (max-width: 600px) {
+  .game-container {
+    height: 100vh;
+    height: 100dvh; /* Use dynamic viewport height for mobile browsers */
+    min-height: 600px; /* Minimum height for playability */
+  }
+
   .small-card {
     width: 35px;
     height: 55px;
@@ -540,6 +677,186 @@ const handleExit = () => {
   }
   .result-card {
     width: 95%;
+  }
+
+  /* Player area improvements for mobile */
+  .player-area {
+    padding: 5px;
+    min-height: 110px;
+    overflow: visible;
+    flex-shrink: 0;
+  }
+
+  /* Player hand mobile improvements */
+  .player-hand-container {
+    width: 100%;
+    padding: 0 5px;
+  }
+
+  .player-hand {
+    gap: 2px;
+    justify-content: flex-start;
+    min-height: 90px;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 5px 30px 5px 5px;
+    width: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    min-width: 0; /* Allow shrinking */
+  }
+
+  .scroll-indicator {
+    width: 25px;
+    height: 25px;
+    font-size: 14px;
+  }
+
+  .scroll-indicator.left {
+    left: 0px;
+  }
+
+  .scroll-indicator.right {
+    right: 0px;
+  }
+
+  /* Custom scrollbar for webkit browsers */
+  .player-hand::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .player-hand::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+  }
+
+  .player-hand::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+  }
+
+  .player-hand::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Reduce bot area spacing */
+  .bot-area {
+    padding: 5px;
+    gap: 4px;
+  }
+
+  .bot-hand-container {
+    padding: 0 10px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .bot-hand-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bot-hand {
+    gap: 2px;
+    justify-content: flex-start;
+    min-width: max-content;
+    padding: 0;
+  }
+
+  /* Adjust table area for better mobile spacing */
+  .table-area {
+    padding: 5px;
+    flex: 1;
+    min-height: 200px;
+  }
+
+  .game-log {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+    min-height: 32px;
+    max-width: 98%;
+    margin: 8px auto;
+    border-radius: 12px;
+  }
+
+  .game-log-text {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: 0.2px;
+  }
+
+  /* Score badges mobile styling */
+  .score-badge {
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .avatar {
+    font-size: 1rem;
+  }
+}
+
+/* Extra small screens (very small phones) */
+@media (max-width: 380px) {
+  .game-container {
+    min-height: 550px;
+  }
+
+  .player-hand {
+    gap: 1px;
+    padding: 3px 25px 3px 3px;
+  }
+
+  .scroll-indicator {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+
+  .table-area {
+    min-height: 180px;
+  }
+
+  .played-cards {
+    gap: 10px;
+    min-height: 70px;
+  }
+
+  .game-log {
+    padding: 4px 6px;
+    font-size: 0.65rem;
+    min-height: 28px;
+    max-width: 99%;
+    border-radius: 10px;
+  }
+
+  .game-log-text {
+    font-size: 0.65rem;
+    line-height: 1.5;
+    letter-spacing: 0.1px;
+  }
+
+  .score-badge {
+    font-size: 0.9rem;
+  }
+
+  .avatar {
+    font-size: 0.9rem;
+  }
+
+  .bot-area,
+  .player-area {
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .bot-hand-container {
+    padding: 0 5px;
+  }
+
+  .bot-hand {
+    gap: 1px;
   }
 }
 
