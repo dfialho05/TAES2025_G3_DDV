@@ -227,10 +227,6 @@ const handleExit = () => {
           <Card :card="move.card" />
         </div>
       </TransitionGroup>
-
-      <div class="game-log">
-        <div class="game-log-text">{{ logs }}</div>
-      </div>
     </div>
 
     <div class="player-area">
@@ -283,10 +279,15 @@ const handleExit = () => {
   flex-direction: column;
   height: 100vh;
   background-color: #2e7d32;
-  overflow-x: hidden;
+  overflow: hidden;
   color: white;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 .overlay {
   position: absolute;
@@ -434,7 +435,9 @@ const handleExit = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 5px;
+  width: 100%;
 }
 .avatar {
   font-size: 1.2rem;
@@ -448,6 +451,8 @@ const handleExit = () => {
   padding: 5px 10px;
   border-radius: 10px;
   margin-bottom: 5px;
+  justify-content: center;
+  align-items: center;
 }
 .mark-dot {
   width: 12px;
@@ -470,7 +475,10 @@ const handleExit = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  width: 100%;
+  text-align: center;
 }
 .table-area {
   flex: 1;
@@ -480,6 +488,7 @@ const handleExit = () => {
   justify-content: center;
   align-items: center;
   position: relative;
+  width: 100%;
 }
 .small-card {
   width: 50px;
@@ -494,6 +503,7 @@ const handleExit = () => {
   width: 100%;
   display: flex;
   justify-content: center;
+  align-items: center;
   overflow: hidden;
 }
 
@@ -505,6 +515,9 @@ const handleExit = () => {
   flex-wrap: nowrap;
   align-items: center;
   max-width: 100%;
+  width: 100%;
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
 .player-hand-container {
@@ -512,6 +525,8 @@ const handleExit = () => {
   width: 100%;
   display: flex;
   justify-content: center;
+  align-items: center;
+  margin: 0 auto;
 }
 
 .player-hand {
@@ -525,6 +540,9 @@ const handleExit = () => {
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   scroll-behavior: smooth;
   padding: 0 10px;
+  width: 100%;
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
 .scroll-indicator {
@@ -570,6 +588,7 @@ const handleExit = () => {
   margin: 20px 0;
   min-height: 120px;
   align-items: center;
+  justify-content: center;
 }
 
 .move-wrapper {
@@ -580,9 +599,10 @@ const handleExit = () => {
 
 .deck-pile {
   position: absolute;
-  right: 20px;
+  right: 25px;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 5;
 }
 .deck-count {
   position: absolute;
@@ -596,26 +616,28 @@ const handleExit = () => {
 }
 .trunfo-area {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 15px;
+  left: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  z-index: 5;
 }
 .game-log {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   color: white;
   font-weight: bold;
-  padding: 8px 15px;
-  border-radius: 15px;
-  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  max-width: 85%;
-  margin: 10px auto;
+  max-width: 90%;
+  margin: 15px auto;
   box-sizing: border-box;
+  z-index: 10;
 }
 
 .game-log-text {
@@ -648,6 +670,11 @@ const handleExit = () => {
     height: 100vh;
     height: 100dvh; /* Use dynamic viewport height for mobile browsers */
     min-height: 600px; /* Minimum height for playability */
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   .small-card {
@@ -662,14 +689,20 @@ const handleExit = () => {
     gap: 15px;
     margin: 10px 0;
     min-height: 90px;
+    justify-content: center;
+    width: 100%;
   }
   .deck-pile {
-    right: 10px;
-    top: 55%;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%) scale(0.85);
+    z-index: 10;
   }
   .trunfo-area {
     top: 10px;
     left: 10px;
+    z-index: 10;
+    font-size: 0.9rem;
   }
   .mark-dot {
     width: 10px;
@@ -685,17 +718,27 @@ const handleExit = () => {
     min-height: 110px;
     overflow: visible;
     flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
   /* Player hand mobile improvements */
   .player-hand-container {
     width: 100%;
     padding: 0 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
   }
 
   .player-hand {
     gap: 2px;
-    justify-content: flex-start;
+    justify-content: center;
     min-height: 90px;
     overflow-x: auto;
     overflow-y: visible;
@@ -704,6 +747,8 @@ const handleExit = () => {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
     min-width: 0; /* Allow shrinking */
+    flex-shrink: 0;
+    align-items: center;
   }
 
   .scroll-indicator {
@@ -743,6 +788,12 @@ const handleExit = () => {
   .bot-area {
     padding: 5px;
     gap: 4px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
   .bot-hand-container {
@@ -751,6 +802,10 @@ const handleExit = () => {
     overflow-y: visible;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
   }
 
   .bot-hand-container::-webkit-scrollbar {
@@ -759,25 +814,42 @@ const handleExit = () => {
 
   .bot-hand {
     gap: 2px;
-    justify-content: flex-start;
+    justify-content: center;
     min-width: max-content;
     padding: 0;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 75px;
   }
 
   /* Adjust table area for better mobile spacing */
   .table-area {
-    padding: 5px;
+    padding: 5px 2px;
     flex: 1;
     min-height: 200px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
   }
 
   .game-log {
     padding: 6px 8px;
     font-size: 0.75rem;
     min-height: 32px;
-    max-width: 98%;
+    max-width: calc(100vw - 100px);
     margin: 8px auto;
-    border-radius: 12px;
+    border-radius: 10px;
+    position: relative;
+    z-index: 15;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
   .game-log-text {
@@ -790,6 +862,10 @@ const handleExit = () => {
   .score-badge {
     font-size: 1rem;
     text-align: center;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .avatar {
@@ -803,9 +879,24 @@ const handleExit = () => {
     min-height: 550px;
   }
 
+  .deck-pile {
+    right: 8px;
+    top: 45%;
+    transform: translateY(-50%) scale(0.8);
+    z-index: 10;
+  }
+
+  .trunfo-area {
+    top: 5px;
+    left: 5px;
+    font-size: 0.8rem;
+    gap: 5px;
+  }
+
   .player-hand {
     gap: 1px;
     padding: 3px 25px 3px 3px;
+    justify-content: center;
   }
 
   .scroll-indicator {
@@ -821,14 +912,20 @@ const handleExit = () => {
   .played-cards {
     gap: 10px;
     min-height: 70px;
+    justify-content: center;
+    width: 100%;
   }
 
   .game-log {
     padding: 4px 6px;
     font-size: 0.65rem;
     min-height: 28px;
-    max-width: 99%;
-    border-radius: 10px;
+    max-width: calc(100vw - 80px);
+    margin: 6px auto;
+    border-radius: 8px;
+    z-index: 15;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
   .game-log-text {
@@ -849,14 +946,26 @@ const handleExit = () => {
   .player-area {
     padding: 3px;
     gap: 2px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .bot-hand-container {
     padding: 0 5px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   .bot-hand {
     gap: 1px;
+    justify-content: center;
+    width: 100%;
+    display: flex;
+    align-items: center;
   }
 }
 
