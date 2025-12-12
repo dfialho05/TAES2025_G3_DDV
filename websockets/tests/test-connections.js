@@ -38,7 +38,7 @@ function testAddUser() {
   const socket1 = createMockSocket("socket-123");
   const user1 = createMockUser("user-1", "João");
 
-  ConnectionState.addUser(socket1, user1);
+  ConnectionState.addUser(socket1.id, user1);
   const countAfterAdd1 = ConnectionState.getUserCount();
 
   console.log(`✅ Adicionado usuário: ${user1.name} (ID: ${user1.id})`);
@@ -70,7 +70,7 @@ function testAddUser() {
   const socket2 = createMockSocket("socket-456");
   const user2 = createMockUser("user-2", "Maria");
 
-  ConnectionState.addUser(socket2, user2);
+  ConnectionState.addUser(socket2.id, user2);
   const countAfterAdd2 = ConnectionState.getUserCount();
 
   console.log(`✅ Adicionado usuário: ${user2.name} (ID: ${user2.id})`);
@@ -98,8 +98,8 @@ function testRemoveUser() {
   const socket2 = createMockSocket("socket-remove-2");
   const user2 = createMockUser("user-rem-2", "Ana");
 
-  ConnectionState.addUser(socket1, user1);
-  ConnectionState.addUser(socket2, user2);
+  ConnectionState.addUser(socket1.id, user1);
+  ConnectionState.addUser(socket2.id, user2);
   const initialCount = ConnectionState.getUserCount();
 
   console.log(`👥 Estado inicial: ${initialCount} usuários`);
@@ -182,7 +182,7 @@ function testGetUser() {
   }
 
   // Teste 2: Adicionar e buscar usuário
-  ConnectionState.addUser(socket, user);
+  ConnectionState.addUser(socket.id, user);
   const foundUser = ConnectionState.getUser(socket.id);
 
   if (!foundUser) {
@@ -228,7 +228,7 @@ function testGetUserCount() {
 
   // Adicionar usuários um por um e verificar contagem
   testUsers.forEach((testUser, index) => {
-    ConnectionState.addUser(testUser.socket, testUser.user);
+    ConnectionState.addUser(testUser.socket.id, testUser.user);
     const expectedCount = initialCount + index + 1;
     const actualCount = ConnectionState.getUserCount();
 
@@ -288,7 +288,7 @@ function testConcurrentOperations() {
 
   // Adicionar todos
   sockets.forEach((socket, i) => {
-    ConnectionState.addUser(socket, users[i]);
+    ConnectionState.addUser(socket.id, users[i]);
   });
 
   const countAfterAdds = ConnectionState.getUserCount();
@@ -372,17 +372,17 @@ function testEdgeCases() {
   // Teste 1: Socket com ID vazio
   console.log(`🧪 Testando socket com ID vazio...`);
   try {
-    const emptySocket = createMockSocket("");
+    const emptySocketId = "";
     const user = createMockUser("edge-user-1", "EdgeUser");
-    ConnectionState.addUser(emptySocket, user);
+    ConnectionState.addUser(emptySocketId, user);
 
-    const retrieved = ConnectionState.getUser("");
+    const retrieved = ConnectionState.getUser(emptySocketId);
     if (!retrieved) {
       console.log(`❌ ERRO: Usuário com socket ID vazio não foi armazenado`);
       passed = false;
     } else {
       console.log(`✅ Socket com ID vazio funciona`);
-      ConnectionState.removeUser(""); // Limpar
+      ConnectionState.removeUser(emptySocketId); // Limpar
     }
   } catch (error) {
     console.log(
@@ -394,17 +394,17 @@ function testEdgeCases() {
   // Teste 2: Usuário com dados null/undefined
   console.log(`🧪 Testando usuário com dados null...`);
   try {
-    const socket = createMockSocket("edge-socket-null");
-    ConnectionState.addUser(socket, null);
+    const socketId = "edge-socket-null";
+    ConnectionState.addUser(socketId, null);
 
-    const retrieved = ConnectionState.getUser(socket.id);
+    const retrieved = ConnectionState.getUser(socketId);
     if (retrieved !== null) {
       console.log(`❌ ERRO: Usuário null não foi armazenado corretamente`);
       passed = false;
     } else {
       console.log(`✅ Usuário null armazenado corretamente`);
     }
-    ConnectionState.removeUser(socket.id); // Limpar
+    ConnectionState.removeUser(socketId); // Limpar
   } catch (error) {
     console.log(`❌ ERRO: Exceção ao usar usuário null: ${error.message}`);
     passed = false;
@@ -412,17 +412,17 @@ function testEdgeCases() {
 
   // Teste 3: Sobrescrever usuário existente
   console.log(`🧪 Testando sobrescrita de usuário...`);
-  const socket = createMockSocket("edge-socket-overwrite");
+  const socketId = "edge-socket-overwrite";
   const user1 = createMockUser("edge-user-orig", "OriginalUser");
   const user2 = createMockUser("edge-user-new", "NewUser");
 
-  ConnectionState.addUser(socket, user1);
+  ConnectionState.addUser(socketId, user1);
   const countBefore = ConnectionState.getUserCount();
 
-  ConnectionState.addUser(socket, user2); // Mesmo socket, usuário diferente
+  ConnectionState.addUser(socketId, user2); // Mesmo socket, usuário diferente
   const countAfter = ConnectionState.getUserCount();
 
-  const retrieved = ConnectionState.getUser(socket.id);
+  const retrieved = ConnectionState.getUser(socketId);
 
   if (countAfter !== countBefore) {
     console.log(
@@ -438,7 +438,7 @@ function testEdgeCases() {
     console.log(`✅ Sobrescrita funcionou corretamente`);
   }
 
-  ConnectionState.removeUser(socket.id); // Limpar
+  ConnectionState.removeUser(socketId); // Limpar
 
   return passed;
 }

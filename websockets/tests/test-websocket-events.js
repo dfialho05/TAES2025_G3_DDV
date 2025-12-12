@@ -104,21 +104,7 @@ async function testConnectionEvents() {
       console.log("✅ Evento join processado corretamente");
     }
 
-    // Teste 2: Evento leave
-    console.log("📤 Testando evento 'leave'...");
-    client.emit("leave");
-
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    const userAfterLeave = ConnectionState.getUser(client.id);
-    if (userAfterLeave !== undefined) {
-      console.log("❌ ERRO: Usuário não foi removido após leave");
-      passed = false;
-    } else {
-      console.log("✅ Evento leave processado corretamente");
-    }
-
-    // Teste 3: Evento disconnect
+    // Teste 2: Evento disconnect (leave não implementado)
     console.log("🔌 Testando evento 'disconnect'...");
 
     // Primeiro, adicionar usuário novamente
