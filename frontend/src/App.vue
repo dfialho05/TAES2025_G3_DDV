@@ -5,8 +5,8 @@
        <RouterLink to="/" class="text-xl"> 🧠 Bisca Game </RouterLink>
 
       <div v-if="authStore.currentUser" class="flex items-center gap-1">
-        <UserAvatar 
-          :user="authStore.currentUser" 
+        <UserAvatar
+          :user="authStore.currentUser"
           class="h-6 w-6 md:h-8 md:w-8 border border-slate-200 dark:border-gray-700 shrink-0"
         />
         <span class="hidden md:inline text-xs font-bold md:text-sm">
@@ -107,87 +107,59 @@
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue' // <--- 1. Importar onMounted e watch
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from '@/components/ui/navigation-menu'
+import { onMounted, watch, ref } from 'vue'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useSocketStore } from '@/stores/socket'
+import UserAvatar from '@/components/UserAvatar.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'vue-sonner'
-import 'vue-sonner/style.css' // Certifica-te que este CSS é necessário aqui ou no main.js
-import { RouterLink, RouterView } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
-import { useSocketStore } from '@/stores/socket' // <--- 2. Importar o Socket Store
-import {ref } from 'vue'
-import UserAvatar from '@/components/UserAvatar.vue'
-
+import {
+  NavigationMenu, NavigationMenuContent, NavigationMenuItem,
+  NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger,
+} from '@/components/ui/navigation-menu'
 
 const authStore = useAuthStore()
-const socketStore = useSocketStore() // <--- 3. Iniciar o Store
+const socketStore = useSocketStore()
 const router = useRouter()
 const THEME_KEY = 'theme'
-// --- LÓGICA DE SOCKETS (NOVO) ---
 
-// 1. Ativa os listeners globais (connect/disconnect) assim que a App monta
+// 1. Tenta ligar ao iniciar
 onMounted(() => {
-  socketStore.handleConnection()
+  const token = localStorage.getItem('token') || authStore.token
+  if (token) {
+    socketStore.handleConnection()
+  }
 })
 
-// 2. Observa o AuthStore. Assim que houver um currentUser (Login ou F5), avisa o servidor
+// 2. Se o token mudar (Login/Logout), reinicia a conexão
 watch(
-  () => authStore.currentUser, // Observamos o currentUser
-  (newUser) => {
-    if (newUser) {
-      console.log(`[App] User autenticado: ${newUser.name}. A conectar ao socket...`)
-      socketStore.emitJoin(newUser)
+  () => authStore.token,
+  (newToken) => {
+    if (newToken) {
+      console.log("[App] Login detetado. A ligar Socket...")
+      socketStore.handleConnection()
+    } else {
+      console.log("[App] Logout. A desligar Socket...")
+      socketStore.disconnect()
     }
-  },
-  { immediate: true } // Executa logo se o user já tiver sido carregado pelo main.js
-) 
-
-// --- DARK MODE ---
-
-const isDark = ref(
-  localStorage.getItem(THEME_KEY) === 'dark' ||
-  (localStorage.getItem(THEME_KEY) === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  }
 )
 
-// aplica a classe no root
+const isDark = ref(localStorage.getItem(THEME_KEY) === 'dark')
 const applyTheme = (v) => document.documentElement.classList.toggle('dark', !!v)
-
-// aplica no mount
-onMounted(() => {
-  applyTheme(isDark.value)
-})
-
-// persiste sempre que muda
+onMounted(() => applyTheme(isDark.value))
 watch(isDark, (v) => {
   applyTheme(v)
   localStorage.setItem(THEME_KEY, v ? 'dark' : 'light')
 })
 
-// --- LÓGICA DE LOGOUT (ATUALIZADA) ---
-
 const logout = async () => {
-  // 3. Avisa o socket que vamos sair ANTES de limpar o token
-  socketStore.emitLeave()
-
+  socketStore.disconnect()
   try {
     await toast.promise(authStore.logout(), {
-      loading: 'Calling API',
-      success: () => {
-        return 'Logout Successful'
-      },
-      error: (data) => `[API] Error logging out - ${data?.response?.data?.message}`,
+      loading: 'A sair...', success: 'Saiu com sucesso', error: 'Erro ao sair'
     })
-  } catch (e) {
-    // Even on error, continue to redirect and clear UI
-    console.warn('Logout flow encountered an error (redirecting anyway):', e)
   } finally {
     router.push('/')
   }

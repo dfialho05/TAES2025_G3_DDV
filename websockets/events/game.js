@@ -1,109 +1,59 @@
-// websockets/events/game.js
 import * as GameState from "../state/game.js"; 
 import * as ConnectionState from "../state/connections.js"; 
 
 export const gameHandlers = (io, socket) => {
+    socket.on("get-games", () => socket.emit("games", GameState.getGames()));
 
-    // =================================================================
-    // 1. ZONA DO LOBBY
-    // =================================================================
-
-    socket.on("get-games", () => {
-        socket.emit("games", GameState.getGames());
-    });
-
-    // [EVENTO: create-game]
-    // Agora aceita 'targetWins' (1 ou 4) vindo do frontend
-    socket.on("create-game", (gameType, mode, targetWins) => {
+    socket.on("create-game", async (gameType, mode, targetWins) => {
         const user = ConnectionState.getUser(socket.id);
         if (!user) return;
 
-        const gameMode = mode || 'singleplayer';
-        
-        // Se não vier nada, assume 1 vitória (jogo rápido)
-        const winsNeeded = targetWins || 1; 
+        const game = await GameState.createGame(gameType, user, mode || 'singleplayer', targetWins || 1); 
 
-        // Passa 'winsNeeded' para o State
-        const game = GameState.createGame(gameType, user, gameMode, winsNeeded); 
-
-        const roomName = `game-${game.id}`;
-        socket.join(roomName);
-
-        console.log(`[Game] ${user.name} criou o jogo ${game.id} (Modo: ${gameMode}, Meta: ${winsNeeded})`);
+        socket.join(`game-${game.id}`);
+        console.log(`[Game] Criado jogo ${game.id} por ${user.name}`);
 
         socket.emit("game-joined", game.getState());
         io.emit("games", GameState.getGames());
     });
 
-    // [EVENTO: join-game]
-    socket.on("join-game", (gameID) => {
-        const user = ConnectionState.getUser(socket.id);
-        if (!user) return;
-
-        const game = GameState.joinGame(gameID, user);
-        
-        if (game) {
-            const roomName = `game-${game.id}`;
-            socket.join(roomName); 
-            
-            console.log(`[Game] ${user.name} entrou no jogo ${game.id}`);
-
-            // [CRUCIAL] Se for Multiplayer, ativa o jogo quando o P2 entra!
-            if (game.mode === 'multiplayer') {
-                game.turn = 'player1'; // Define quem começa
-                game.logs = "Adversário entrou! O jogo começou.";
-            }
-            
-            io.to(roomName).emit("game_state", game.getState()); 
-            io.emit("games", GameState.getGames());
-        }
-    });
-
-    // =================================================================
-    // 2. ZONA DE JOGO
-    // =================================================================
-
     socket.on("play_card", (data) => {
-        const gameID = data.gameID;
-        const cardIndex = data.cardIndex;
-
-        const result = GameState.handlePlayerMove(gameID, cardIndex, socket.id);
-
+        const result = GameState.handlePlayerMove(data.gameID, data.cardIndex, socket.id);
         if (result && result.moveValid) {
             const game = result.game;
-            const roomName = `game-${game.id}`;
-
-            socket.join(roomName);
-
-            io.to(roomName).emit("game_state", game.getState());
-
+            io.to(`game-${game.id}`).emit("game_state", game.getState());
             GameState.advanceGame(game.id, io); 
         }
     });
+    
+    socket.on("join-game", (gid) => { 
+        const user = ConnectionState.getUser(socket.id);
+        const game = GameState.joinGame(gid, user);
+        if(game) {
+            socket.join(`game-${gid}`);
+            io.to(`game-${gid}`).emit("game_state", game.getState());
+        }
+    });
+    
+    socket.on("leave_game", (gid) => { 
+        socket.leave(`game-${gid}`);
+    });
 
-    // =================================================================
-    // 3. ZONA DE SAÍDA
-    // =================================================================
-
-    socket.on("leave_game", (gameID) => {
-        const roomName = `game-${gameID}`;
-        
-        socket.leave(roomName);
-        console.log(`[Game] Socket ${socket.id} saiu da sala ${roomName}`);
-
-        const game = GameState.getGame(gameID);
+    // CORREÇÃO: Reiniciar o loop do jogo quando o utilizador clica em "Próxima Ronda"
+    socket.on("next_round", (gid) => {
+        const game = GameState.getGame(gid);
         if (game) {
-            if (!game.gameOver) {
-                game.gameOver = true;
-                game.logs = "O oponente desistiu do jogo.";
-                
-                io.to(roomName).emit("game_state", game.getState());
-                
-                setTimeout(() => {
-                    GameState.removeGame(gameID);
-                    io.emit("games", GameState.getGames());
-                }, 5000);
-            }
+            // Se o jogo acabou mesmo (campeonato finalizado), não reinicia
+            if (game.gameOver) return; 
+
+            console.log(`[Game] Next Round solicitado para Jogo ${gid}`);
+            game.confirmNextRound(); // Define roundOver = false
+            
+            // 1. Envia estado limpo para o cliente (fecha popup)
+            io.to(`game-${gid}`).emit("game_state", game.getState());
+            
+            // 2. REINICIA O LOOP DO BOT
+            GameState.advanceGame(gid, io);
         }
     });
 };

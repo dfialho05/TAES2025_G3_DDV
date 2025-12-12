@@ -1,172 +1,187 @@
-// websockets/state/game.js
 import { BiscaGame } from "../RegrasJogo/Game.js";
 import { getUser } from "./connections.js"; 
+import * as LaravelAPI from "../services/laravel.js"; 
 
-// Armazém de todos os jogos ativos em memória
 const games = new Map();
+// Mapa para impedir loops duplicados (timers fantasmas)
+const gameTimers = new Map(); 
+
 let currentGameID = 0;
 
-// [FUNÇÃO: createGame]
-// CORREÇÃO: Adicionado 'winsNeeded' (default 1) e passado para o 'new BiscaGame'
-export const createGame = (gameType, user, mode = 'singleplayer', winsNeeded = 1) => {
+export const createGame = async (gameType, user, mode = 'singleplayer', winsNeeded = 1) => {
     currentGameID++;
     const gameID = currentGameID;
+    const userToken = user.token; 
+    const BOT_ID = 9999;
 
-    console.log(`[State] A criar jogo ID ${gameID} (Modo: ${mode}, Meta: ${winsNeeded})`);
+    const targetWins = parseInt(winsNeeded) || 1;
+    const isChampionship = targetWins > 1;
+    const STAKE_VALUE = isChampionship ? 10 : 0;
 
-    // Passamos a meta de vitórias para a Lógica do Jogo
-    const newGame = new BiscaGame(gameType, mode, winsNeeded);
+    console.log(`[State] Configurar Jogo ${gameID}. Target: ${targetWins}. É Campeonato? ${isChampionship}`);
+
+    let dbMatchId = null;
     
+    // Configura Match na BD
+    if (isChampionship && mode === 'singleplayer') {
+        if(userToken) {
+            // AQUI ESTÁ A MUDANÇA: Passamos STAKE_VALUE (10)
+            const match = await LaravelAPI.createMatch(user, null, gameType, STAKE_VALUE, userToken);
+            
+            if(match) {
+                dbMatchId = match.id;
+                console.log(`✅ [DB] Match criada (-10 coins): ID ${dbMatchId}`);
+            } else {
+                // SEGURANÇA CRÍTICA:
+                // Se a API retornar null (ex: utilizador sem saldo suficiente), 
+                // abortamos a criação do jogo imediatamente.
+                console.error(`❌ [State] Falha ao criar Match. Provavelmente saldo insuficiente.`);
+                return null; 
+            }
+        } else {
+            // Se for campeonato mas o user não tiver token (não logado), aborta.
+            console.error(`❌ [State] Tentativa de jogar a dinheiro sem login.`);
+            return null;
+        }
+    }
+
+    const dbCallbacks = {
+        onGameStart: async () => {
+            let gId = null;
+            if (isChampionship && dbMatchId) {
+                gId = await LaravelAPI.createGameForMatch(dbMatchId, user.id, null, userToken);
+                console.log(`   🔸 [DB] Game vinculado a Match ${dbMatchId} criado: ID ${gId}`);
+            } else {
+                gId = await LaravelAPI.createStandaloneGame(user.id, null, gameType, userToken);
+                console.log(`   🔸 [DB] Game Solto (Rápido) criado: ID ${gId}`);
+            }
+            return gId;
+        },
+
+        onGameEnd: async (gameDbId, winnerSide, p1Points, p2Points) => {
+            if (!gameDbId) return;
+            let realWinnerId = null;
+            if (winnerSide === 'player1') realWinnerId = user.id;
+            else if (winnerSide === 'player2') realWinnerId = BOT_ID; 
+            
+            console.log(`   🔹 [DB] A guardar pontos da ronda ${gameDbId}: ${p1Points}-${p2Points}`);
+            await LaravelAPI.finishGame(gameDbId, realWinnerId, p1Points, p2Points, userToken);
+        },
+
+        onMatchEnd: async (winnerSide, p1Marks, p2Marks, p1TotalPoints, p2TotalPoints) => {
+            if (!isChampionship || !dbMatchId) return;
+
+            let realWinnerId = null;
+            if (winnerSide === 'player1') realWinnerId = user.id;
+            else if (winnerSide === 'player2') realWinnerId = BOT_ID;
+
+            console.log(`🏆 [DB] A fechar Match ${dbMatchId}.`); 
+            console.log(`   Resultados: P1(${p1Marks} marks, ${p1TotalPoints} pts) vs Bot(${p2Marks} marks, ${p2TotalPoints} pts)`);
+            
+            await LaravelAPI.finishMatch(
+                dbMatchId, 
+                realWinnerId, 
+                p1Marks, 
+                p2Marks, 
+                p1TotalPoints, 
+                p2TotalPoints, 
+                userToken
+            );
+        }
+    };
+
+    const newGame = new BiscaGame(gameType, mode, targetWins, dbCallbacks);
+    newGame.dbMatchId = dbMatchId;
+    
+    await newGame.startNewMatch(true);
+
     newGame.id = gameID;
     newGame.creator = user.id;
     newGame.player1 = user; 
     newGame.player2 = null;
 
-    // Se for Multiplayer, pausa o jogo até o Player 2 entrar
-    if (mode === 'multiplayer') {
-        newGame.turn = null; 
-        newGame.logs = "À espera de adversário...";
-    }
-
     games.set(gameID, newGame);
     return newGame;
 };
 
-// [FUNÇÃO: joinGame]
-export const joinGame = (gameID, user) => {
-    const game = games.get(gameID);
-    if (!game) return null;
+export const getGames = () => Array.from(games.values()).filter(g => !g.gameOver && !g.player2 && g.mode === 'multiplayer').map(g => ({ id: g.id, creator: g.player1.name }));
+export const getGame = (id) => games.get(id);
 
-    // Se o lugar 2 estiver livre E quem tenta entrar não for o dono (P1)
-    if (!game.player2 && game.player1.id !== user.id) {
-        game.player2 = user;
-        return game;
+export const removeGame = (id) => {
+    // Limpar timer ao remover jogo para evitar erros de memória
+    if (gameTimers.has(id)) {
+        clearTimeout(gameTimers.get(id));
+        gameTimers.delete(id);
     }
+    games.delete(id);
+};
+
+export const joinGame = (id, user) => { 
+    const game = games.get(id);
+    if(game && !game.player2) { game.player2 = user; return game; }
     return null;
 };
 
-// [FUNÇÃO: getGames]
-export const getGames = () => {
-    return Array.from(games.values())
-        .filter(game => !game.gameOver && !game.player2 && game.mode === 'multiplayer')
-        .map(game => ({
-            id: game.id,
-            type: game.player1Hand.length === 3 ? "3 Cartas" : "9 Cartas",
-            creator: game.player1.name, 
-            winsNeeded: game.winsNeeded // Informação útil para o lobby
-        }));
-};
-
-// [FUNÇÃO: getGame]
-export const getGame = (gameID) => {
-    return games.get(gameID);
-};
-
-// [FUNÇÃO: removeGame]
-export const removeGame = (gameID) => {
-    games.delete(gameID);
-    console.log(`🗑️ Jogo ${gameID} removido da memória.`);
-};
-
-// [FUNÇÃO: handlePlayerMove]
 export const handlePlayerMove = (gameID, cardIndex, socketID) => { 
-    console.log(`--- 🏁 INÍCIO JOGADA (Game ${gameID}) ---`);
-    
     const game = games.get(gameID);
-    if (!game) {
-        console.error(`❌ Jogo ${gameID} não encontrado em memória.`);
-        return null;
-    }
-
-    const actingUser = getUser(socketID); 
-    if (!actingUser) {
-        console.error(`❌ Socket ${socketID} não tem User associado.`);
-        return null;
-    }
-
-    console.log(`👤 User a tentar jogar: ${actingUser.name} (ID: ${actingUser.id})`);
-    
+    if (!game) return null;
+    const user = getUser(socketID);
+    if (!user) return null;
     let side = null;
-
-    const p1ID = String(game.player1.id);
-    const actorID = String(actingUser.id);
-    const p2ID = game.player2 ? String(game.player2.id) : null;
-
-    if (p1ID === actorID) { 
-        side = "player1";
-    } 
-    else if (p2ID && p2ID === actorID) {
-        side = "player2";
-    } 
-    
-    if (!side) {
-        console.error(`⛔ BLOQUEADO: O user ${actingUser.name} não pertence a este jogo.`);
-        return null;
-    }
-
-    if (game.tableCards.length >= 2) {
-        console.warn(`⛔ BLOQUEADO: A mesa está cheia (Resolvendo Vaza).`);
-        return { game, moveValid: false };
-    }
-    
-    console.log(`✅ Autorizado como: ${side}. A processar movimento...`);
-
-    const moveValid = game.playCard(side, cardIndex);
-    
-    if (!moveValid) {
-        console.warn(`⚠️ Regras do Jogo bloquearam.`);
-    } else {
-        console.log(`🎉 Sucesso! Carta jogada.`);
-    }
-
-    return { game, moveValid };
+    if (String(game.player1.id) === String(user.id)) side = "player1";
+    else if (game.player2 && String(game.player2.id) === String(user.id)) side = "player2";
+    if(!side || game.tableCards.length >= 2) return { game, moveValid: false };
+    return { game, moveValid: game.playCard(side, cardIndex) };
 };
 
-// [FUNÇÃO: advanceGame]
-export const advanceGame = (gameID, io) => {
-    const game = games.get(gameID);
-    if (!game || game.gameOver) return;
+// --- FUNÇÃO CORRIGIDA DE LOOP DO JOGO ---
+export const advanceGame = (id, io) => {
+    const game = games.get(id);
+    if(!game) return;
 
-    const roomName = `game-${game.id}`;
+    // 1. Limpar timers antigos
+    if (gameTimers.has(id)) {
+        clearTimeout(gameTimers.get(id));
+        gameTimers.delete(id);
+    }
 
-    // CENÁRIO A: Fim da Vaza (2 Cartas na mesa)
-    if (game.tableCards.length >= 2) {
-        
-        const winner = game.resolveRound();
-        
-        // Mostra a 2ª carta
-        io.to(roomName).emit("game_state", game.getState());
+    // 2. Se a ronda acabou ou o jogo acabou, PÁRA O LOOP.
+    if(game.roundOver || game.gameOver) return; 
 
-        // Pausa Dramática (1.5 segundos)
-        setTimeout(() => {
-            if (!games.has(gameID)) return; 
-
-            // Limpa a mesa, distribui cartas E verifica vitória de Sessão
-            game.cleanupRound(winner);
+    const room = `game-${game.id}`;
+    
+    if(game.tableCards.length >= 2) {
+        // Resolver a vaza com delay visual
+        const timer = setTimeout(async () => {
+            if (!games.get(id)) return;
             
-            // Atualiza ecrã (mesa limpa ou Game Over)
-            io.to(roomName).emit("game_state", game.getState());
-
-            // Recursividade
-            advanceGame(gameID, io); 
+            const winner = game.resolveRound();
+            io.to(room).emit('game_state', game.getState());
+            
+            // 3. AWAIT ESSENCIAL: Espera processamento e BD
+            await game.cleanupRound(winner); 
+            
+            // Emite estado atualizado (se roundOver for true, o front mostra popup)
+            io.to(room).emit('game_state', game.getState());
+            
+            // Tenta avançar. Se roundOver=true, o próximo loop cancela-se na linha "if(game.roundOver) return"
+            advanceGame(id, io); 
         }, 1500);
 
-        return; 
-    }
+        gameTimers.set(id, timer);
 
-    // CENÁRIO B: Turno do Bot (Singleplayer)
-    if (!game.player2 && game.turn === 'player2') {
-        
-        const thinkingTime = Math.random() * 1000 + 1000;
-
-        setTimeout(() => {
-            if (!games.has(gameID)) return;
+    } else if (!game.player2 && game.turn === 'player2') {
+        // Turno do Bot
+        const timer = setTimeout(() => {
+            if (!games.get(id)) return;
+            // Verificação extra de segurança
+            if(game.roundOver || game.gameOver) return;
 
             game.playBotCard();
-            
-            io.to(roomName).emit("game_state", game.getState());
+            io.to(room).emit('game_state', game.getState());
+            advanceGame(id, io); 
+        }, 1000);
 
-            advanceGame(gameID, io);
-        }, thinkingTime);
+        gameTimers.set(id, timer);
     }
 };

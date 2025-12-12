@@ -14,57 +14,70 @@ const gameStore = useBiscaStore();
 const deckStore = useDeckStore()
 const socketStore = useSocketStore();
 
+// Extrair refs reativas do Store
 const {
-  playerHand, opponentHandCount: botCardCount, trunfo, tableCards, opponentName, isWaiting,
-  score, logs, currentTurn, isGameOver, cardsLeft, gameID,
-  sessionScore, gameTarget,
-  lastGameAchievement, sessionWinner
+  playerHand,
+  opponentHandCount: botCardCount,
+  trunfo,
+  tableCards,
+  opponentName,
+  isWaiting,
+  score,         // Este valor vai a 0 imediatamente após a ronda acabar
+  logs,
+  currentTurn,
+  cardsLeft,
+  gameID,
+  sessionScore,  // Placar de Vitórias (ex: 2-1)
+  gameTarget,    // Objetivo (ex: 4)
+  popupData      // Dados computados no Store para o Popup (Ronda ou Match)
 } = storeToRefs(gameStore);
 
-const isConnected = computed(() => socketStore.joined);
-
-const gameResultDisplay = computed(() => {
-  if (!isGameOver.value) return null;
-  const isWin = sessionWinner.value === 'victory';
-
-  return {
-    title: isWin ? 'VITÓRIA!' : 'DERROTA',
-    isWin: isWin,
-    achievement: lastGameAchievement.value,
-    finalScore: `${score.value.me} - ${score.value.opponent}`,
-    sessionResult: `${sessionScore.value.me} - ${sessionScore.value.opponent}`
-  };
-});
+const isConnected = computed(() => socketStore.isConnected);
 
 onMounted(async () => {
+  // Garantir conexão
   socketStore.handleConnection();
-  if (deckStore.decks.length === 0) await deckStore.fetchDecks();
-  socketStore.bindGameEvents();
 
+  // Garantir baralhos carregados (imagens)
+  if (deckStore.decks.length === 0) await deckStore.fetchDecks();
+
+  // Iniciar jogo automaticamente se vierem parâmetros na URL
   if (route.query.mode) {
       const cards = parseInt(route.query.mode);
       const targetWins = parseInt(route.query.wins) || 1;
+
+      // Pequeno delay para garantir que o socket conectou
       if (!gameID.value) {
           setTimeout(() => {
               gameStore.startGame(cards, 'singleplayer', targetWins);
-          }, 100);
+          }, 500);
       }
   } else {
-      if (!gameID.value) {
-          router.push('/games/lobby');
-      }
+      // Se não houver ID nem params, volta ao lobby
+      if (!gameID.value) router.push('/games/lobby');
   }
 })
 
+// Monitorizar ID do jogo
 watch(gameID, (newVal) => {
-    if (!newVal) console.log("Jogo terminado.");
+    if (!newVal) console.log("Jogo terminado ou saiu.");
 });
 
+// Limpeza ao sair da página
 onUnmounted(() => {
   if (gameID.value) gameStore.quitGame();
 });
 
+// --- AÇÕES DOS BOTÕES DO POPUP ---
+
+const handleNextRound = () => {
+  // Fecha o popup visualmente.
+  // O jogo já reiniciou internamente no servidor e o tabuleiro já está a 0.
+  gameStore.closeRoundPopup();
+};
+
 const handleRestart = () => {
+  // Reinicia tudo para uma nova Match
   gameStore.startGame(route.query.mode || 3, 'singleplayer', route.query.wins || 1);
 };
 
@@ -79,9 +92,7 @@ const handleExit = () => {
     <div v-if="isWaiting" class="overlay waiting-overlay">
       <div class="waiting-box">
         <div class="spinner">⏳</div>
-        <h2>Sala Criada!</h2>
-        <p>A aguardar entrada do oponente...</p>
-        <div class="room-info">ID: <strong>{{ gameID }}</strong></div>
+        <h2>A preparar Jogo...</h2>
       </div>
     </div>
 
@@ -90,32 +101,42 @@ const handleExit = () => {
     </div>
 
     <Transition name="pop">
-      <div v-if="isGameOver && gameResultDisplay" class="overlay result-overlay">
-        <div class="result-card" :class="{ 'win-card': gameResultDisplay.isWin, 'lose-card': !gameResultDisplay.isWin }">
+      <div v-if="popupData" class="overlay result-overlay">
+        <div class="result-card" :class="{ 'win-card': popupData.isWin, 'lose-card': !popupData.isWin }">
 
           <div class="result-header">
-            <h1>{{ gameResultDisplay.title }}</h1>
-            <div class="stars" v-if="gameResultDisplay.isWin">⭐⭐⭐</div>
+            <h1>{{ popupData.title }}</h1>
+            <div class="stars" v-if="popupData.isWin">⭐⭐⭐</div>
+            <div class="stars" v-else>💔</div>
           </div>
 
           <div class="result-body">
-            <div class="match-score">
-              <p>Placar do Campeonato</p>
-              <div class="big-score">{{ gameResultDisplay.sessionResult }}</div>
+            <div class="match-score" v-if="gameTarget > 1">
+              <p>PLACAR GERAL</p>
+              <div class="big-score">{{ popupData.sessionResult }}</div>
             </div>
-            <hr>
-            <div class="hand-details">
-              <p>Última Rodada: <strong>{{ gameResultDisplay.finalScore }}</strong> pts</p>
 
-              <div v-if="gameResultDisplay.achievement" class="achievement-badge" :class="gameResultDisplay.achievement.toLowerCase().replace(' ', '-')">
-                🏅 {{ gameResultDisplay.achievement }}
+            <hr v-if="gameTarget > 1">
+
+            <div class="hand-details">
+              <p>Pontos desta Mão:</p>
+              <div class="round-points-display">{{ popupData.finalScore }}</div>
+
+              <div v-if="popupData.achievement" class="achievement-badge" :class="popupData.achievement.toLowerCase().replace(' ', '-')">
+                🏅 {{ popupData.achievement }}
               </div>
             </div>
           </div>
 
           <div class="result-actions">
-            <button @click="handleExit" class="btn-secondary">Sair</button>
-            <button @click="handleRestart" class="btn-primary">Jogar Novamente</button>
+            <button v-if="!popupData.isMatchEnd" @click="handleNextRound" class="btn-primary">
+              Próxima Ronda ➜
+            </button>
+
+            <template v-else>
+               <button @click="handleExit" class="btn-secondary">Sair</button>
+               <button @click="handleRestart" class="btn-primary">Jogar Novamente</button>
+            </template>
           </div>
 
         </div>
@@ -124,15 +145,18 @@ const handleExit = () => {
 
     <div class="bot-area">
       <div class="avatar-group">
-        <div class="avatar"> {{ opponentName }}</div>
-        <div class="marks-container">
+        <div class="avatar">🤖 {{ opponentName }}</div>
+
+        <div class="marks-container" v-if="gameTarget > 1">
            <div v-for="n in gameTarget" :key="n" class="mark-dot" :class="{ 'filled': n <= sessionScore.opponent }"></div>
         </div>
       </div>
+
       <div class="bot-hand">
         <Card v-for="n in botCardCount" :key="n" :face-down="true" class="small-card" />
       </div>
-      <div class="score-badge">Pontos Cartas: {{ score.opponent }}</div>
+
+      <div class="score-badge">Pontos: {{ score.opponent }}</div>
     </div>
 
     <div class="table-area">
@@ -149,17 +173,18 @@ const handleExit = () => {
       <TransitionGroup name="table-anim" tag="div" class="played-cards">
         <div v-for="move in tableCards" :key="move.player" class="move-wrapper">
           <Card :card="move.card" />
-          </div>
+        </div>
       </TransitionGroup>
 
-      <div class="game-log" v-if="!isGameOver">{{ logs }}</div>
+      <div class="game-log">{{ logs }}</div>
     </div>
 
     <div class="player-area">
       <div class="player-info-row">
-         <div class="marks-container">
+         <div class="marks-container" v-if="gameTarget > 1">
            <div v-for="n in gameTarget" :key="n" class="mark-dot" :class="{ 'filled': n <= sessionScore.me }"></div>
         </div>
+
         <div class="score-badge" :class="{ 'active-turn': currentTurn === 'user' }">
           Teus Pontos: {{ score.me }}
           <span v-if="currentTurn === 'user'" class="turn-text">(Sua vez!)</span>
@@ -167,8 +192,10 @@ const handleExit = () => {
       </div>
 
       <TransitionGroup name="hand-anim" tag="div" class="player-hand">
-        <Card v-for="(card, index) in playerHand" :key="card.id" :card="card" :interactable="currentTurn === 'user' && tableCards.length < 2"
-          :class="{ 'disabled': currentTurn !== 'user' || tableCards.length >= 2 }" @click="gameStore.playCard(index)" />
+        <Card v-for="(card, index) in playerHand" :key="card.id" :card="card"
+          :interactable="currentTurn === 'user' && tableCards.length < 2"
+          :class="{ 'disabled': currentTurn !== 'user' || tableCards.length >= 2 }"
+          @click="gameStore.playCard(index)" />
       </TransitionGroup>
     </div>
   </div>
@@ -191,7 +218,7 @@ const handleExit = () => {
 }
 
 /* =========================================
-   RESULT SCREEN
+   POPUP DE RESULTADO
    ========================================= */
 .result-overlay { background: rgba(0, 0, 0, 0.9) !important; z-index: 300; }
 .result-card {
@@ -204,23 +231,30 @@ const handleExit = () => {
 .win-card .result-header { background: linear-gradient(135deg, #fbc02d, #f57f17); }
 .lose-card .result-header { background: linear-gradient(135deg, #546e7a, #37474f); }
 .result-header h1 {
-  margin: 0; font-size: 2.2rem; text-transform: uppercase;
+  margin: 0; font-size: 2rem; text-transform: uppercase;
   letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 .result-body { padding: 20px; }
 .big-score {
-  font-size: 3.5rem; font-weight: 800; color: #333;
+  font-size: 3rem; font-weight: 800; color: #333;
   line-height: 1; margin: 10px 0;
 }
 .match-score p {
   margin: 0; text-transform: uppercase; font-size: 0.85rem;
   color: #666; font-weight: bold;
 }
+.hand-details p { font-size: 1rem; margin-top: 10px; color: #555; }
+.round-points-display {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: #2e7d32;
+    margin: 5px 0 15px 0;
+}
 
 /* Badge de Conquistas */
 .achievement-badge {
   display: inline-block; padding: 8px 16px; border-radius: 50px;
-  font-weight: bold; color: white; margin-top: 10px;
+  font-weight: bold; color: white; margin-top: 5px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.2); animation: pulse 2s infinite;
 }
 .achievement-badge.capote { background: #d32f2f; }
@@ -244,6 +278,7 @@ const handleExit = () => {
    UI DO JOGO
    ========================================= */
 .avatar-group, .player-info-row { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.avatar { font-size: 1.2rem; font-weight: bold; text-shadow: 1px 1px 2px black; }
 .marks-container {
   display: flex; gap: 6px; background: rgba(0,0,0,0.3);
   padding: 5px 10px; border-radius: 10px; margin-bottom: 5px;
@@ -267,21 +302,18 @@ const handleExit = () => {
 .player-hand, .bot-hand { display: flex; gap: 5px; justify-content: center; min-height: 100px; }
 .disabled { filter: grayscale(0.6); cursor: not-allowed !important; }
 
-/* ATUALIZADO: Alinhamento das cartas na mesa */
 .played-cards {
   display: flex;
   gap: 40px;
   margin: 20px 0;
   min-height: 120px;
-  align-items: center; /* Centraliza as cartas verticalmente */
+  align-items: center;
 }
 
-/* ATUALIZADO: Removemos o espaço extra do label */
 .move-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* gap: 5px; REMOVIDO */
 }
 
 .deck-pile { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); }

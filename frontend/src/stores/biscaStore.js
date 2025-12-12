@@ -1,4 +1,3 @@
-// stores/biscaStore.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useSocketStore } from './socket'
@@ -6,9 +5,7 @@ import { useSocketStore } from './socket'
 export const useBiscaStore = defineStore('bisca', () => {
   const socketStore = useSocketStore()
 
-  // =========================================
   // 1. ESTADO
-  // =========================================
   const gameID = ref(null)
   const mySide = ref('player1')
   const opponentName = ref('Oponente')
@@ -22,32 +19,29 @@ export const useBiscaStore = defineStore('bisca', () => {
   const cardsLeft = ref(0)
 
   const score = ref({ me: 0, opponent: 0 })
+  const lastRoundScore = ref({ me: 0, opponent: 0 })
+
   const currentTurn = ref(null)
   const sessionScore = ref({ me: 0, opponent: 0 })
   const gameTarget = ref(1)
 
   const isGameOver = ref(false)
+  const isRoundOver = ref(false)
   const logs = ref('À espera de jogo...')
+
   const availableGames = ref([])
 
   const botCardCount = computed(() => opponentHandCount.value)
 
-  // =========================================
   // 2. LÓGICA DE DADOS
-  // =========================================
   const processGameState = (data) => {
       if (gameID.value && data.id && String(data.id) !== String(gameID.value)) return;
       if (data.id) gameID.value = data.id
 
       if (mySide.value === 'player1') {
           playerHand.value = data.player1Hand || []
-          if (data.p2Name === null) {
-              isWaiting.value = true
-              opponentName.value = "Aguardando..."
-          } else {
-              isWaiting.value = false
-              opponentName.value = data.p2Name
-          }
+          opponentName.value = data.p2Name ? data.p2Name : (data.p2Name === null ? "Aguardando..." : "Bot")
+          isWaiting.value = data.p2Name === null
           opponentHandCount.value = (data.player2Hand || []).length || data.botCardCount || 0
       } else {
           isWaiting.value = false
@@ -60,19 +54,27 @@ export const useBiscaStore = defineStore('bisca', () => {
       trunfoNaipe.value = data.trunfoNaipe
       tableCards.value = data.tableCards
       cardsLeft.value = data.cardsLeft
+
       isGameOver.value = data.gameOver
+      isRoundOver.value = data.roundOver
+
       logs.value = data.logs
 
-      const p1 = data.score.player1 || 0
-      const p2 = data.score.player2 || 0
+      // Score
+      const p1Current = data.score.player1 || 0
+      const p2Current = data.score.player2 || 0
+      const p1Last = data.lastRoundPoints?.player1 || 0
+      const p2Last = data.lastRoundPoints?.player2 || 0
       const p1Wins = data.matchWins?.player1 || 0;
       const p2Wins = data.matchWins?.player2 || 0;
 
       if (mySide.value === 'player1') {
-          score.value = { user: p1, bot: p2, me: p1, opponent: p2 }
+          score.value = { me: p1Current, opponent: p2Current }
+          lastRoundScore.value = { me: p1Last, opponent: p2Last }
           sessionScore.value = { me: p1Wins, opponent: p2Wins }
       } else {
-          score.value = { user: p2, bot: p1, me: p2, opponent: p1 }
+          score.value = { me: p2Current, opponent: p1Current }
+          lastRoundScore.value = { me: p2Last, opponent: p1Last }
           sessionScore.value = { me: p2Wins, opponent: p1Wins }
       }
 
@@ -81,113 +83,85 @@ export const useBiscaStore = defineStore('bisca', () => {
       else currentTurn.value = null
   }
 
-  const setAvailableGames = (games) => {
-      availableGames.value = games
-  }
+  // 3. COMPUTEDS
+  const popupData = computed(() => {
+      if (!isGameOver.value && !isRoundOver.value) return null;
 
-  // =========================================
-  // 3. LÓGICA COMPUTADA (CORRIGIDA)
-  // =========================================
+      const pointsMe = lastRoundScore.value.me;
+      const pointsOpp = lastRoundScore.value.opponent;
+      const roundWin = pointsMe > pointsOpp;
+      const matchWin = sessionScore.value.me >= gameTarget.value || (isGameOver.value && sessionScore.value.me > sessionScore.value.opponent);
 
-  const lastGameAchievement = computed(() => {
-     if (!isGameOver.value) return null;
+      let title = '';
+      if (isGameOver.value) {
+          title = matchWin ? 'VITÓRIA DA PARTIDA!' : 'DERROTA NA PARTIDA';
+      } else {
+          title = roundWin ? 'VENCESTE A RONDA!' : 'PERDESTE A RONDA';
+      }
 
-     const myPoints = score.value.me;
-     const oppPoints = score.value.opponent;
+      let achievement = null;
+      if (pointsMe === 120) achievement = 'BANDEIRA';
+      else if (pointsMe >= 91) achievement = 'CAPOTE';
+      else if (pointsMe > 60) achievement = 'RISCA';
+      else if (pointsOpp === 120) achievement = 'SOFREU BANDEIRA';
+      else if (pointsOpp >= 91) achievement = 'LEVOU CAPOTE';
 
-     // 1. Verificações de Vitória
-     if (myPoints === 120) return 'BANDEIRA';
-     if (myPoints >= 91) return 'CAPOTE';
-     if (myPoints > 60) return 'RISCA'; // <--- CORREÇÃO: Adicionada a Risca
-
-     // 2. Verificações de Derrota
-     if (oppPoints === 120) return 'SOFREU BANDEIRA';
-     if (oppPoints >= 91) return 'LEVOU CAPOTE';
-
-     // 3. Empate (Raro na Bisca, mas possível 60-60)
-     if (myPoints === 60 && oppPoints === 60) return 'EMPATE';
-
-     return null;
+      return {
+          title,
+          isWin: isGameOver.value ? matchWin : roundWin,
+          isMatchEnd: isGameOver.value,
+          finalScore: `${pointsMe} - ${pointsOpp}`,
+          sessionResult: `${sessionScore.value.me} - ${sessionScore.value.opponent}`,
+          achievement
+      };
   });
 
-  const sessionWinner = computed(() => {
-     if (sessionScore.value.me >= gameTarget.value) return 'victory';
-     if (sessionScore.value.opponent >= gameTarget.value) return 'defeat';
-     // Se acabou o jogo mas ninguém atingiu o alvo (ex: empate técnico ou desistência), vê quem tem mais
-     if (isGameOver.value) {
-        return sessionScore.value.me > sessionScore.value.opponent ? 'victory' : 'defeat';
-     }
-     return null;
-  });
-
-  // =========================================
   // 4. AÇÕES
-  // =========================================
-
-  const fetchGames = () => { socketStore.emitGetGames() }
-
-  const startGame = (type = 3, mode = 'singleplayer', targetWins = 1) => {
-      // 1. Limpar o ID antigo para não bloquear o novo jogo (A CORREÇÃO PRINCIPAL)
-      gameID.value = null;
-
-      // 2. Limpar visualmente a mesa para dar feedback imediato
-      playerHand.value = [];
-      tableCards.value = [];
-      trunfo.value = null;
-      score.value = { me: 0, opponent: 0 };
-      sessionScore.value = { me: 0, opponent: 0 }; // Reseta as "bolas" pois é um jogo novo
-
-      // 3. Definir estado inicial
-      mySide.value = 'player1'
-      logs.value = "A criar nova sala..."
-      isGameOver.value = false
-      gameTarget.value = targetWins
-
-      // 4. Pedir ao servidor
-      socketStore.emitCreateGame(type, mode, targetWins)
-  }
-
-  const joinGame = (id) => {
-      // Também aqui convém limpar antes de entrar
+  const startGame = (type, mode, wins) => {
       gameID.value = null;
       playerHand.value = [];
       tableCards.value = [];
       score.value = { me: 0, opponent: 0 };
+      sessionScore.value = { me: 0, opponent: 0 };
+      isGameOver.value = false;
+      isRoundOver.value = false;
+      gameTarget.value = parseInt(wins) || 1;
 
-      mySide.value = 'player2'
-      logs.value = "A entrar..."
-      socketStore.emitJoinGame(id)
+      socketStore.emitCreateGame(type, mode, wins);
   }
 
-  const playCard = (index) => {
-    if (currentTurn.value === 'user' && gameID.value) {
-        socketStore.emitPlayCard(gameID.value, index)
-    } else {
-        console.warn("⛔ Não é a tua vez.")
-    }
+  // NOVO: Avisa o servidor para avançar
+  const closeRoundPopup = () => {
+      if(gameID.value) {
+          socketStore.emitNextRound(gameID.value);
+      }
+      isRoundOver.value = false;
   }
 
   const quitGame = () => {
     if (gameID.value) {
         socketStore.emitLeaveGame(gameID.value)
-        // Reset Total
         gameID.value = null
         playerHand.value = []
         tableCards.value = []
-        availableGames.value = []
         score.value = { me: 0, opponent: 0 }
-        sessionScore.value = { me: 0, opponent: 0 }
-        logs.value = 'Saiu do jogo.'
+        isGameOver.value = false
+        isRoundOver.value = false
     }
   }
+
+  const joinGame = (id) => { socketStore.emitJoinGame(id) }
+  const playCard = (index) => { if (currentTurn.value === 'user') socketStore.emitPlayCard(gameID.value, index) }
+  const fetchGames = () => { socketStore.emitGetGames() }
+  const setAvailableGames = (l) => { availableGames.value = l }
 
   return {
     gameID, mySide, playerHand, opponentHandCount, botCardCount, opponentName, isWaiting,
     trunfo, trunfoNaipe, tableCards, score, logs, currentTurn,
-    isGameOver, cardsLeft, availableGames,
+    isGameOver, isRoundOver, cardsLeft, availableGames,
     sessionScore, gameTarget,
-    lastGameAchievement, sessionWinner,
+    popupData,
     processGameState, setAvailableGames,
-    startGame, joinGame, fetchGames, playCard, quitGame
+    startGame, joinGame, fetchGames, playCard, quitGame, closeRoundPopup
   }
 })

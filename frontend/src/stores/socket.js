@@ -1,114 +1,88 @@
-// stores/socket.js
 import { defineStore } from 'pinia'
-import { inject, ref } from 'vue'
+import { ref } from 'vue'
+import { io } from 'socket.io-client'
 import { useAuthStore } from './auth'
-import { useBiscaStore } from './biscaStore' // <--- Conexão inversa (PDF Pág. 5)
+import { useBiscaStore } from './biscaStore'
 
 export const useSocketStore = defineStore('socket', () => {
-  const socket = inject('socket')
+  const socket = ref(null)
+  const isConnected = ref(false)
   const authStore = useAuthStore()
   const biscaStore = useBiscaStore()
-  const joined = ref(false)
 
-  // --- CONEXÃO GERAL ---
-  const handleConnection = () => {
-    socket.on('connect', () => {
-      console.log(`[Socket] Connected -- ${socket.id}`)
+  const SOCKET_URL = 'http://localhost:3000'
+
+  const connect = () => {
+    const token = localStorage.getItem('token') || authStore.token
+
+    if (socket.value) socket.value.disconnect()
+
+    socket.value = io(SOCKET_URL, {
+      auth: { token: token },
+      transports: ['websocket'],
+      reconnection: true,
+      forceNew: true
     })
 
-    socket.on('disconnect', () => {
-      joined.value = false
-      console.log(`[Socket] Disconnected`)
+    setupListeners()
+  }
+
+  const disconnect = () => {
+    if (socket.value) {
+      socket.value.disconnect()
+      socket.value = null
+      isConnected.value = false
+    }
+  }
+
+  const setupListeners = () => {
+    if (!socket.value) return
+
+    socket.value.on('connect', () => {
+      console.log(`✅ [Socket] Conectado! ID: ${socket.value.id}`)
+      isConnected.value = true
+      if (authStore.currentUser) {
+          socket.value.emit('join', authStore.currentUser)
+      }
     })
+
+    socket.value.on('disconnect', () => {
+      console.log(`❌ [Socket] Desconectado`)
+      isConnected.value = false
+    })
+
+    socket.value.on('game-joined', (data) => {
+        biscaStore.processGameState(data)
+    })
+
+    socket.value.on('game_state', (data) => biscaStore.processGameState(data))
+    socket.value.on('games', (list) => biscaStore.setAvailableGames(list))
   }
 
-  const emitJoin = (user) => {
-    if (joined.value) return
-    console.log(`[Socket] Joining Server as ${user.name}`)
-    socket.emit('join', user)
-    joined.value = true
-
-    // Assim que entra, configura os ouvintes do jogo
-    bindGameEvents()
+  // --- AÇÕES ---
+  const emitCreateGame = (type, mode, targetWins) => {
+    socket.value?.emit('create-game', type, mode, targetWins)
   }
-
-  const emitLeave = () => {
-    socket.emit('leave')
-    joined.value = false
-    unbindGameEvents()
-  }
-
-  // --- AÇÕES DE JOGO (Emits) ---
-  // Estas funções correspondem às setas que saem do Cliente no diagrama do PDF [cite: 483, 484, 486]
-
-  const emitGetGames = () => {
-      socket.emit('get-games')
-  }
-
-  const emitCreateGame = (difficulty, mode = 'singleplayer', targetWins = 1) => {
-    console.log(`[Socket] A criar: Tipo=${difficulty}, Modo=${mode}, Wins=${targetWins}`);
-    // Envia os 3 argumentos
-    socket.emit('create-game', difficulty, mode, targetWins)
-  }
-
-  const emitJoinGame = (gameID) => {
-      // O PDF sugere enviar ID do user, mas o socket.id já identifica no servidor.
-      // Se o teu backend pede, podes passar authStore.user.id também.
-      socket.emit('join-game', gameID)
-  }
-
   const emitPlayCard = (gameID, cardIndex) => {
-      socket.emit('play_card', { gameID, cardIndex })
+    socket.value?.emit('play_card', { gameID, cardIndex })
   }
-
   const emitLeaveGame = (gameID) => {
-      console.log(`[Socket] A abandonar o jogo ${gameID}...`)
-      socket.emit('leave_game', gameID)
+    socket.value?.emit('leave_game', gameID)
+  }
+  const emitGetGames = () => socket.value?.emit('get-games')
+  const emitJoinGame = (gameID) => socket.value?.emit('join-game', gameID)
+
+  // NOVO: Função para avançar ronda
+  const emitNextRound = (gameID) => {
+    socket.value?.emit('next_round', gameID)
   }
 
-  // --- OUVINTES (Receção) ---
-  // O PDF sugere centralizar isto [cite: 149, 196]
-
-  const bindGameEvents = () => {
-      // Listener 1: Lista de Jogos
-      socket.off('games') // Garante que não duplica
-      socket.on('games', (gamesList) => {
-          biscaStore.setAvailableGames(gamesList)
-      })
-
-      // Listener 2: Estado do Jogo (O mais importante)
-      socket.off('game_state')
-      socket.on('game_state', (data) => {
-          console.log("🔥 [Socket] Dados recebidos, enviando para BiscaStore...")
-          biscaStore.processGameState(data)
-      })
-
-      // Listener 3: Confirmação de entrada
-      socket.off('game-joined')
-      socket.on('game-joined', (data) => {
-          console.log("[Socket] Entrei/Criei jogo com sucesso.")
-          biscaStore.processGameState(data)
-      })
-  }
-
-  const unbindGameEvents = () => {
-      socket.off('games')
-      socket.off('game_state')
-      socket.off('game-joined')
+  const handleConnection = () => {
+      connect();
   }
 
   return {
-    socket,
-    joined,
-    handleConnection,
-    emitJoin,
-    emitLeave,
-    // Métodos de Jogo
-    emitGetGames,
-    emitCreateGame,
-    emitJoinGame,
-    emitPlayCard,
-    emitLeaveGame,
-    bindGameEvents
+    socket, isConnected, connect, disconnect, handleConnection,
+    emitCreateGame, emitPlayCard, emitLeaveGame, emitGetGames, emitJoinGame, emitNextRound
   }
 })
