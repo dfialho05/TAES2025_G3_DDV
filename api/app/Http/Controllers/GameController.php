@@ -14,8 +14,14 @@ use Illuminate\Http\Request;
 
 class GameController extends Controller
 {
-    public function index() { return GameResource::collection(Game::all()); }
-    public function show(Game $game) { return new GameResource($game); }
+    public function index()
+    {
+        return GameResource::collection(Game::all());
+    }
+    public function show(Game $game)
+    {
+        return new GameResource($game);
+    }
 
     /**
      * CRIAR JOGO SOLTO (Standalone) OU ASSOCIADO
@@ -27,12 +33,15 @@ class GameController extends Controller
             $validated = $request->validated();
 
             // Se for Standalone (sem match_id), garantimos que é NULL
-            if (!isset($validated['match_id'])) {
-                $validated['match_id'] = null;
+            if (!isset($validated["match_id"])) {
+                $validated["match_id"] = null;
             }
 
             // Define timestamps
-            if (isset($validated["status"]) && $validated["status"] === "Playing") {
+            if (
+                isset($validated["status"]) &&
+                $validated["status"] === "Playing"
+            ) {
                 $validated["began_at"] = Carbon::now();
             }
 
@@ -40,13 +49,19 @@ class GameController extends Controller
 
             Log::info("[GameController] Standalone/Linked Game created", [
                 "id" => $game->id,
-                "match_id" => $game->match_id
+                "match_id" => $game->match_id,
             ]);
 
             return response()->json(new GameResource($game), 201);
         } catch (\Exception $e) {
             Log::error("Error creating game: " . $e->getMessage());
-            return response()->json(["message" => "Error creating game", "error" => $e->getMessage()], 500);
+            return response()->json(
+                [
+                    "message" => "Error creating game",
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -54,12 +69,17 @@ class GameController extends Controller
      * CRIAR JOGO DENTRO DE UMA MATCH (Helper específico)
      * Endpoint: POST /api/matches/{id}/games
      */
-    public function createGameForMatch(StoreGameRequest $request, $matchId): JsonResponse {
+    public function createGameForMatch(
+        StoreGameRequest $request,
+        $matchId,
+    ): JsonResponse {
         // ... (Este método mantém-se igual ao que te dei antes, pois é específico para Matches)
         // Apenas para referência, garante que ele existe aqui.
         try {
             $match = Matches::find($matchId);
-            if (!$match) return response()->json(["message" => "Match not found"], 404);
+            if (!$match) {
+                return response()->json(["message" => "Match not found"], 404);
+            }
 
             $validated = $request->validated();
             $validated["match_id"] = $matchId;
@@ -85,7 +105,9 @@ class GameController extends Controller
     {
         try {
             $game = Game::find($id);
-            if (!$game) return response()->json(["message" => "Game not found"], 404);
+            if (!$game) {
+                return response()->json(["message" => "Game not found"], 404);
+            }
 
             $validated = $request->validate([
                 "winner_user_id" => "nullable|integer",
@@ -97,35 +119,43 @@ class GameController extends Controller
             DB::beginTransaction();
 
             $endTime = Carbon::now();
-            $totalTime = $game->began_at ? $endTime->diffInSeconds($game->began_at) : 0;
+            $totalTime = $game->began_at
+                ? $endTime->diffInSeconds($game->began_at)
+                : 0;
 
             // Lógica do Perdedor
             $loserId = null;
-            if ($validated['winner_user_id']) {
-                $loserId = ($validated['winner_user_id'] == $game->player1_user_id)
-                    ? $game->player2_user_id
-                    : $game->player1_user_id;
+            if ($validated["winner_user_id"]) {
+                $loserId =
+                    $validated["winner_user_id"] == $game->player1_user_id
+                        ? $game->player2_user_id
+                        : $game->player1_user_id;
             }
 
             $game->update([
                 "status" => "Ended",
-                "winner_user_id" => $validated['winner_user_id'],
+                "winner_user_id" => $validated["winner_user_id"],
                 "loser_user_id" => $loserId,
-                "player1_points" => $validated['player1_points'],
-                "player2_points" => $validated['player2_points'],
+                "player1_points" => $validated["player1_points"],
+                "player2_points" => $validated["player2_points"],
                 "ended_at" => $endTime,
                 "total_time" => $totalTime,
-                "is_draw" => is_null($validated['winner_user_id'])
+                "is_draw" => is_null($validated["winner_user_id"]),
             ]);
 
             DB::commit();
 
-            return response()->json(["message" => "Game finished", "game" => $game]);
-
+            return response()->json([
+                "message" => "Game finished",
+                "game" => $game,
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error finishGame: " . $e->getMessage());
-            return response()->json(["message" => "Failed to finish game"], 500);
+            return response()->json(
+                ["message" => "Failed to finish game"],
+                500,
+            );
         }
     }
 
