@@ -100,12 +100,21 @@ export const useAPIStore = defineStore('api', () => {
       const response = await axios.get(`${API_BASE_URL}/users/${userId}/games`, {
         params: { page, limit },
       })
-      return response.data
+      // Handle paginated response - extract games from data property
+      return {
+        games: response.data.data || [],
+        pagination: {
+          current_page: response.data.current_page,
+          last_page: response.data.last_page,
+          total: response.data.total,
+          per_page: response.data.per_page,
+        },
+      }
     } catch {
       console.warn('Full games API not available, falling back to recent games')
       // Fallback to existing recent games endpoint if full API doesn't exist
       const response = await axios.get(`${API_BASE_URL}/users/${userId}/games/recent`)
-      return { games: response.data.games || [] }
+      return { games: Array.isArray(response.data) ? response.data : [] }
     }
   }
 
@@ -116,12 +125,21 @@ export const useAPIStore = defineStore('api', () => {
       const response = await axios.get(`${API_BASE_URL}/users/${userId}/matches`, {
         params: { page, limit },
       })
-      return response.data
+      // Handle paginated response - extract matches from data property
+      return {
+        matches: response.data.data || [],
+        pagination: {
+          current_page: response.data.current_page,
+          last_page: response.data.last_page,
+          total: response.data.total,
+          per_page: response.data.per_page,
+        },
+      }
     } catch {
       console.warn('Full matches API not available, falling back to recent matches')
       // Fallback to existing recent matches endpoint if full API doesn't exist
       const response = await axios.get(`${API_BASE_URL}/users/${userId}/matches/recent`)
-      return { matches: response.data.matches || [] }
+      return { matches: Array.isArray(response.data) ? response.data : [] }
     }
   }
 

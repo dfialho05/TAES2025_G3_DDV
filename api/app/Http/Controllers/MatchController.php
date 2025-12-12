@@ -1106,15 +1106,13 @@ class MatchController extends Controller
                 });
 
             return response()->json([
-                "matches" => $processedMatches,
-                "pagination" => [
-                    "current_page" => $matches->currentPage(),
-                    "last_page" => $matches->lastPage(),
-                    "per_page" => $matches->perPage(),
-                    "total" => $matches->total(),
-                    "from" => $matches->firstItem(),
-                    "to" => $matches->lastItem(),
-                ],
+                "data" => $processedMatches,
+                "current_page" => $matches->currentPage(),
+                "last_page" => $matches->lastPage(),
+                "per_page" => $matches->perPage(),
+                "total" => $matches->total(),
+                "from" => $matches->firstItem(),
+                "to" => $matches->lastItem(),
             ]);
         } catch (\Exception $e) {
             Log::error("[MatchController] Error in getAllUserMatches", [
