@@ -13,6 +13,7 @@ export const createGame = async (
   user,
   mode = "singleplayer",
   winsNeeded = 1,
+  isPractice = false,
 ) => {
   currentGameID++;
   const gameID = currentGameID;
@@ -24,13 +25,13 @@ export const createGame = async (
   const STAKE_VALUE = isMatch ? 10 : 0;
 
   console.log(
-    `[State] Configurar Jogo ${gameID}. Target: ${targetWins}. É Campeonato? ${isMatch}`,
+    `[State] Configurar Jogo ${gameID}. Target: ${targetWins}. É Campeonato? ${isMatch}. Practice? ${isPractice}`,
   );
 
   let dbMatchId = null;
 
-  // Configura Match na BD
-  if (isMatch && mode === "singleplayer") {
+  // Configura Match na BD (apenas se não for practice)
+  if (isMatch && mode === "singleplayer" && !isPractice) {
     if (userToken) {
       // AQUI ESTÁ A MUDANÇA: Passamos STAKE_VALUE (10)
       const match = await LaravelAPI.createMatch(
@@ -58,10 +59,18 @@ export const createGame = async (
       console.error(`❌ [State] Tentativa de jogar a dinheiro sem login.`);
       return null;
     }
+  } else if (isPractice) {
+    console.log(`📚 [Practice] Jogo de treino - não será guardado na BD`);
   }
 
   const dbCallbacks = {
     onGameStart: async () => {
+      // Se for practice, não salva na BD
+      if (isPractice) {
+        console.log(`   📚 [Practice] Não criando game na BD (practice mode)`);
+        return null;
+      }
+
       let gId = null;
       if (isMatch && dbMatchId) {
         gId = await LaravelAPI.createGameForMatch(
@@ -86,7 +95,16 @@ export const createGame = async (
     },
 
     onGameEnd: async (gameDbId, winnerSide, p1Points, p2Points) => {
-      if (!gameDbId) return;
+      // Se for practice ou não há gameDbId, não salva na BD
+      if (isPractice || !gameDbId) {
+        if (isPractice) {
+          console.log(
+            `   📚 [Practice] Não guardando resultados da ronda (practice mode)`,
+          );
+        }
+        return;
+      }
+
       let realWinnerId = null;
       if (winnerSide === "player1") realWinnerId = user.id;
       else if (winnerSide === "player2") realWinnerId = BOT_ID;
@@ -110,6 +128,14 @@ export const createGame = async (
       p1TotalPoints,
       p2TotalPoints,
     ) => {
+      // Se for practice, não salva na BD
+      if (isPractice) {
+        console.log(
+          `📚 [Practice] Não guardando resultados da partida (practice mode)`,
+        );
+        return;
+      }
+
       if (!isMatch || !dbMatchId) return;
 
       let realWinnerId = null;
