@@ -7,16 +7,30 @@
   "scripts": {
     "dev": "node --watch index.js",
     "start": "node index.js",
-    "test": "node tests/test-bisca.js",
+    "test": "echo '🧪 EXECUTANDO TODOS OS TESTES FUNCIONAIS DO SISTEMA WEBSOCKET' && echo '========================================================' && npm run test:unit && npm run test:websockets && npm run test:capote && echo '' && echo '🎉 TODOS OS TESTES FUNCIONAIS CONCLUÍDOS! ✅'",
     "test:bot": "node tests/testBot.js",
     "test:integration": "node tests/integration-test.js",
     "test:cards": "node tests/test-card-distribution.js",
     "test:errors": "node tests/test-error-protection.js",
-    "test:quick": "node tests/test-quick.js",
+    "test:quick": "npm run test:connections",
     "test:bot-confirm": "node tests/test-bot-confirmation.js",
-    "test:all": "npm run test && npm run test:cards && npm run test:errors && npm run test:quick"
+    "test:all": "npm run test && npm run test:cards && npm run test:errors && npm run test:quick",
+    "test:connections": "node tests/test-connections.js",
+    "test:game-state": "node tests/test-game-state.js",
+    "test:websockets": "node tests/test-websocket-events.js",
+    "test:bisca-logic": "node tests/test-bisca-game-logic.js",
+    "test:integration-full": "node tests/test-integration.js",
+    "test:capote": "node tests/test-capote-bandeira.js",
+    "test:suite": "node tests/test-suite.js",
+    "test:suite:list": "node tests/test-suite.js --list",
+    "test:suite:coverage": "node tests/test-suite.js --coverage",
+    "test:unit": "npm run test:connections && npm run test:game-state && npm run test:bisca-logic",
+    "test:full": "npm run test:suite",
+    "test:complete": "npm run test && echo '' && echo '📊 EXECUTANDO SUITE COMPLETA (incluindo integração)...' && npm run test:integration-full",
+    "test:help": "echo 'COMANDOS DE TESTE DISPONÍVEIS:' && echo '• npm test                  - Executa todos os testes funcionais' && echo '• npm run test:unit         - Apenas testes unitários básicos' && echo '• npm run test:quick        - Teste rápido (apenas conexões)' && echo '• npm run test:complete     - Todos os testes incluindo integração' && echo '• npm run test:suite        - Suite completa com relatório' && echo '• npm run test:connections  - Testes de conexões' && echo '• npm run test:game-state   - Testes de estado do jogo' && echo '• npm run test:bisca-logic  - Testes da lógica da Bisca' && echo '• npm run test:websockets   - Testes de eventos WebSocket' && echo '• npm run test:capote       - Testes de pontuação especial' && echo '• npm run test:integration-full - Testes de integração'"
   },
   "dependencies": {
+    "axios": "^1.13.2",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

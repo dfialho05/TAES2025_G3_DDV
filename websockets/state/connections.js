@@ -1,7 +1,7 @@
 const users = new Map();
 
-export const addUser = (socket, user) => {
-  users.set(socket.id, user);
+export const addUser = (socketId, user) => {
+  users.set(socketId, user);
 };
 
 export const removeUser = (socketID) => {

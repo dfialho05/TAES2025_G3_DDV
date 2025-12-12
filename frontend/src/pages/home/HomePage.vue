@@ -1,110 +1,130 @@
 <script setup>
-import { ref, onMounted } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-
 import { useRouter } from 'vue-router'
-
 import { useBiscaStore } from '@/stores/biscaStore'
-import { useAPIStore } from '@/stores/api'
-import UserAvatar from '@/components/UserAvatar.vue'
-
-
-const gameStore = useBiscaStore()
-const apiStore = useAPIStore()
 
 const router = useRouter()
+const gameStore = useBiscaStore()
 
-const selectedDifficulty = ref('')
-
-const startGame = (tipo) => {
+// Função unificada para iniciar o jogo
+// cards: 3 ou 9
+// wins: 1 ou 4 (objetivo)
+const startGame = (cards, wins) => {
   router.push({
     name: 'singleplayer',
-    query: { mode: tipo },
+    // Passamos o número de cartas (mode) e o objetivo de vitórias (wins) no URL
+    query: {
+        mode: cards,
+        wins: wins
+    },
   })
 }
 
 const goToLobby = () => {
-  router.push({
-    name: 'Lobby',
-  })
+  router.push({ name: 'Lobby' }) // Confirma se o nome da rota é 'Lobby' ou 'multiplayer-lobby'
 }
+
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row justify-center items-stretch gap-5 mt-10">
-    <Card class="w-full md:max-w-md flex flex-col">
+  <div class="flex flex-col md:flex-row justify-center items-stretch gap-6 mt-10 px-4 mb-10">
+
+    <Card class="w-full md:max-w-lg flex flex-col transition-all hover:shadow-md border-2 border-transparent hover:border-gray-200 dark:hover:border-gray-800">
       <CardHeader>
-        <CardTitle class="text-3xl font-bold text-center"> Single Player </CardTitle>
+        <CardTitle class="text-3xl font-bold text-center flex items-center justify-center gap-2">
+            🤖 Single Player
+        </CardTitle>
         <CardDescription class="text-center">
-          Joga a bisca contra um bot treinado!
+          Escolhe o teu modo de jogo contra o Bot
         </CardDescription>
       </CardHeader>
 
       <CardContent class="space-y-6 flex-1 flex flex-col">
+
         <div class="space-y-2">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <Button
-              v-for="level in gameStore.difficulties"
-              :key="level.value"
-              size="sm"
-              :variant="selectedDifficulty === level.value ? 'default' : 'outline'"
-              class="flex flex-col py-3 h-16 transition-all hover:scale-105"
-              @click="selectedDifficulty = level.value"
-            >
-              <span class="font-semibold">{{ level.label }} </span>
-              <span class="text-xs opacity-70">{{ level.description }}</span>
-            </Button>
-          </div>
+            <h3 class="text-sm font-bold text-green-600 uppercase tracking-wide border-b border-green-100 pb-1">
+                🏆 PARTIDA COMPLETA (Race to 4)
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+                <Button @click="startGame(3, 4)" variant="outline" class="h-auto py-3 border-2 border-green-100 hover:border-green-500 hover:bg-green-50">
+                    <div class="flex flex-col items-center">
+                        <span class="text-lg font-bold text-green-700">Bisca de 3</span>
+                        <span class="text-[10px] text-muted-foreground">Melhor de 4</span>
+                    </div>
+                </Button>
+                <Button @click="startGame(9, 4)" variant="outline" class="h-auto py-3 border-2 border-green-100 hover:border-green-500 hover:bg-green-50">
+                    <div class="flex flex-col items-center">
+                        <span class="text-lg font-bold text-green-700">Bisca de 9</span>
+                        <span class="text-[10px] text-muted-foreground">Melhor de 4</span>
+                    </div>
+                </Button>
+            </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 pt-2">
-          <Button
-            @click="startGame(3)"
-            variant="outline"
-            class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all group"
-          >
-            <span
-              class="text-lg font-bold group-hover:text-green-600 dark:group-hover:text-green-400"
-              >Bisca de 3</span
-            >
-            <span class="text-xs text-muted-foreground font-normal">Modo Clássico</span>
-          </Button>
-
-          <Button
-            @click="startGame(9)"
-            variant="outline"
-            class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all group"
-          >
-            <span
-              class="text-lg font-bold group-hover:text-purple-600 dark:group-hover:text-purple-400"
-              >Bisca de 9</span
-            >
-            <span class="text-xs text-muted-foreground font-normal">Mão Cheia</span>
-          </Button>
+        <div class="space-y-2">
+            <h3 class="text-sm font-bold text-blue-600 uppercase tracking-wide border-b border-blue-100 pb-1">
+                ⚡ Partida Rápida (1 Vitória)
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+                <Button @click="startGame(3, 1)" variant="outline" class="h-auto py-3 border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-50">
+                    <div class="flex flex-col items-center">
+                        <span class="text-lg font-bold text-blue-700">Match 3</span>
+                        <span class="text-[10px] text-muted-foreground">Morte Súbita</span>
+                    </div>
+                </Button>
+                <Button @click="startGame(9, 1)" variant="outline" class="h-auto py-3 border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-50">
+                    <div class="flex flex-col items-center">
+                        <span class="text-lg font-bold text-blue-700">Match 9</span>
+                        <span class="text-[10px] text-muted-foreground">Morte Súbita</span>
+                    </div>
+                </Button>
+            </div>
         </div>
+
+        <div class="space-y-2">
+            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide border-b border-gray-100 pb-1">
+                🎯 Treino
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+                <Button @click="startGame(3, 1)" variant="outline" class="h-auto py-3 border-dashed border-2 hover:bg-gray-100">
+                    <div class="flex flex-col items-center">
+                        <span class="text-md font-semibold text-gray-600">Practice 3</span>
+                    </div>
+                </Button>
+                <Button @click="startGame(9, 1)" variant="outline" class="h-auto py-3 border-dashed border-2 hover:bg-gray-100">
+                    <div class="flex flex-col items-center">
+                        <span class="text-md font-semibold text-gray-600">Practice 9</span>
+                    </div>
+                </Button>
+            </div>
+        </div>
+
       </CardContent>
     </Card>
 
-    <Card
-      class="w-full max-w-md opacity-75 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500"
-    >
+    <Card class="w-full md:max-w-md flex flex-col transition-all hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-800">
       <CardHeader>
-        <CardTitle class="text-3xl font-bold text-center"> MultiPlayer </CardTitle>
-        <CardDescription class="text-center"></CardDescription>
+        <CardTitle class="text-3xl font-bold text-center flex items-center justify-center gap-2">
+            🌍 MultiPlayer
+        </CardTitle>
+        <CardDescription class="text-center">
+            Joga contra pessoas reais
+        </CardDescription>
       </CardHeader>
-      <CardContent class="flex items-center justify-center h-64">
+
+      <CardContent class="flex items-center justify-center flex-1 min-h-[200px]">
         <Button
           @click="goToLobby"
           variant="outline"
-          class="h-auto py-4 flex flex-col gap-1 border-2 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all group"
+          class="w-full h-auto py-8 flex flex-col gap-2 border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all group transform hover:scale-105 shadow-sm"
         >
-          <span
-            class="text-lg font-bold group-hover:text-purple-600 dark:group-hover:text-purple-400"
-            >Lobby</span
-          >
+          <span class="text-3xl">🎮</span>
+          <span class="text-2xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400">Entrar no Lobby</span>
+          <span class="text-sm text-muted-foreground font-normal">Encontrar ou Criar Salas</span>
         </Button>
       </CardContent>
     </Card>
+
   </div>
 </template>

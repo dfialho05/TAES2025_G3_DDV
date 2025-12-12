@@ -1,168 +1,167 @@
-// stores/biscaStore.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useSocketStore } from './socket' // <--- A nossa "Lista de Contactos" para o servidor
+import { useSocketStore } from './socket'
 
 export const useBiscaStore = defineStore('bisca', () => {
-  // Acesso à store de comunicação (para enviarmos ordens)
   const socketStore = useSocketStore()
 
-  // =========================================
-  // 1. ESTADO (A Memória do Jogo)
-  // =========================================
-  const gameID = ref(null)             // Em que sala estou?
-  const mySide = ref('player1')        // Sou o Jogador 1 ou 2?
+  // 1. ESTADO
+  const gameID = ref(null)
+  const mySide = ref('player1')
+  const opponentName = ref('Oponente')
+  const isWaiting = ref(false)
 
-  const opponentName = ref('Oponente')      // Nome do Player 1
-  const isWaiting = ref(false)         // Estou à espera de adversário?
+  const playerHand = ref([])
+  const opponentHandCount = ref(0)
+  const trunfo = ref(null)
+  const trunfoNaipe = ref(null)
+  const tableCards = ref([])
+  const cardsLeft = ref(0)
 
-  const playerHand = ref([])           // As minhas cartas visíveis
-  const opponentHandCount = ref(0)     // Quantas cartas o inimigo tem (não vemos quais são)
+  const score = ref({ me: 0, opponent: 0 })
+  const lastRoundScore = ref({ me: 0, opponent: 0 })
 
-  const trunfo = ref(null)             // Carta do trunfo
-  const trunfoNaipe = ref(null)        // Naipe do trunfo (importante se o trunfo for puxado)
-  const tableCards = ref([])           // Cartas jogadas na mesa
-  const cardsLeft = ref(0)             // Cartas no baralho
-
-  const score = ref({ me: 0, opponent: 0 }) // Pontuação
-  const currentTurn = ref(null)        // De quem é a vez? ('user' ou 'bot')
-
+  const currentTurn = ref(null)
   const sessionScore = ref({ me: 0, opponent: 0 })
+  const gameTarget = ref(1)
 
-  const isGameOver = ref(false)        // O jogo acabou?
-  const logs = ref('À espera de jogo...') // Mensagens de texto (ex: "Player 1 jogou...")
-  const availableGames = ref([])       // Lista de salas do Lobby
+  const isGameOver = ref(false)
+  const isRoundOver = ref(false)
+  const logs = ref('À espera de jogo...')
 
-  // Alias para compatibilidade com o teu template antigo (Singleplayer)
+  const availableGames = ref([])
+
   const botCardCount = computed(() => opponentHandCount.value)
 
-  // =========================================
-  // 2. LÓGICA DE DADOS (O Cérebro)
-  // =========================================
-
-  // Recebe os dados brutos do servidor e organiza nas gavetas certas
+  // 2. LÓGICA DE DADOS
   const processGameState = (data) => {
-      // 🛡️ PROTEÇÃO ANTI-FANTASMA:
-      if (gameID.value && data.id && String(data.id) !== String(gameID.value)) {
-          console.warn("👻 Ignorando dados de jogo antigo/fantasma.")
-          return
-      }
-
-      // Atualiza o ID se for novo
+      if (gameID.value && data.id && String(data.id) !== String(gameID.value)) return;
       if (data.id) gameID.value = data.id
 
-      // A. Gestão de Mãos (Perspetiva)
       if (mySide.value === 'player1') {
           playerHand.value = data.player1Hand || []
-
-          // --- [INICIO ALTERAÇÃO] LÓGICA DE ESPERA ---
-          if (data.p2Name === null) {             // <--- Se o servidor enviar null, a cadeira está vazia
-              isWaiting.value = true              // <--- Ativamos o overlay de espera
-              opponentName.value = "Aguardando..."
-          } else {
-              isWaiting.value = false             // <--- Se vier nome (ou "Bot"), desativamos a espera
-              opponentName.value = data.p2Name    // <--- Usamos o nome real
-          }
-
-          // Se houver Player 2, pegamos o tamanho da mão dele. Se for Bot, idem.
+          opponentName.value = data.p2Name ? data.p2Name : (data.p2Name === null ? "Aguardando..." : "Bot")
+          isWaiting.value = data.p2Name === null
           opponentHandCount.value = (data.player2Hand || []).length || data.botCardCount || 0
       } else {
-          // Sou Player 2
-          isWaiting.value = false                 // <--- [NOVO] Quem entra nunca espera, o jogo começa logo
+          isWaiting.value = false
           opponentName.value = data.p1Name || 'Player 1'
-
           playerHand.value = data.player2Hand || []
           opponentHandCount.value = (data.player1Hand || []).length || 0
       }
 
-      // B. Atualizar Mesa e Regras
       trunfo.value = data.trunfo
       trunfoNaipe.value = data.trunfoNaipe
       tableCards.value = data.tableCards
       cardsLeft.value = data.cardsLeft
+
       isGameOver.value = data.gameOver
+      isRoundOver.value = data.roundOver
+
       logs.value = data.logs
 
-      // C. Pontuação (Mapear Player1/2 para Eu/Oponente)
-      const p1 = data.score.player1 || 0
-      const p2 = data.score.player2 || 0
-
+      // Score
+      const p1Current = data.score.player1 || 0
+      const p2Current = data.score.player2 || 0
+      const p1Last = data.lastRoundPoints?.player1 || 0
+      const p2Last = data.lastRoundPoints?.player2 || 0
       const p1Wins = data.matchWins?.player1 || 0;
       const p2Wins = data.matchWins?.player2 || 0;
 
       if (mySide.value === 'player1') {
-          score.value = { me: p1, opponent: p2 };
-          sessionScore.value = { me: p1Wins, opponent: p2Wins };
+          score.value = { me: p1Current, opponent: p2Current }
+          lastRoundScore.value = { me: p1Last, opponent: p2Last }
+          sessionScore.value = { me: p1Wins, opponent: p2Wins }
       } else {
-          score.value = { me: p2, opponent: p1 };
-          sessionScore.value = { me: p2Wins, opponent: p1Wins };
+          score.value = { me: p2Current, opponent: p1Current }
+          lastRoundScore.value = { me: p2Last, opponent: p1Last }
+          sessionScore.value = { me: p2Wins, opponent: p1Wins }
       }
 
-      // D. De quem é a vez?
       if (data.turn === mySide.value) currentTurn.value = 'user'
       else if (data.turn) currentTurn.value = 'bot'
       else currentTurn.value = null
   }
 
-  // Atualiza a lista do Lobby
-  const setAvailableGames = (games) => {
-      availableGames.value = games
+  // 3. COMPUTEDS
+  const popupData = computed(() => {
+      if (!isGameOver.value && !isRoundOver.value) return null;
+
+      const pointsMe = lastRoundScore.value.me;
+      const pointsOpp = lastRoundScore.value.opponent;
+      const roundWin = pointsMe > pointsOpp;
+      const matchWin = sessionScore.value.me >= gameTarget.value || (isGameOver.value && sessionScore.value.me > sessionScore.value.opponent);
+
+      let title = '';
+      if (isGameOver.value) {
+          title = matchWin ? 'VITÓRIA DA PARTIDA!' : 'DERROTA NA PARTIDA';
+      } else {
+          title = roundWin ? 'VENCESTE A RONDA!' : 'PERDESTE A RONDA';
+      }
+
+      let achievement = null;
+      if (pointsMe === 120) achievement = 'BANDEIRA';
+      else if (pointsMe >= 91) achievement = 'CAPOTE';
+      else if (pointsMe > 60) achievement = 'RISCA';
+      else if (pointsOpp === 120) achievement = 'SOFREU BANDEIRA';
+      else if (pointsOpp >= 91) achievement = 'LEVOU CAPOTE';
+
+      return {
+          title,
+          isWin: isGameOver.value ? matchWin : roundWin,
+          isMatchEnd: isGameOver.value,
+          finalScore: `${pointsMe} - ${pointsOpp}`,
+          sessionResult: `${sessionScore.value.me} - ${sessionScore.value.opponent}`,
+          achievement
+      };
+  });
+
+  // 4. AÇÕES
+  const startGame = (type, mode, wins) => {
+      gameID.value = null;
+      playerHand.value = [];
+      tableCards.value = [];
+      score.value = { me: 0, opponent: 0 };
+      sessionScore.value = { me: 0, opponent: 0 };
+      isGameOver.value = false;
+      isRoundOver.value = false;
+      gameTarget.value = parseInt(wins) || 1;
+
+      socketStore.emitCreateGame(type, mode, wins);
   }
 
-  // =========================================
-  // 3. AÇÕES DO UTILIZADOR (O Comando Remoto)
-  // =========================================
-
-  // Pede a lista de jogos ao servidor
-  const fetchGames = () => {
-      socketStore.emitGetGames()
+  // NOVO: Avisa o servidor para avançar
+  const closeRoundPopup = () => {
+      if(gameID.value) {
+          socketStore.emitNextRound(gameID.value);
+      }
+      isRoundOver.value = false;
   }
 
-  // Cria um jogo novo (Sou Player 1)
-  const startGame = (type = 3, mode = 'singleplayer') => {
-      mySide.value = 'player1'
-      logs.value = "A criar sala..."
-      isGameOver.value = false
-      socketStore.emitCreateGame(type, mode)
-  }
-
-  // Entra num jogo existente (Sou Player 2)
-  const joinGame = (id) => {
-      mySide.value = 'player2'
-      logs.value = "A entrar..."
-      socketStore.emitJoinGame(id)
-  }
-
-  // Joga uma carta
-  const playCard = (index) => {
-  // Garante que currentTurn é 'user' (mapeado no processGameState)
-  if (currentTurn.value === 'user' && gameID.value) {
-      socketStore.emitPlayCard(gameID.value, index);
-  } else {
-      console.warn("⛔ Não é a tua vez. Turno atual:", currentTurn.value);
-  }
-}
-
-  // Sai do jogo (A "Faxina")
   const quitGame = () => {
     if (gameID.value) {
-        // 1. Avisa o servidor para nos tirar da sala
         socketStore.emitLeaveGame(gameID.value)
-
-        // 2. Limpa a memória local
         gameID.value = null
         playerHand.value = []
         tableCards.value = []
-        availableGames.value = []
-        logs.value = 'Saiu do jogo.'
+        score.value = { me: 0, opponent: 0 }
+        isGameOver.value = false
+        isRoundOver.value = false
     }
   }
+
+  const joinGame = (id) => { socketStore.emitJoinGame(id) }
+  const playCard = (index) => { if (currentTurn.value === 'user') socketStore.emitPlayCard(gameID.value, index) }
+  const fetchGames = () => { socketStore.emitGetGames() }
+  const setAvailableGames = (l) => { availableGames.value = l }
 
   return {
     gameID, mySide, playerHand, opponentHandCount, botCardCount, opponentName, isWaiting,
     trunfo, trunfoNaipe, tableCards, score, logs, currentTurn,
-    isGameOver, cardsLeft, availableGames, sessionScore,
+    isGameOver, isRoundOver, cardsLeft, availableGames,
+    sessionScore, gameTarget,
+    popupData,
     processGameState, setAvailableGames,
-    startGame, joinGame, fetchGames, playCard, quitGame
+    startGame, joinGame, fetchGames, playCard, quitGame, closeRoundPopup
   }
 })

@@ -5,6 +5,9 @@ import { useAPIStore } from './api'
 export const useAuthStore = defineStore('auth', () => {
   const apiStore = useAPIStore()
 
+  // 1. Variável reativa para o token (lê do sítio certo: sessionStorage 'apiToken')
+  const token = ref(sessionStorage.getItem('apiToken'))
+
   const currentUser = ref(undefined)
   const initialized = ref(false)
   let initPromise = Promise.resolve()
@@ -15,82 +18,72 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (credentials) => {
     await apiStore.postLogin(credentials)
+
+    // 2. Atualizar o token reativo após login com sucesso
+    token.value = sessionStorage.getItem('apiToken')
+
     await getUser()
   }
 
   const logout = async () => {
-    // postLogout limpa sessionStorage (no api store) mesmo que a chamada ao servidor falhe
     await apiStore.postLogout()
     currentUser.value = undefined
 
-    // Emit logout event to other tabs/windows (storage events only fire on other tabs)
+    // 3. Limpar token reativo
+    token.value = null
+
     try {
       localStorage.setItem('logout', Date.now().toString())
-    } catch (e) {
-      // ignore storage errors
-    }
+    } catch (e) { }
   }
 
   const getUser = async () => {
     const response = await apiStore.getAuthUser()
-    // Handle UserResource format: response.data.data contains the actual user data
     currentUser.value = response.data.data || response.data
   }
 
   const register = async (payload) => {
     const response = await apiStore.postRegister(payload)
-
     if (response?.data?.user) {
-      // Handle UserResource format: response.data.user.data contains the actual user data
       currentUser.value = response.data.user.data || response.data.user
+      // Atualizar token também no registo se o backend o devolver logo
+      token.value = sessionStorage.getItem('apiToken')
     } else {
       await getUser()
     }
-
     return response
   }
 
-  // NEW: centraliza deleteAccount no auth store, delegando para apiStore
   const deleteAccount = async (current_password) => {
-    // chama o endpoint que faz soft-delete no backend
     const response = await apiStore.postDeleteAccount(current_password)
-
-    // após apagar, tenta efetuar logout localmente;
-    // se o logout falhar com 401 (token já revogado) ignora, senão propaga.
     try {
       await logout()
     } catch (err) {
       const status = err?.response?.status
-      if (status === 401) {
-        console.warn('Logout retornou 401 após remoção de conta — ignorando.')
-      } else {
-        throw err
-      }
+      if (status === 401) console.warn('Ignorando 401 no logout')
+      else throw err
     }
-
     return response
   }
 
-  // init: tenta repor sessão a partir do token em sessionStorage (se existir)
-  // e marca initialized=true quando terminar (sucesso ou falha).
   const init = async () => {
     if (initialized.value) return
     if (initPromise) return initPromise
 
     initPromise = (async () => {
       const SESSION_TOKEN_KEY = 'apiToken'
-      const token = sessionStorage.getItem(SESSION_TOKEN_KEY)
-      if (token) {
+      const storedToken = sessionStorage.getItem(SESSION_TOKEN_KEY)
+
+      // Sincronizar estado inicial
+      if (storedToken) token.value = storedToken;
+
+      if (storedToken) {
         try {
           await getUser()
         } catch (e) {
-          // token inválido / expirado -> limpa sessão local
-          try {
-            await apiStore.postLogout()
-          } catch (e) {
-            // ignore
-          }
+          try { await apiStore.postLogout() } catch (e) {}
           currentUser.value = undefined
+          token.value = null
         }
       }
       initialized.value = true
@@ -100,22 +93,18 @@ export const useAuthStore = defineStore('auth', () => {
     return initPromise
   }
 
-  // Método para atualizar o usuário atual garantindo reatividade
   const updateUser = (updates) => {
     if (currentUser.value) {
-      // Cria um novo objeto para garantir reatividade
       currentUser.value = { ...currentUser.value, ...updates }
     }
   }
 
-  // Método para atualizar saldo de coins especificamente
   const updateCoinsBalance = (newBalance) => {
     if (currentUser.value) {
       currentUser.value = { ...currentUser.value, coins_balance: newBalance }
     }
   }
 
-  // Método para atualizar dados personalizados (como decks)
   const updateCustomData = (customUpdates) => {
     if (currentUser.value) {
       const newCustom = { ...currentUser.value.custom, ...customUpdates }
@@ -123,19 +112,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Método para refrescar dados do usuário do servidor
   const refreshUser = async () => {
     if (currentUser.value) {
-      try {
-        await getUser()
-      } catch (err) {
-        console.error('Erro ao refrescar dados do usuário:', err)
-        throw err
-      }
+      try { await getUser() } catch (err) { throw err }
     }
   }
 
   return {
+    token, // <--- IMPORTANTE: Exportar o token para o socket usar
     currentUser,
     isLoggedIn,
     initialized,
