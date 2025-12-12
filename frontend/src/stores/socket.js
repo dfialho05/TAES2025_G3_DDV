@@ -12,8 +12,8 @@ export const useSocketStore = defineStore('socket', () => {
 
   const SOCKET_URL = 'http://localhost:3000'
 
-  const connect = () => {
-    const token = localStorage.getItem('token') || authStore.token
+  const connect = (allowAnonymous = false) => {
+    const token = allowAnonymous ? null : localStorage.getItem('token') || authStore.token
 
     if (socket.value) socket.value.disconnect()
 
@@ -21,7 +21,7 @@ export const useSocketStore = defineStore('socket', () => {
       auth: { token: token },
       transports: ['websocket'],
       reconnection: true,
-      forceNew: true
+      forceNew: true,
     })
 
     setupListeners()
@@ -42,8 +42,9 @@ export const useSocketStore = defineStore('socket', () => {
       console.log(`✅ [Socket] Conectado! ID: ${socket.value.id}`)
       isConnected.value = true
       if (authStore.currentUser) {
-          socket.value.emit('join', authStore.currentUser)
+        socket.value.emit('join', authStore.currentUser)
       }
+      // Para usuários anônimos (practice mode), o servidor já cria o usuário automaticamente
     })
 
     socket.value.on('disconnect', () => {
@@ -52,7 +53,7 @@ export const useSocketStore = defineStore('socket', () => {
     })
 
     socket.value.on('game-joined', (data) => {
-        biscaStore.processGameState(data)
+      biscaStore.processGameState(data)
     })
 
     socket.value.on('game_state', (data) => biscaStore.processGameState(data))
@@ -60,8 +61,8 @@ export const useSocketStore = defineStore('socket', () => {
   }
 
   // --- AÇÕES ---
-  const emitCreateGame = (type, mode, targetWins) => {
-    socket.value?.emit('create-game', type, mode, targetWins)
+  const emitCreateGame = (type, mode, targetWins, isPractice = false) => {
+    socket.value?.emit('create-game', type, mode, targetWins, isPractice)
   }
   const emitPlayCard = (gameID, cardIndex) => {
     socket.value?.emit('play_card', { gameID, cardIndex })
@@ -77,12 +78,21 @@ export const useSocketStore = defineStore('socket', () => {
     socket.value?.emit('next_round', gameID)
   }
 
-  const handleConnection = () => {
-      connect();
+  const handleConnection = (allowAnonymous = false) => {
+    connect(allowAnonymous)
   }
 
   return {
-    socket, isConnected, connect, disconnect, handleConnection,
-    emitCreateGame, emitPlayCard, emitLeaveGame, emitGetGames, emitJoinGame, emitNextRound
+    socket,
+    isConnected,
+    connect,
+    disconnect,
+    handleConnection,
+    emitCreateGame,
+    emitPlayCard,
+    emitLeaveGame,
+    emitGetGames,
+    emitJoinGame,
+    emitNextRound,
   }
 })
