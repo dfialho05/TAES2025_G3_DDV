@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Script para criar variações visuais nos decks usando ImageMagick
+# Apenas funciona em sistemas Linux com ImageMagick instalado
 # Este script cria diferentes temas para os decks aplicando filtros de cor
 
 # Verificar se ImageMagick está instalado
