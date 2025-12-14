@@ -285,6 +285,10 @@ class UsersSeeder extends Seeder
             "updated_at" => $createdDate,
             "blocked" => false,
             "photo_avatar_filename" => null,
+            // BOT gets unlimited coins - this balance is protected by:
+            // 1. Database triggers (maintain_bot_balance & set_bot_initial_balance)
+            // 2. Model Observer (UserObserver)
+            // 3. Model Mutator (setCoinsBalanceAttribute)
             "coins_balance" => 999999999999,
             "deleted_at" => null,
             "remember_token" => null,
@@ -292,6 +296,8 @@ class UsersSeeder extends Seeder
         ];
 
         DB::table("users")->insert($botUser);
-        $this->command->line("BOT user created with ID 9999");
+        $this->command->line(
+            "BOT user created with ID 9999 - Balance protected at system level",
+        );
     }
 }

@@ -90,4 +90,24 @@ class User extends Authenticatable
     //         $this->id,
     //     );
     // }
+
+    /**
+     * Ensure BOT user always maintains maximum coin balance
+     */
+    public function setCoinsBalanceAttribute($value)
+    {
+        if ($this->id === 9999 && $this->nickname === "BOT") {
+            $this->attributes["coins_balance"] = 999999999999;
+        } else {
+            $this->attributes["coins_balance"] = $value;
+        }
+    }
+
+    /**
+     * Check if this user is the BOT
+     */
+    public function isBot(): bool
+    {
+        return $this->id === 9999 && $this->nickname === "BOT";
+    }
 }
