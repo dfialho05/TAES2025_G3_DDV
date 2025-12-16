@@ -96,7 +96,7 @@ class User extends Authenticatable
      */
     public function setCoinsBalanceAttribute($value)
     {
-        if ($this->id === 9999 && $this->nickname === "BOT") {
+        if ($this->id === 0 && $this->nickname === "BOT") {
             $this->attributes["coins_balance"] = 999999999999;
         } else {
             $this->attributes["coins_balance"] = $value;
@@ -108,6 +108,6 @@ class User extends Authenticatable
      */
     public function isBot(): bool
     {
-        return $this->id === 9999 && $this->nickname === "BOT";
+        return $this->id === 0 && $this->nickname === "BOT";
     }
 }

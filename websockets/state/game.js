@@ -18,7 +18,7 @@ export const createGame = async (
   currentGameID++;
   const gameID = currentGameID;
   const userToken = user.token;
-  const BOT_ID = 9999;
+  const BOT_ID = 0;
 
   const targetWins = parseInt(winsNeeded) || 1;
   const isMatch = targetWins > 1;

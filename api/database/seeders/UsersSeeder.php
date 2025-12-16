@@ -274,7 +274,7 @@ class UsersSeeder extends Seeder
         $createdDate = DatabaseSeeder::$startDate->copy()->subDays(365);
 
         $botUser = [
-            "id" => 9999,
+            "id" => 0,
             "type" => "A",
             "name" => "BOT",
             "email" => "bot@mail.pt",
@@ -297,7 +297,7 @@ class UsersSeeder extends Seeder
 
         DB::table("users")->insert($botUser);
         $this->command->line(
-            "BOT user created with ID 9999 - Balance protected at system level",
+            "BOT user created with ID 0 - Balance protected at system level",
         );
     }
 }

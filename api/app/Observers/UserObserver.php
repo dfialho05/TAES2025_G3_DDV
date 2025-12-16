@@ -57,8 +57,8 @@ class UserObserver
     /**
      * Check if the user is the BOT user
      */
-    private function isBotUser(User $user): bool
+    private function isBotUser($user): bool
     {
-        return $user->id === 9999 && $user->nickname === "BOT";
+        return $user->id === 0 && $user->nickname === "BOT";
     }
 }

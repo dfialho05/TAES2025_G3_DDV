@@ -20,7 +20,7 @@ return new class extends Migration {
                 BEFORE UPDATE ON users
                 FOR EACH ROW
                 BEGIN
-                    IF NEW.id = 9999 AND NEW.nickname = "BOT" THEN
+                    IF NEW.id = 0 AND NEW.nickname = "BOT" THEN
                         SET NEW.coins_balance = 999999999999;
                     END IF;
                 END
@@ -31,7 +31,7 @@ return new class extends Migration {
                 BEFORE INSERT ON users
                 FOR EACH ROW
                 BEGIN
-                    IF NEW.id = 9999 AND NEW.nickname = "BOT" THEN
+                    IF NEW.id = 0 AND NEW.nickname = "BOT" THEN
                         SET NEW.coins_balance = 999999999999;
                     END IF;
                 END
@@ -42,7 +42,7 @@ return new class extends Migration {
                 CREATE TRIGGER maintain_bot_balance
                 BEFORE UPDATE ON users
                 FOR EACH ROW
-                WHEN NEW.id = 9999 AND NEW.nickname = "BOT"
+                WHEN NEW.id = 0 AND NEW.nickname = "BOT"
                 BEGIN
                     UPDATE users SET coins_balance = 999999999999 WHERE id = NEW.id;
                 END
@@ -52,7 +52,7 @@ return new class extends Migration {
                 CREATE TRIGGER set_bot_initial_balance
                 BEFORE INSERT ON users
                 FOR EACH ROW
-                WHEN NEW.id = 9999 AND NEW.nickname = "BOT"
+                WHEN NEW.id = 0 AND NEW.nickname = "BOT"
                 BEGIN
                     UPDATE users SET coins_balance = 999999999999 WHERE id = NEW.id;
                 END
