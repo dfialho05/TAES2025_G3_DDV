@@ -6,6 +6,7 @@ use App\Models\Matches; // Atenção ao nome do teu Model (Match ou Matches)
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class StatisticsController extends Controller
 {
@@ -53,6 +54,49 @@ class StatisticsController extends Controller
             $gameWinRate = ($gameWins / $totalGames) * 100;
         }
 
+        // 7. Calcular Capotes (vitórias com 91-119 pontos)
+        $capotes = Game::where("winner_user_id", $id)
+            ->where("status", "Ended")
+            ->where(
+                DB::raw(
+                    "CASE
+                    WHEN player1_user_id = {$id} THEN player1_points
+                    WHEN player2_user_id = {$id} THEN player2_points
+                    ELSE 0
+                END",
+                ),
+                ">=",
+                91,
+            )
+            ->where(
+                DB::raw(
+                    "CASE
+                    WHEN player1_user_id = {$id} THEN player1_points
+                    WHEN player2_user_id = {$id} THEN player2_points
+                    ELSE 0
+                END",
+                ),
+                "<=",
+                119,
+            )
+            ->count();
+
+        // 8. Calcular Bandeiras (vitórias com 120+ pontos)
+        $bandeiras = Game::where("winner_user_id", $id)
+            ->where("status", "Ended")
+            ->where(
+                DB::raw(
+                    "CASE
+                    WHEN player1_user_id = {$id} THEN player1_points
+                    WHEN player2_user_id = {$id} THEN player2_points
+                    ELSE 0
+                END",
+                ),
+                ">=",
+                120,
+            )
+            ->count();
+
         // Para compatibilidade com o frontend existente, usar game wins como total_wins
         // Isto fará com que as vitórias mostradas sejam consistentes com o que o user vê na lista
         return response()->json([
@@ -66,6 +110,10 @@ class StatisticsController extends Controller
             "total_games" => $totalGames,
             "game_wins" => $gameWins,
             "game_win_rate" => round($gameWinRate, 1),
+
+            // Estatísticas de capotes e bandeiras
+            "capotes" => $capotes,
+            "bandeiras" => $bandeiras,
         ]);
     }
 }

@@ -401,6 +401,49 @@ class GameController extends Controller
                 ),
             );
 
+            // Capotes (wins with 91-119 points)
+            $capotes = (clone $baseQuery)
+                ->where("winner_user_id", $id)
+                ->where(
+                    DB::raw(
+                        "CASE
+                        WHEN player1_user_id = {$id} THEN player1_points
+                        WHEN player2_user_id = {$id} THEN player2_points
+                        ELSE 0
+                    END",
+                    ),
+                    ">=",
+                    91,
+                )
+                ->where(
+                    DB::raw(
+                        "CASE
+                        WHEN player1_user_id = {$id} THEN player1_points
+                        WHEN player2_user_id = {$id} THEN player2_points
+                        ELSE 0
+                    END",
+                    ),
+                    "<=",
+                    119,
+                )
+                ->count();
+
+            // Bandeiras (wins with 120+ points)
+            $bandeiras = (clone $baseQuery)
+                ->where("winner_user_id", $id)
+                ->where(
+                    DB::raw(
+                        "CASE
+                        WHEN player1_user_id = {$id} THEN player1_points
+                        WHEN player2_user_id = {$id} THEN player2_points
+                        ELSE 0
+                    END",
+                    ),
+                    ">=",
+                    120,
+                )
+                ->count();
+
             // Tempo total de jogo (em segundos)
             $totalTime = $baseQuery->sum("total_time") ?? 0;
 
@@ -427,6 +470,8 @@ class GameController extends Controller
                 "average_time_per_game" =>
                     $totalGames > 0 ? round($totalTime / $totalGames, 2) : 0,
                 "last_activity" => $lastActivity,
+                "capotes" => $capotes,
+                "bandeiras" => $bandeiras,
             ];
 
             Log::info("[GameController] User stats calculated", [

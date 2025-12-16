@@ -62,7 +62,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div
           class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
         >
@@ -164,6 +164,77 @@
             <p v-else class="text-2xl font-bold text-amber-600">
               {{ statisticsStore.stats.win_rate }}%
             </p>
+          </div>
+        </div>
+
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
+        >
+          <div class="p-3 bg-purple-50 text-purple-600 rounded-lg">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="8" r="5" />
+              <path d="M12 2v6" />
+              <path d="m15.4 5.4 3 3" />
+              <path d="M21 12h-6" />
+              <path d="m15.4 18.6 3-3" />
+              <path d="M12 22v-6" />
+              <path d="m8.6 18.6-3-3" />
+              <path d="M3 12h6" />
+              <path d="m8.6 5.4-3 3" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Capotes</p>
+            <div
+              v-if="statisticsStore.isLoading"
+              class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+            ></div>
+            <p v-else class="text-2xl font-bold text-purple-600">
+              {{ statisticsStore.stats.capotes || 0 }}
+            </p>
+            <p class="text-xs text-slate-400 mt-1">91-119 pontos</p>
+          </div>
+        </div>
+
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
+        >
+          <div class="p-3 bg-red-50 text-red-600 rounded-lg">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+              <line x1="4" x2="4" y1="22" y2="15" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Bandeiras</p>
+            <div
+              v-if="statisticsStore.isLoading"
+              class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+            ></div>
+            <p v-else class="text-2xl font-bold text-red-600">
+              {{ statisticsStore.stats.bandeiras || 0 }}
+            </p>
+            <p class="text-xs text-slate-400 mt-1">120+ pontos</p>
           </div>
         </div>
       </div>
