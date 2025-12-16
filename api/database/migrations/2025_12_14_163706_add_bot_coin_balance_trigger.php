@@ -11,29 +11,53 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        // Create trigger to maintain BOT's coin balance at a constant value
-        DB::unprepared('
-            CREATE TRIGGER maintain_bot_balance
-            BEFORE UPDATE ON users
-            FOR EACH ROW
-            BEGIN
-                IF NEW.id = 9999 AND NEW.nickname = "BOT" THEN
-                    SET NEW.coins_balance = 999999999999;
-                END IF;
-            END
-        ');
+        $driver = DB::connection()->getDriverName();
 
-        // Also create an INSERT trigger to ensure BOT starts with correct balance
-        DB::unprepared('
-            CREATE TRIGGER set_bot_initial_balance
-            BEFORE INSERT ON users
-            FOR EACH ROW
-            BEGIN
-                IF NEW.id = 9999 AND NEW.nickname = "BOT" THEN
-                    SET NEW.coins_balance = 999999999999;
-                END IF;
-            END
-        ');
+        if ($driver === "mysql") {
+            // MySQL triggers
+            DB::unprepared('
+                CREATE TRIGGER maintain_bot_balance
+                BEFORE UPDATE ON users
+                FOR EACH ROW
+                BEGIN
+                    IF NEW.id = 9999 AND NEW.nickname = "BOT" THEN
+                        SET NEW.coins_balance = 999999999999;
+                    END IF;
+                END
+            ');
+
+            DB::unprepared('
+                CREATE TRIGGER set_bot_initial_balance
+                BEFORE INSERT ON users
+                FOR EACH ROW
+                BEGIN
+                    IF NEW.id = 9999 AND NEW.nickname = "BOT" THEN
+                        SET NEW.coins_balance = 999999999999;
+                    END IF;
+                END
+            ');
+        } elseif ($driver === "sqlite") {
+            // SQLite triggers
+            DB::unprepared('
+                CREATE TRIGGER maintain_bot_balance
+                BEFORE UPDATE ON users
+                FOR EACH ROW
+                WHEN NEW.id = 9999 AND NEW.nickname = "BOT"
+                BEGIN
+                    UPDATE users SET coins_balance = 999999999999 WHERE id = NEW.id;
+                END
+            ');
+
+            DB::unprepared('
+                CREATE TRIGGER set_bot_initial_balance
+                BEFORE INSERT ON users
+                FOR EACH ROW
+                WHEN NEW.id = 9999 AND NEW.nickname = "BOT"
+                BEGIN
+                    UPDATE users SET coins_balance = 999999999999 WHERE id = NEW.id;
+                END
+            ');
+        }
     }
 
     /**
