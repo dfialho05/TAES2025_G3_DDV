@@ -86,6 +86,15 @@
               </NavigationMenuLink>
 
               <NavigationMenuLink as-child>
+                <Router-link 
+                    v-if="authStore.currentUser?.type === 'A'" 
+                    to="/admin"
+                  >
+                    Admin Painel
+                </Router-link>
+              </NavigationMenuLink>
+
+              <NavigationMenuLink as-child>
                 <RouterLink to="/themes">My Themes</RouterLink>
               </NavigationMenuLink>
 

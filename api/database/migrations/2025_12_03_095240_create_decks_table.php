@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');         // Ex: "Fogo Infernal"
             $table->string('slug');         // CRUCIAL: Nome da pasta em /src/assets/cards/ (ex: "fire")
             $table->integer('price');       // Preço em Brain Coins
-            $table->boolean('active')->default(true); // Para desativar baralhos se necessário
+            $table->boolean('active')->default(false); // Para desativar baralhos se necessário
             $table->timestamps();
         });
     }

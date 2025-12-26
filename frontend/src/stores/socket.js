@@ -82,6 +82,14 @@ export const useSocketStore = defineStore('socket', () => {
     connect(allowAnonymous)
   }
 
+  const emitEcho = (message) => {
+    if (socket.value) {
+        socket.value.emit('echo', message)
+    } else {
+        console.warn('⚠️ Tentativa de enviar Echo sem conexão socket')
+    }
+  }
+
   return {
     socket,
     isConnected,
@@ -94,5 +102,6 @@ export const useSocketStore = defineStore('socket', () => {
     emitGetGames,
     emitJoinGame,
     emitNextRound,
+    emitEcho,
   }
 })

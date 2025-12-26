@@ -16,6 +16,10 @@ export const useAuthStore = defineStore('auth', () => {
     return currentUser.value !== undefined
   })
 
+  const isAdmin = computed(() => {
+    return currentUser.value?.type === 'A'
+  })
+
   const login = async (credentials) => {
     await apiStore.postLogin(credentials)
 
@@ -122,6 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
     token, // <--- IMPORTANTE: Exportar o token para o socket usar
     currentUser,
     isLoggedIn,
+    isAdmin,
     initialized,
     init,
     login,

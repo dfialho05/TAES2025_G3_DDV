@@ -13,6 +13,7 @@ use App\Http\Controllers\StoreController;
 use App\Http\Controllers\MatchController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -290,13 +291,19 @@ Route::get("/avatars-test/{filename}", [
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(["auth:sanctum", "admin"])->group(function () {
+Route::middleware(["auth:sanctum", "admin"])->prefix('admin')->group(function () {
     // Platform-wide match management (Admin only)
     Route::get("/matches", [MatchController::class, "index"]);
     Route::delete("/matches/{id}", [MatchController::class, "destroy"]);
 
-    // Platform statistics and monitoring could go here
-    // Route::get("/admin/stats", [AdminController::class, "platformStats"]);
+    // Platform statistics and monitoring
+    Route::get("/stats", [AdminController::class, "getStatistics"]);
+
+    // Store administration
+    Route::get('/decks', [AdminController::class, 'getDecks']);
+    Route::post('/decks', [AdminController::class, 'storeDeck']);
+    Route::patch('/decks/{id}', [AdminController::class, 'toggleDeck']);
+    Route::delete('/decks/{id}', [AdminController::class, 'deleteDeck']);
 });
 
 /*
