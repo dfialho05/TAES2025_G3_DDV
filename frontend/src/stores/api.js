@@ -109,6 +109,17 @@ const postUser = (payload) => {
   return post('/admin/users', payload)  // já tens o 'post' genérico
 }
 
+//userdetails transaction
+const getUserById = async (id) => {
+  // Garantir que usa /admin/ para bater na rota protegida
+  return axios.get(`${API_BASE_URL}/admin/users/${id}`)
+}
+
+const getUserTransactions = async (id) => {
+  // Esta rota agora existe no PHP (passo anterior)
+  return axios.get(`${API_BASE_URL}/admin/users/${id}/transactions`)
+}
+
 
   // --- GAMES (Correção do erro "apiStore.getGames is not a function") ---
   const getGames = async () => {
@@ -207,6 +218,8 @@ const postUser = (payload) => {
      postUser,        // criar usuário
     deleteUser,      // remover usuário
     toggleBlockUser, // bloquear/desbloquear usuário
-    deactivateUser, 
+    deactivateUser,
+    getUserById,
+    getUserTransactions, 
   }
 })

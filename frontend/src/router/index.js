@@ -130,7 +130,13 @@ const router = createRouter({
       requiresAuth: true,
       requiresAdmin: true,
     },
-},
+    },
+    {
+  path: '/admin/users/:id',
+  name: 'user-details',
+  component: () => import('@/pages/admin/UserDetails.vue'),
+  props: true // Isto permite que o :id seja passado como prop para o componente
+}
 
   ],
 })

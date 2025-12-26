@@ -135,7 +135,14 @@ onMounted(() => fetchAllUsers())
             <tbody>
               <tr v-for="u in paginatedUsers" :key="u.id" class="border-t hover:bg-gray-50 dark:hover:bg-gray-900">
                 <td class="p-2">{{ u.id }}</td>
-                <td class="p-2">{{ u.name }}</td>
+                <td class="p-2">
+                <router-link 
+                :to="{ name: 'user-details', params: { id: u.id } }" 
+                class="text-blue-600 hover:underline font-medium cursor-pointer"
+                >
+                {{ u.name }}
+            </router-link>
+            </td>
                 <td class="p-2">{{ u.email }}</td>
                 <td class="p-2">{{ u.type === 'A' ? 'Admin' : 'Player' }}</td>
                 <td class="p-2">{{ u.blocked ? 'Bloqueado' : 'Ativo' }}</td>

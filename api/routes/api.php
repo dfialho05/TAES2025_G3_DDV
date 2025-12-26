@@ -138,6 +138,30 @@ Route::middleware(['auth:sanctum', 'admin'])->get('/admin/users', function () {
     return User::select('id', 'name', 'email', 'type', 'blocked')->get();
 });
 
+//Route::middleware(['auth:api', 'admin'])->group(function () {
+  //  Route::get('admin/users/{user}', [UserController::class, 'show']); 
+//});
+
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    
+    // Rota GET para detalhes do utilizador
+    Route::get('/admin/users/{id}', function ($id) {
+        $user = \App\Models\User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+        return response()->json($user);
+    });
+
+    // Rota GET para transações
+    Route::get('/admin/users/{id}/transactions', function ($id) {
+    // Retornamos as transações ordenadas pela data mais recente
+    return DB::table('coin_transactions')
+        ->where('user_id', $id) // Assume que a coluna de ligação é user_id
+        ->orderBy('transaction_datetime', 'desc')
+        ->get();
+});
+});
 
 Route::middleware(['auth:sanctum', 'admin'])->post('/admin/users', function (Request $request) {
     $request->validate([
@@ -156,7 +180,9 @@ Route::middleware(['auth:sanctum', 'admin'])->post('/admin/users', function (Req
 
     return response()->json($user, 201);
 
+
 });
+
 
 Route::middleware(['auth:sanctum', 'admin'])->delete('/admin/users/{id}', function($id){
     $user = User::find($id);
