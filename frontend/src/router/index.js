@@ -122,8 +122,20 @@ const router = createRouter({
       component: ShopPage,
       meta: { requiresAuth: true }, // Se usares proteção de rotas
     },
+    {
+    path: '/admin/users',
+    name: 'admin-users',
+    component: () => import('@/pages/admin/UsersListPage.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+},
+
   ],
 })
+
+
 
 // Async guard: if a route needs auth, try to restore the user from token before redirecting.
 router.beforeEach(async (to, from, next) => {
@@ -132,6 +144,9 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     // If already logged in, allow
     if (authStore.isLoggedIn) {
+       if (to.meta.requiresAdmin && !authStore.isAdmin) {
+        return next({ name: 'home' })
+      }
       return next()
     }
 
@@ -155,6 +170,7 @@ router.beforeEach(async (to, from, next) => {
     // no token -> go to login
     return next({ name: 'login' })
   }
+
 
   // route doesn't require auth
   return next()

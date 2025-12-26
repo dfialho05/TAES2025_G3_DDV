@@ -14,7 +14,7 @@
         </span>
       </div>
 
-        <RouterLink to="/purchase" v-if="authStore.currentUser">
+        <RouterLink to="/purchase" v-if="authStore.isPlayer">
         <span class="text-xs font-bold">
           {{ authStore.currentUser?.coins_balance }} 🪙
         </span>
@@ -42,6 +42,11 @@
     </svg>
   </template>
 </button>
+        <NavigationMenuItem v-if="authStore.isAdmin">
+          <NavigationMenuLink>
+            <RouterLink to="/admin/users">Users</RouterLink>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
 
         <NavigationMenuItem>
           <NavigationMenuLink>

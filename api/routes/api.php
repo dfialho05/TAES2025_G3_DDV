@@ -13,6 +13,7 @@ use App\Http\Controllers\StoreController;
 use App\Http\Controllers\MatchController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\User;
 
 /*
 |--------------------------------------------------------------------------
@@ -132,6 +133,40 @@ Route::get("/matches/user/{id}", [MatchController::class, "matchesByUser"]);
 | Authenticated Routes (Require Valid Token)
 |--------------------------------------------------------------------------
 */
+
+Route::middleware(['auth:sanctum', 'admin'])->get('/admin/users', function () {
+    return User::select('id', 'name', 'email', 'type', 'blocked')->get();
+});
+
+
+Route::middleware(['auth:sanctum', 'admin'])->post('/admin/users', function (Request $request) {
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|string|min:3',
+        'type' => 'required|in:A,P',
+    ]);
+
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => bcrypt($request->password),
+        'type' => $request->type,
+    ]);
+
+    return response()->json($user, 201);
+
+});
+
+Route::middleware(['auth:sanctum', 'admin'])->delete('/admin/users/{id}', function($id){
+    $user = User::find($id);
+    if(!$user){
+        return response()->json(['message' => 'User not found'], 404);
+    }
+
+    $user->delete(); // remove o usuário
+    return response()->json(['message' => 'Usuário removido com sucesso'], 200);
+});
 
 Route::middleware("auth:sanctum")->group(function () {
     /*

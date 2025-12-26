@@ -14,6 +14,11 @@ export const useAPIStore = defineStore('api', () => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
   }
 
+  //general
+  const post = async (url, payload) => {
+  return axios.post(`${API_BASE_URL}${url}`, payload)
+}
+
   // AUTH
   const postLogin = async (credentials) => {
     const response = await axios.post(`${API_BASE_URL}/login`, credentials)
@@ -48,6 +53,11 @@ export const useAPIStore = defineStore('api', () => {
   }
 
   // Users
+  const getAllUsers = async (page = 1, perPage = 20) => {
+  return axios.get(`${API_BASE_URL}/admin/users`, {
+    params: { page, per_page: perPage },
+  })
+}
   const getAuthUser = () => {
     return axios.get(`${API_BASE_URL}/users/me`)
   }
@@ -80,6 +90,25 @@ export const useAPIStore = defineStore('api', () => {
 
     return uploadPromise
   }
+
+
+  // --- Users Admin ---
+const deleteUser = (id) => {
+  return axios.delete(`${API_BASE_URL}/admin/users/${id}`)
+}
+
+const deactivateUser = (id) => {
+  return axios.patch(`${API_BASE_URL}/users/${id}/deactivate`)
+}
+
+const toggleBlockUser = (id) => {
+  return axios.post(`${API_BASE_URL}/admin/users/${id}/toggle-block`)
+}
+
+const postUser = (payload) => {
+  return post('/admin/users', payload)  // já tens o 'post' genérico
+}
+
 
   // --- GAMES (Correção do erro "apiStore.getGames is not a function") ---
   const getGames = async () => {
@@ -173,5 +202,11 @@ export const useAPIStore = defineStore('api', () => {
     fetchAllUserMatches,
     getLeaderboardsAll,
     getLeaderboard,
+    getAllUsers,
+    post,
+     postUser,        // criar usuário
+    deleteUser,      // remover usuário
+    toggleBlockUser, // bloquear/desbloquear usuário
+    deactivateUser, 
   }
 })
