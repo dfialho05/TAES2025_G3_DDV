@@ -117,7 +117,7 @@
       </div>
     </div>
 
-    <div v-if="showDashboard">
+    <div v-if="isExactAdmin">
       <section>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
@@ -251,7 +251,7 @@
       </section>
     </div>
 
-    <div v-else class="mt-4">
+    <div class="mt-4">
       <router-view />
     </div>
   </div>
@@ -328,7 +328,16 @@ const chartOptions = {
   },
 }
 
-const showDashboard = computed(() => route.name === 'admin' || route.path === '/admin')
+const isExactAdmin = computed(() => {
+  // Only treat exact /admin route (or named 'admin') as the place to show the dashboard UI.
+  // This ensures nested admin child routes (e.g. /admin/users/507) still mount their <router-view/>
+  // while the full dashboard UI is only visible at the root admin page.
+  try {
+    return typeof route.path === 'string' && (route.path === '/admin' || route.name === 'admin')
+  } catch {
+    return false
+  }
+})
 
 const fetchDashboardData = async () => {
   loading.value = true
@@ -426,13 +435,23 @@ const loadMoreTransactions = async () => {
 }
 
 onMounted(() => {
-  if (showDashboard.value) fetchDashboardData()
+  // If the current path is under /admin, ensure dashboard data (charts, transactions) is loaded.
+  // This handles F5 refreshes on nested admin routes like /admin/users/507.
+  if (typeof route.path === 'string' && route.path.startsWith('/admin')) {
+    fetchDashboardData()
+  } else if (showDashboard.value) {
+    // fallback (keeps previous behaviour)
+    fetchDashboardData()
+  }
 })
 
 watch(
-  () => route.name,
-  (newName) => {
-    if (newName === 'admin') fetchDashboardData()
+  () => route.path,
+  (newPath) => {
+    // When navigating to any route under /admin, reload dashboard data.
+    if (typeof newPath === 'string' && newPath.startsWith('/admin')) {
+      fetchDashboardData()
+    }
   },
 )
 </script>
