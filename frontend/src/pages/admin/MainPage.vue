@@ -52,7 +52,7 @@
             class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
           >
             <h3 class="text-lg font-bold mb-4 dark:text-white text-gray-700">
-              Evolução de Lucro (7 dias)
+              Evolução de Receita (1 ano)
             </h3>
             <div class="h-64 relative">
               <Line
@@ -72,7 +72,7 @@
                 v-else-if="chartLoaded && revenueChartData.labels.length === 0"
                 class="flex flex-col items-center justify-center h-full text-gray-400"
               >
-                <span>📉 Sem dados nos últimos 7 dias</span>
+                <span>📉 Sem dados no último ano</span>
               </div>
 
               <div v-else class="flex items-center justify-center h-full text-gray-400">
@@ -85,7 +85,7 @@
             class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
           >
             <h3 class="text-lg font-bold mb-4 dark:text-white text-gray-700">
-              Atividade de Jogos (7 dias)
+              Atividade de Jogos (1 ano)
             </h3>
             <div class="h-64 relative">
               <Bar
@@ -105,7 +105,7 @@
                 v-else-if="chartLoaded && activityChartData.labels.length === 0"
                 class="flex flex-col items-center justify-center h-full text-gray-400"
               >
-                <span>🎲 Sem jogos nos últimos 7 dias</span>
+                <span>🎲 Sem jogos no último ano</span>
               </div>
 
               <div v-else class="flex items-center justify-center h-full text-gray-400">
@@ -302,6 +302,22 @@ const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: { legend: { display: false } },
+  interaction: { intersect: false, mode: 'index' },
+  scales: {
+    x: {
+      ticks: {
+        autoSkip: true,
+        maxTicksLimit: 12,
+        maxRotation: 0,
+        minRotation: 0,
+      },
+      grid: { display: false },
+    },
+    y: {
+      beginAtZero: true,
+      ticks: { precision: 0 },
+    },
+  },
 }
 
 const showDashboard = computed(() => route.name === 'admin' || route.path === '/admin')
@@ -322,7 +338,8 @@ const fetchDashboardData = async () => {
 
     // 3. Charts
     try {
-      const chartsRes = await axios.get('/admin/charts')
+      // Request 365 days (1 year) of daily data from the API
+      const chartsRes = await axios.get(`/admin/charts?days=365`)
       const { revenue = [], activity = [] } = chartsRes.data || {}
 
       revenueChartData.value = {
