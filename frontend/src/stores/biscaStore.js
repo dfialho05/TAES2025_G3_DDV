@@ -43,13 +43,14 @@ export const useBiscaStore = defineStore('bisca', () => {
   // 2. LÓGICA CENTRAL (PROCESSAR DADOS DO SERVIDOR)
   // =========================================
   const processGameState = (data) => {
-    // Validação básica de ID do jogo
+
     if (gameID.value && data.id && String(data.id) !== String(gameID.value)) return
     if (data.id) gameID.value = data.id
 
-    // ---------------------------------------------------------
-    // AQUI ESTÁ A CORREÇÃO PRINCIPAL: QUEM SOU EU?
-    // ---------------------------------------------------------
+    if (data.gameOver || data.roundOver) {
+        console.log("📥 [Store] Estado Final Recebido. Pontos Ronda:", data.lastRoundPoints);
+    }
+
     const myId = String(authStore.currentUser?.id || '');
     const p1Id = String(data.player1Id || ''); // Vem do backend agora
 
