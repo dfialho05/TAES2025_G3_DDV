@@ -250,7 +250,9 @@ class GameController extends Controller
                 "user_id" => $id,
                 "total_games" => $games->count(),
                 "games_with_opponents" => $games
-                    ->filter(fn($g) => $g["opponent"] !== null)
+                    ->filter(function ($g) {
+                        return $g["opponent"] !== null;
+                    })
                     ->count(),
             ]);
 

@@ -13,6 +13,8 @@ const SERVER_BASE_URL = 'http://localhost:8000'
 
 // Configurar baseURL do axios para que as chamadas relativas funcionem
 axios.defaults.baseURL = API_BASE_URL
+// Enviar Accept: application/json por omissão para evitar respostas HTML do Laravel
+axios.defaults.headers.common['Accept'] = 'application/json'
 
 const app = createApp(App)
 

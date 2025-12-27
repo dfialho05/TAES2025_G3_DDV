@@ -260,37 +260,183 @@ class AdminController extends Controller
     /**
      * Get data for charts (Revenue and Activity) - SQLite Safe
      */
+    /**
+     * Get data for charts (Revenue and Activity) - MySQL Version
+     */
+    /**
+     * Get data for charts (Revenue and Activity) - MySQL/SQLite safe, configurable range
+     *
+     * Query parameter:
+     *   - days (int) : number of days to include (default 365)
+     *
+     * This method will return a row for every date in the range (start..end),
+     * filling missing dates with total = 0 so the frontend can render continuous series.
+     */
     public function getChartData()
     {
-        // 1. Data de 7 dias atrás
-        $sevenDaysAgo = now()->subDays(7)->format("Y-m-d");
+        try {
+            // Determine requested range (default 365 days)
+            $days = (int) request()->query("days", 365);
+            if ($days <= 0) {
+                $days = 365;
+            }
+            // Cap to a reasonable maximum to avoid heavy queries (e.g., 5 years)
+            $maxDays = 365 * 5;
+            if ($days > $maxDays) {
+                $days = $maxDays;
+            }
 
-        // 2. Lucro - Group By DATE(created_at) usando DB::raw para evitar erros de SQL
-        $revenueHistory = DB::table("coin_purchases")
-            ->select(
-                DB::raw("DATE(created_at) as date"),
-                DB::raw("SUM(euros) as total"),
+            // Start / end dates (inclusive). Keep format YYYY-MM-DD for grouping.
+            $endDate = now()->startOfDay()->format("Y-m-d");
+            $startDate = now()
+                ->subDays($days - 1)
+                ->startOfDay()
+                ->format("Y-m-d");
+
+            // Determine which date column exists in coin_purchases
+            $purchaseDateCol = \Illuminate\Support\Facades\Schema::hasColumn(
+                "coin_purchases",
+                "created_at",
             )
-            ->where("created_at", ">=", $sevenDaysAgo)
-            ->groupBy(DB::raw("DATE(created_at)"))
-            ->orderBy(DB::raw("DATE(created_at)"))
-            ->get();
+                ? "created_at"
+                : (\Illuminate\Support\Facades\Schema::hasColumn(
+                    "coin_purchases",
+                    "purchase_datetime",
+                )
+                    ? "purchase_datetime"
+                    : "created_at");
 
-        // 3. Atividade - Group By DATE(created_at) usando DB::raw
-        $activityHistory = DB::table("games")
-            ->select(
-                DB::raw("DATE(created_at) as date"),
-                DB::raw("COUNT(*) as total"),
+            // Revenue aggregated per day within range
+            $revenueRows = \Illuminate\Support\Facades\DB::table(
+                "coin_purchases",
             )
-            ->where("created_at", ">=", $sevenDaysAgo)
-            ->groupBy(DB::raw("DATE(created_at)"))
-            ->orderBy(DB::raw("DATE(created_at)"))
-            ->get();
+                ->select(
+                    \Illuminate\Support\Facades\DB::raw(
+                        "DATE({$purchaseDateCol}) as date",
+                    ),
+                    \Illuminate\Support\Facades\DB::raw("SUM(euros) as total"),
+                )
+                ->whereBetween($purchaseDateCol, [$startDate, $endDate])
+                ->groupBy(
+                    \Illuminate\Support\Facades\DB::raw(
+                        "DATE({$purchaseDateCol})",
+                    ),
+                )
+                ->orderBy("date")
+                ->get()
+                ->map(function ($r) {
+                    return [
+                        "date" => $r->date,
+                        "total" => (float) $r->total,
+                    ];
+                })
+                ->keyBy("date")
+                ->toArray();
 
-        return response()->json([
-            "revenue" => $revenueHistory,
-            "activity" => $activityHistory,
-        ]);
+            // Determine which date column exists in games
+            $gameDateCol = \Illuminate\Support\Facades\Schema::hasColumn(
+                "games",
+                "created_at",
+            )
+                ? "created_at"
+                : (\Illuminate\Support\Facades\Schema::hasColumn(
+                    "games",
+                    "began_at",
+                )
+                    ? "began_at"
+                    : "created_at");
+
+            // Activity (number of games) aggregated per day within range
+            $activityRows = \Illuminate\Support\Facades\DB::table("games")
+                ->select(
+                    \Illuminate\Support\Facades\DB::raw(
+                        "DATE({$gameDateCol}) as date",
+                    ),
+                    \Illuminate\Support\Facades\DB::raw("COUNT(*) as total"),
+                )
+                ->whereBetween($gameDateCol, [$startDate, $endDate])
+                ->groupBy(
+                    \Illuminate\Support\Facades\DB::raw("DATE({$gameDateCol})"),
+                )
+                ->orderBy("date")
+                ->get()
+                ->map(function ($r) {
+                    return [
+                        "date" => $r->date,
+                        "total" => (int) $r->total,
+                    ];
+                })
+                ->keyBy("date")
+                ->toArray();
+
+            // Build full date series and fill missing dates with zeros
+            $revenueHistory = [];
+            $activityHistory = [];
+
+            // Use Carbon Period to iterate days
+            $period = \Carbon\CarbonPeriod::create($startDate, $endDate);
+            foreach ($period as $dt) {
+                $d = $dt->format("Y-m-d");
+
+                $rev = isset($revenueRows[$d])
+                    ? $revenueRows[$d]["total"]
+                    : 0.0;
+                $act = isset($activityRows[$d])
+                    ? $activityRows[$d]["total"]
+                    : 0;
+
+                $revenueHistory[] = [
+                    "date" => $d,
+                    "total" => $rev,
+                ];
+                $activityHistory[] = [
+                    "date" => $d,
+                    "total" => $act,
+                ];
+            }
+
+            // Log detected columns and result sizes to help debugging
+            \Illuminate\Support\Facades\Log::info(
+                "AdminController:getChartData - detected columns and result counts",
+                [
+                    "days_requested" => $days,
+                    "startDate" => $startDate,
+                    "endDate" => $endDate,
+                    "purchaseDateCol" => $purchaseDateCol,
+                    "gameDateCol" => $gameDateCol,
+                    "revenue_rows_db" => is_array($revenueRows)
+                        ? count($revenueRows)
+                        : null,
+                    "activity_rows_db" => is_array($activityRows)
+                        ? count($activityRows)
+                        : null,
+                    "revenue_rows_final" => count($revenueHistory),
+                    "activity_rows_final" => count($activityHistory),
+                ],
+            );
+
+            return response()->json([
+                "revenue" => $revenueHistory,
+                "activity" => $activityHistory,
+            ]);
+        } catch (\Exception $e) {
+            // Log full error for diagnostics
+            \Illuminate\Support\Facades\Log::error(
+                "AdminController:getChartData - unexpected error",
+                [
+                    "message" => $e->getMessage(),
+                    "trace" => $e->getTraceAsString(),
+                ],
+            );
+
+            return response()->json(
+                [
+                    "message" => "Failed to fetch chart data",
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
+        }
     }
 
     /**
