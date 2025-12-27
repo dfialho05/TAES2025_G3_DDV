@@ -22,24 +22,55 @@ const {
   tableCards,
   opponentName,
   isWaiting,
-  score, // Este valor vai a 0 imediatamente após a ronda acabar
+  score,
   logs,
   currentTurn,
   cardsLeft,
   gameID,
-  sessionScore, // Placar de Vitórias (ex: 2-1)
-  gameTarget, // Objetivo (ex: 4)
-  popupData, // Dados computados no Store para o Popup (Ronda ou Match)
+  sessionScore,
+  gameTarget,
+  popupData,
+  isGameOver,
+  isRoundOver
 } = storeToRefs(gameStore)
 
 const isConnected = computed(() => socketStore.isConnected)
+
+// --- LÓGICA DO TIMER VISUAL (NOVO) ---
+const timerProgress = ref(100);
+let timerInterval = null;
+
+const startLocalTimer = () => {
+    clearInterval(timerInterval);
+    timerProgress.value = 100;
+
+    if (isGameOver.value || isRoundOver.value) return;
+    if (!currentTurn.value) return;
+
+    const totalTime = 20000; // 20 segundos (igual ao backend)
+    const step = 100; // 100ms
+    const decrement = 100 / (totalTime / step);
+
+    timerInterval = setInterval(() => {
+        timerProgress.value -= decrement;
+        if (timerProgress.value <= 0) {
+            timerProgress.value = 0;
+            clearInterval(timerInterval);
+        }
+    }, step);
+};
+
+// Reiniciar timer sempre que o turno muda ou cartas são jogadas
+watch([currentTurn, tableCards], () => {
+    setTimeout(startLocalTimer, 50);
+});
+// -------------------------------------
 
 // Scroll indicators state
 const playerHandRef = ref(null)
 const showLeftScroll = ref(false)
 const showRightScroll = ref(false)
 
-// Check scroll indicators visibility
 const checkScrollIndicators = () => {
   if (!playerHandRef.value) return
 
@@ -52,13 +83,11 @@ const checkScrollIndicators = () => {
   showRightScroll.value = scrollLeft < scrollWidth - clientWidth
 }
 
-// Update scroll indicators when player hand changes
 watch(playerHand, async () => {
   await nextTick()
   checkScrollIndicators()
 })
 
-// Smooth scroll functions
 const scrollLeft = () => {
   if (playerHandRef.value) {
     playerHandRef.value.scrollBy({ left: -60, behavior: 'smooth' })
@@ -72,52 +101,39 @@ const scrollRight = () => {
 }
 
 onMounted(async () => {
-  // Detectar se é modo practice
   const isPractice = route.query.practice === 'true'
-
-  // Garantir conexão (permitir anônima se for practice)
   socketStore.handleConnection(isPractice)
 
-  // Garantir baralhos carregados (imagens)
   if (deckStore.decks.length === 0) await deckStore.fetchDecks()
 
-  // Iniciar jogo automaticamente se vierem parâmetros na URL
   if (route.query.mode) {
     const cards = parseInt(route.query.mode)
     const targetWins = parseInt(route.query.wins) || 1
 
-    // Pequeno delay para garantir que o socket conectou
     if (!gameID.value) {
       setTimeout(() => {
         gameStore.startGame(cards, 'singleplayer', targetWins, isPractice)
       }, 500)
     }
   } else {
-    // Se não houver ID nem params, volta ao lobby
     if (!gameID.value) router.push('/games/lobby')
   }
 })
 
-// Monitorizar ID do jogo
 watch(gameID, (newVal) => {
   if (!newVal) console.log('Jogo terminado ou saiu.')
 })
 
-// Limpeza ao sair da página
 onUnmounted(() => {
+  clearInterval(timerInterval); // Limpar intervalo
   if (gameID.value) gameStore.quitGame()
 })
 
-// --- AÇÕES DOS BOTÕES DO POPUP ---
-
 const handleNextRound = () => {
-  // Fecha o popup visualmente.
-  // O jogo já reiniciou internamente no servidor e o tabuleiro já está a 0.
   gameStore.closeRoundPopup()
 }
 
 const handleRestart = () => {
-  // Reinicia tudo para uma nova Match
   const isPractice = route.query.practice === 'true'
   gameStore.startGame(route.query.mode || 3, 'singleplayer', route.query.wins || 1, isPractice)
 }
@@ -248,6 +264,10 @@ const handleExit = () => {
           Teus Pontos: {{ score.me }}
           <span v-if="currentTurn === 'user'" class="turn-text">(Sua vez!)</span>
         </div>
+
+        <div class="timer-bar-container" v-if="!isGameOver && !isRoundOver">
+           <div class="timer-bar" :style="{ width: timerProgress + '%', backgroundColor: timerProgress < 30 ? '#ef4444' : '#fbbf24' }"></div>
+        </div>
       </div>
 
       <div class="player-hand-container">
@@ -288,6 +308,24 @@ const handleExit = () => {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
 }
+
+/* TIMER BAR STYLES */
+.timer-bar-container {
+    width: 100%;
+    max-width: 300px; /* Limita a largura para não ser gigante */
+    height: 6px;
+    background: rgba(0,0,0,0.3);
+    margin-top: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.timer-bar {
+    height: 100%;
+    background-color: #fbbf24;
+    transition: width 0.1s linear, background-color 0.3s;
+}
+
 .overlay {
   position: absolute;
   top: 0;

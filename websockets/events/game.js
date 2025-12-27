@@ -6,7 +6,10 @@ export const gameHandlers = (io, socket) => {
 
   socket.on("create-game", async (gameType, mode, targetWins, isPractice) => {
     const user = ConnectionState.getUser(socket.id);
-    if (!user) return;
+    if (!user) {
+        console.error(`❌ [Game] Falha ao criar: Socket ${socket.id} não identificado.`);
+        return;
+    }
 
     const game = await GameState.createGame(
       gameType,
@@ -16,13 +19,19 @@ export const gameHandlers = (io, socket) => {
       isPractice || false,
     );
 
-    socket.join(`game-${game.id}`);
-    console.log(
-      `[Game] Criado jogo ${game.id} por ${user.name}${isPractice ? " (PRACTICE)" : ""}`,
-    );
+    if (game) {
+        socket.join(`game-${game.id}`);
+        console.log(
+          `[Game] Criado jogo ${game.id} por ${user.name}${isPractice ? " (PRACTICE)" : ""}`,
+        );
 
-    socket.emit("game-joined", game.getState());
-    io.emit("games", GameState.getGames());
+        socket.emit("game-joined", game.getState());
+
+        // NOVO: Iniciar fluxo (inicia o timer do P1 imediatamente)
+        GameState.advanceGame(game.id, io);
+
+        io.emit("games", GameState.getGames());
+    }
   });
 
   socket.on("play_card", (data) => {
@@ -38,33 +47,42 @@ export const gameHandlers = (io, socket) => {
     }
   });
 
-  socket.on("join-game", (gid) => {
+  socket.on("join-game", async (gid) => { 
     const user = ConnectionState.getUser(socket.id);
-    const game = GameState.joinGame(gid, user);
+    
+    const game = await GameState.joinGame(gid, user); 
+    
     if (game) {
       socket.join(`game-${gid}`);
+      
+      // Envia estado atualizado para a sala (agora com o Player 2)
       io.to(`game-${gid}`).emit("game_state", game.getState());
+      
+      // NOVO: O jogo recomeçou/baralhou ao entrar o P2. 
+      // Precisamos chamar advanceGame para iniciar o timer do primeiro jogador.
+      GameState.advanceGame(gid, io);
+
+      // Atualiza a lista no lobby
+      io.emit("games", GameState.getGames());
     }
   });
 
   socket.on("leave_game", (gid) => {
     socket.leave(`game-${gid}`);
+    // Opcional: GameState.removePlayer(gid, socket.id);
   });
 
-  // CORREÇÃO: Reiniciar o loop do jogo quando o utilizador clica em "Próxima Ronda"
   socket.on("next_round", (gid) => {
     const game = GameState.getGame(gid);
     if (game) {
-      // Se o jogo acabou mesmo (campeonato finalizado), não reinicia
       if (game.gameOver) return;
 
       console.log(`[Game] Next Round solicitado para Jogo ${gid}`);
-      game.confirmNextRound(); // Define roundOver = false
+      game.confirmNextRound(); 
 
-      // 1. Envia estado limpo para o cliente (fecha popup)
       io.to(`game-${gid}`).emit("game_state", game.getState());
-
-      // 2. REINICIA O LOOP DO BOT
+      
+      // Reinicia o fluxo (e o timer) para a nova ronda
       GameState.advanceGame(gid, io);
     }
   });
