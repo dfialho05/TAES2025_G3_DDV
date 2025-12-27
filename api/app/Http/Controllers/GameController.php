@@ -169,7 +169,15 @@ class GameController extends Controller
     public function recentGames(Request $request, $id): JsonResponse
     {
         try {
+            // Try to find the user normally. If not found and the requester is an admin,
+            // allow admins to fetch data for soft-deleted (trashed) users by loading withTrashed().
             $user = User::find($id);
+            if (!$user) {
+                $authUser = $request->user();
+                if ($authUser && $authUser->type === "A") {
+                    $user = User::withTrashed()->find($id);
+                }
+            }
             if (!$user) {
                 return response()->json(["message" => "User not found"], 404);
             }
@@ -250,7 +258,9 @@ class GameController extends Controller
                 "user_id" => $id,
                 "total_games" => $games->count(),
                 "games_with_opponents" => $games
-                    ->filter(fn($g) => $g["opponent"] !== null)
+                    ->filter(function ($g) {
+                        return $g["opponent"] !== null;
+                    })
                     ->count(),
             ]);
 
@@ -401,6 +411,49 @@ class GameController extends Controller
                 ),
             );
 
+            // Capotes (wins with 91-119 points)
+            $capotes = (clone $baseQuery)
+                ->where("winner_user_id", $id)
+                ->where(
+                    DB::raw(
+                        "CASE
+                        WHEN player1_user_id = {$id} THEN player1_points
+                        WHEN player2_user_id = {$id} THEN player2_points
+                        ELSE 0
+                    END",
+                    ),
+                    ">=",
+                    91,
+                )
+                ->where(
+                    DB::raw(
+                        "CASE
+                        WHEN player1_user_id = {$id} THEN player1_points
+                        WHEN player2_user_id = {$id} THEN player2_points
+                        ELSE 0
+                    END",
+                    ),
+                    "<=",
+                    119,
+                )
+                ->count();
+
+            // Bandeiras (wins with 120+ points)
+            $bandeiras = (clone $baseQuery)
+                ->where("winner_user_id", $id)
+                ->where(
+                    DB::raw(
+                        "CASE
+                        WHEN player1_user_id = {$id} THEN player1_points
+                        WHEN player2_user_id = {$id} THEN player2_points
+                        ELSE 0
+                    END",
+                    ),
+                    ">=",
+                    120,
+                )
+                ->count();
+
             // Tempo total de jogo (em segundos)
             $totalTime = $baseQuery->sum("total_time") ?? 0;
 
@@ -427,6 +480,8 @@ class GameController extends Controller
                 "average_time_per_game" =>
                     $totalGames > 0 ? round($totalTime / $totalGames, 2) : 0,
                 "last_activity" => $lastActivity,
+                "capotes" => $capotes,
+                "bandeiras" => $bandeiras,
             ];
 
             Log::info("[GameController] User stats calculated", [

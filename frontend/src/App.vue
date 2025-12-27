@@ -2,7 +2,7 @@
   <Toaster />
   <nav class="max-w-full p-5 flex flex-col md:flex-row justify-between items-center">
     <div class="align-middle text-xl flex items-center gap-2 md:gap-4">
-       <RouterLink to="/" class="text-xl"> 🧠 Bisca Game </RouterLink>
+      <RouterLink to="/" class="text-xl"> 🧠 Bisca Game </RouterLink>
 
       <div v-if="authStore.currentUser" class="flex items-center gap-1">
         <UserAvatar
@@ -14,34 +14,61 @@
         </span>
       </div>
 
-        <RouterLink to="/purchase" v-if="authStore.currentUser">
-        <span class="text-xs font-bold">
-          {{ authStore.currentUser?.coins_balance }} 🪙
-        </span>
-        </RouterLink>
+      <RouterLink to="/purchase" v-if="authStore.isPlayer">
+        <span class="text-xs font-bold"> {{ authStore.currentUser?.coins_balance }} 🪙 </span>
+      </RouterLink>
     </div>
 
     <NavigationMenu>
-      <NavigationMenuList class="flex flex-col md:flex-row justify-around gap-2 md:gap-20 w-full md:w-auto">
+      <NavigationMenuList
+        class="flex flex-col md:flex-row justify-around gap-2 md:gap-20 w-full md:w-auto"
+      >
         <button
-  @click="isDark = !isDark"
-  :aria-pressed="isDark"
-  class="mt-2 md:mt-0 ml-0 md:ml-4 p-2 rounded-md hover:bg-[var(--muted)] focus:outline-none"
-  title="Toggle dark mode"
->
-  <template v-if="isDark">
-    <!-- ícone de sol para indicar sair do dark -->
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 7a5 5 0 100 10 5 5 0 000-10z"/>
-    </svg>
-  </template>
-  <template v-else>
-    <!-- ícone de lua para indicar entrar no dark -->
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
-    </svg>
-  </template>
-</button>
+          @click="isDark = !isDark"
+          :aria-pressed="isDark"
+          class="mt-2 md:mt-0 ml-0 md:ml-4 p-2 rounded-md hover:bg-[var(--muted)] focus:outline-none"
+          title="Toggle dark mode"
+        >
+          <template v-if="isDark">
+            <!-- ícone de sol para indicar sair do dark -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 7a5 5 0 100 10 5 5 0 000-10z"
+              />
+            </svg>
+          </template>
+          <template v-else>
+            <!-- ícone de lua para indicar entrar no dark -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
+              />
+            </svg>
+          </template>
+        </button>
+        <NavigationMenuItem v-if="authStore.isAdmin">
+          <NavigationMenuLink>
+            <RouterLink to="/admin">Admin Dashboard</RouterLink>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
 
         <NavigationMenuItem>
           <NavigationMenuLink>
@@ -115,8 +142,12 @@ import UserAvatar from '@/components/UserAvatar.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'vue-sonner'
 import {
-  NavigationMenu, NavigationMenuContent, NavigationMenuItem,
-  NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger,
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu'
 
 const authStore = useAuthStore()
@@ -137,13 +168,13 @@ watch(
   () => authStore.token,
   (newToken) => {
     if (newToken) {
-      console.log("[App] Login detetado. A ligar Socket...")
+      console.log('[App] Login detetado. A ligar Socket...')
       socketStore.handleConnection()
     } else {
-      console.log("[App] Logout. A desligar Socket...")
+      console.log('[App] Logout. A desligar Socket...')
       socketStore.disconnect()
     }
-  }
+  },
 )
 
 const isDark = ref(localStorage.getItem(THEME_KEY) === 'dark')
@@ -158,7 +189,9 @@ const logout = async () => {
   socketStore.disconnect()
   try {
     await toast.promise(authStore.logout(), {
-      loading: 'A sair...', success: 'Saiu com sucesso', error: 'Erro ao sair'
+      loading: 'A sair...',
+      success: 'Saiu com sucesso',
+      error: 'Erro ao sair',
     })
   } finally {
     router.push('/')

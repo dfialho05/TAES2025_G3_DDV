@@ -67,9 +67,9 @@ const router = createRouter({
       name: 'profile-redirect',
       beforeEnter: (to, from, next) => {
         const authStore = useAuthStore()
-        if (authStore.user?.id) {
+        if (authStore.currentUser?.id) {
           // Se estiver logado, manda para o perfil dele com ID explícito
-          next({ name: 'profile', params: { id: authStore.user.id } })
+          next({ name: 'profile', params: { id: authStore.currentUser.id } })
         } else {
           // Se não estiver logado, manda fazer login
           next({ name: 'login' })
@@ -77,12 +77,58 @@ const router = createRouter({
       },
     },
 
-    // --- ALTERAÇÃO: Rota de Perfil Pública (com ID) ---
+    // --- ALTERAÇÃO: Rota de Perfil (acesso restringido: owner ou admin) ---
     {
       path: '/profile/:id',
       name: 'profile',
       component: ProfilePage,
-      // Nota: Removemos o meta: { requiresAuth: true } para ser público
+      // Antes de entrar, tentamos garantir que:
+      // 1) se já somos admin -> permitimos;
+      // 2) se somos o dono do perfil -> permitimos;
+      // 3) caso contrário, tentamos restaurar o user a partir do token em sessionStorage
+      //    (se existir) antes de decidir. Se não houver token -> redirecionar para login.
+      beforeEnter: async (to, from, next) => {
+        const authStore = useAuthStore()
+        const requestedId = String(to.params.id)
+
+        // If the current user is already known and is admin -> allow
+        if (authStore.isAdmin) {
+          return next()
+        }
+
+        // If already logged in and is the owner of the profile -> allow
+        if (
+          authStore.isLoggedIn &&
+          authStore.currentUser &&
+          String(authStore.currentUser.id) === requestedId
+        ) {
+          return next()
+        }
+
+        // Try to restore user from token in sessionStorage (if any)
+        const SESSION_TOKEN_KEY = 'apiToken'
+        const token = sessionStorage.getItem(SESSION_TOKEN_KEY)
+        if (token) {
+          // ensure axios has header and try to fetch the user
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+          try {
+            await authStore.getUser()
+            // after fetching user, re-evaluate permissions
+            if (authStore.isAdmin) return next()
+            if (String(authStore.currentUser?.id) === requestedId) return next()
+            // not admin and not owner -> redirect to home
+            return next({ name: 'home' })
+          } catch (err) {
+            // token invalid/expired -> clean and redirect to login
+            sessionStorage.removeItem(SESSION_TOKEN_KEY)
+            delete axios.defaults.headers.common['Authorization']
+            return next({ name: 'login' })
+          }
+        }
+
+        // No token and not owner/admin -> require login
+        return next({ name: 'login' })
+      },
     },
 
     // --- Rota de Histórico ---
@@ -122,6 +168,26 @@ const router = createRouter({
       component: ShopPage,
       meta: { requiresAuth: true }, // Se usares proteção de rotas
     },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/pages/admin/MainPage.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/pages/admin/UsersListPage.vue'),
+        },
+        {
+          path: 'users/:id',
+          name: 'user-details',
+          component: () => import('@/pages/admin/UserDetails.vue'),
+          props: true, // Isto permite que o :id seja passado como prop para o componente
+        },
+      ],
+    },
+    // user-details route moved under '/admin' as a child of MainPage
   ],
 })
 
@@ -132,6 +198,9 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     // If already logged in, allow
     if (authStore.isLoggedIn) {
+      if (to.meta.requiresAdmin && !authStore.isAdmin) {
+        return next({ name: 'home' })
+      }
       return next()
     }
 

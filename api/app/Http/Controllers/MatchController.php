@@ -118,7 +118,15 @@ class MatchController extends Controller
     public function recentMatches(Request $request, $id): JsonResponse
     {
         try {
+            // First try to find the user normally. If not found and the requester
+            // is an admin, allow admins to fetch data for soft-deleted (trashed) users.
             $user = User::find($id);
+            if (!$user) {
+                $authUser = $request->user();
+                if ($authUser && $authUser->type === "A") {
+                    $user = User::withTrashed()->find($id);
+                }
+            }
             if (!$user) {
                 return response()->json(["message" => "User not found"], 404);
             }
@@ -251,7 +259,9 @@ class MatchController extends Controller
                 "user_id" => $id,
                 "total_matches" => $matches->count(),
                 "matches_with_opponents" => $matches
-                    ->filter(fn($m) => $m["opponent"] !== null)
+                    ->filter(function ($m) {
+                        return $m["opponent"] !== null;
+                    })
                     ->count(),
             ]);
 

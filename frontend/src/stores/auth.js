@@ -118,6 +118,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const isAdmin = computed(() => {
+  return currentUser.value?.type === 'A'
+})
+
+const isPlayer = computed(() => {
+  return currentUser.value?.type !== 'A'
+}) 
+
   return {
     token, // <--- IMPORTANTE: Exportar o token para o socket usar
     currentUser,
@@ -126,6 +134,8 @@ export const useAuthStore = defineStore('auth', () => {
     init,
     login,
     logout,
+    isAdmin,
+    isPlayer,
     getUser,
     register,
     deleteAccount,
