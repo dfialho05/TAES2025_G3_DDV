@@ -63,79 +63,203 @@
       </div>
 
       <section class="space-y-6">
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
-      <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="m16 8-8 8"/><path d="m10.5 5.5 8 8"/><path d="M4 14.5l8-8"/></svg>
-      </div>
-      <div>
-        <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Partidas</p>
-        <div v-if="statisticsStore.isLoading" class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"></div>
-        <p v-else class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ statisticsStore.stats.total_matches }}</p>
-      </div>
-    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div
+            class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
+          >
+            <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M2 20h20" />
+                <path d="m16 8-8 8" />
+                <path d="m10.5 5.5 8 8" />
+                <path d="M4 14.5l8-8" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Partidas</p>
+              <div
+                v-if="statisticsStore.isLoading"
+                class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+              ></div>
+              <p v-else class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {{ statisticsStore.stats.total_matches }}
+              </p>
+            </div>
+          </div>
 
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
-      <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-      </div>
-      <div>
-        <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Vitórias</p>
-        <div v-if="statisticsStore.isLoading" class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"></div>
-        <p v-else class="text-2xl font-bold text-emerald-600">{{ statisticsStore.stats.total_wins }}</p>
-      </div>
-    </div>
+          <div
+            class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
+          >
+            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Vitórias</p>
+              <div
+                v-if="statisticsStore.isLoading"
+                class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+              ></div>
+              <p v-else class="text-2xl font-bold text-emerald-600">
+                {{ statisticsStore.stats.total_wins }}
+              </p>
+            </div>
+          </div>
 
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
-      <div class="p-3 bg-amber-50 text-amber-600 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-      </div>
-      <div>
-        <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Taxa Vitória</p>
-        <div v-if="statisticsStore.isLoading" class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"></div>
-        <p v-else class="text-2xl font-bold text-amber-600">{{ statisticsStore.stats.win_rate }}%</p>
-      </div>
-    </div>
+          <div
+            class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
+          >
+            <div class="p-3 bg-amber-50 text-amber-600 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 20V10" />
+                <path d="M18 20V4" />
+                <path d="M6 20v-4" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">
+                Taxa Vitória
+              </p>
+              <div
+                v-if="statisticsStore.isLoading"
+                class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+              ></div>
+              <p v-else class="text-2xl font-bold text-amber-600">
+                {{ statisticsStore.stats.win_rate }}%
+              </p>
+            </div>
+          </div>
 
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
-      <div class="p-3 bg-purple-50 text-purple-600 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M12 2v6"/><path d="m15.4 5.4 3 3"/><path d="M21 12h-6"/><path d="m15.4 18.6 3-3"/><path d="M12 22v-6"/><path d="m8.6 18.6-3-3"/><path d="M3 12h6"/><path d="m8.6 5.4-3 3"/></svg>
-      </div>
-      <div>
-        <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Capotes</p>
-        <div v-if="statisticsStore.isLoading" class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"></div>
-        <p v-else class="text-2xl font-bold text-purple-600">{{ statisticsStore.stats.capotes || 0 }}</p>
-      </div>
-    </div>
+          <div
+            class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
+          >
+            <div class="p-3 bg-purple-50 text-purple-600 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="8" r="5" />
+                <path d="M12 2v6" />
+                <path d="m15.4 5.4 3 3" />
+                <path d="M21 12h-6" />
+                <path d="m15.4 18.6 3-3" />
+                <path d="M12 22v-6" />
+                <path d="m8.6 18.6-3-3" />
+                <path d="M3 12h6" />
+                <path d="m8.6 5.4-3 3" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Capotes</p>
+              <div
+                v-if="statisticsStore.isLoading"
+                class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+              ></div>
+              <p v-else class="text-2xl font-bold text-purple-600">
+                {{ statisticsStore.stats.capotes || 0 }}
+              </p>
+            </div>
+          </div>
 
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
-      <div class="p-3 bg-red-50 text-red-600 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
-      </div>
-      <div>
-        <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Bandeiras</p>
-        <div v-if="statisticsStore.isLoading" class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"></div>
-        <p v-else class="text-2xl font-bold text-red-600">{{ statisticsStore.stats.bandeiras || 0 }}</p>
-      </div>
-    </div>
-  </div>
+          <div
+            class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm flex items-center gap-4"
+          >
+            <div class="p-3 bg-red-50 text-red-600 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                <line x1="4" x2="4" y1="22" y2="15" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm text-slate-500 font-medium uppercase tracking-wider">Bandeiras</p>
+              <div
+                v-if="statisticsStore.isLoading"
+                class="h-6 w-16 bg-slate-100 animate-pulse rounded mt-1"
+              ></div>
+              <p v-else class="text-2xl font-bold text-red-600">
+                {{ statisticsStore.stats.bandeiras || 0 }}
+              </p>
+            </div>
+          </div>
+        </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" v-if="!statisticsStore.isLoading">
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm">
-      <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Rácio de Vitórias</h3>
-      <div class="h-64">
-        <Pie :data="winLossData" :options="chartOptions" />
-      </div>
-    </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" v-if="!statisticsStore.isLoading">
+          <div
+            class="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm"
+          >
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">
+              Rácio de Vitórias
+            </h3>
+            <div class="h-64">
+              <Pie :data="winLossData" :options="chartOptions" />
+            </div>
+          </div>
 
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm">
-      <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Capotes vs Bandeiras</h3>
-      <div class="h-64">
-        <Bar :data="specialStatsData" :options="chartOptions" />
-      </div>
-    </div>
-  </div>
-</section>
+          <div
+            class="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm"
+          >
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">
+              Capotes vs Bandeiras
+            </h3>
+            <div class="h-64">
+              <Bar :data="specialStatsData" :options="chartOptions" />
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div :class="isOwner ? 'lg:col-span-8' : 'lg:col-span-12'" class="space-y-8">
@@ -449,7 +573,9 @@
                     v-if="expandedMatchId === match.id"
                     class="bg-slate-50/80 border-t border-slate-100 dark:bg-gray-800 p-3 space-y-2 animate-in slide-in-from-top-1 duration-200"
                   >
-                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 dark:bg-gray-800">
+                    <h4
+                      class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 dark:bg-gray-800"
+                    >
                       Detalhes dos Jogos
                     </h4>
 
@@ -466,8 +592,8 @@
                             :title="g.status"
                           ></span>
                           <div class="flex flex-col min-w-0 flex-1 dark:bg-gray-800">
-                            <div class="flex items-center gap-2 mb-1 " >
-                              <span class="text-smdark:bg-gray-100 truncate ">
+                            <div class="flex items-center gap-2 mb-1">
+                              <span class="text-smdark:bg-gray-100 truncate">
                                 Bisca de
                                 <!-- Opponent information commented out -->
                                 <!--
@@ -502,7 +628,7 @@
                                 -->
                               </span>
                               <span
-                                class="text-[9px] text-slate-400 uppercase bg-slate-100 px-1.5 py-0.5 rounded shrink-0 "
+                                class="text-[9px] text-slate-400 uppercase bg-slate-100 px-1.5 py-0.5 rounded shrink-0"
                               >
                                 {{ g.type || 'Standard' }}
                               </span>
@@ -661,50 +787,55 @@ import { toast } from 'vue-sonner'
 import { getErrorMessage, errorLogger, safeAsync } from '@/utils/errorHandling'
 import axios from 'axios'
 
-
-
 import { Pie, Bar } from 'vue-chartjs'
-import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement, BarElement, CategoryScale, LinearScale } from 'chart.js'
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+} from 'chart.js'
 
 ChartJS.register(Title, Tooltip, Legend, ArcElement, BarElement, CategoryScale, LinearScale)
 
 // Gráfico de Pizza (Calcula derrotas subtraindo as vitórias do total)
 const winLossData = computed(() => ({
   labels: ['Vitórias', 'Derrotas'],
-  datasets: [{
-    backgroundColor: ['#10B981', '#F87171'], // Emerald-500 e Red-400
-    hoverOffset: 4,
-    data: [
-      statisticsStore.stats.total_wins || 0,
-      (statisticsStore.stats.total_matches - statisticsStore.stats.total_wins) || 0
-    ]
-  }]
+  datasets: [
+    {
+      backgroundColor: ['#10B981', '#F87171'], // Emerald-500 e Red-400
+      hoverOffset: 4,
+      data: [
+        statisticsStore.stats.total_wins || 0,
+        statisticsStore.stats.total_matches - statisticsStore.stats.total_wins || 0,
+      ],
+    },
+  ],
 }))
 
 // Gráfico de Barras para os Capotes e Bandeiras
 const specialStatsData = computed(() => ({
   labels: ['Capotes', 'Bandeiras'],
-  datasets: [{
-    label: 'Total Acumulado',
-    backgroundColor: ['#8B5CF6', '#EF4444'], // Purple-500 e Red-500
-    borderRadius: 8,
-    data: [
-      statisticsStore.stats.capotes || 0,
-      statisticsStore.stats.bandeiras || 0
-    ]
-  }]
+  datasets: [
+    {
+      label: 'Total Acumulado',
+      backgroundColor: ['#8B5CF6', '#EF4444'], // Purple-500 e Red-500
+      borderRadius: 8,
+      data: [statisticsStore.stats.capotes || 0, statisticsStore.stats.bandeiras || 0],
+    },
+  ],
 }))
 
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
-  }
+    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
+  },
 }
-
-
-
 
 // Componentes UI
 import { Button } from '@/components/ui/button'
@@ -827,9 +958,20 @@ watch(
       if (authStore.currentUser && authStore.currentUser.id == newId) {
         displayedUser.value = authStore.currentUser
       } else {
-        const url = apiBaseURL ? `${apiBaseURL}/users/${newId}` : `/users/${newId}`
-        const response = await axios.get(url)
-        displayedUser.value = response.data.data || response.data
+        // If current user is an admin, call the admin endpoint to get the full user record
+        // (this uses the protected `/admin/users/{id}` route via apiStore.getUserById)
+        if (authStore.isAdmin) {
+          const res = await apiStore.getUserById(newId)
+          displayedUser.value = res.data.data || res.data
+        } else {
+          // Non-admins use the public profile endpoint which returns limited fields
+          const publicUrl = apiBaseURL
+            ? `${apiBaseURL}/users/${newId}/profile`
+            : `/users/${newId}/profile`
+          const response = await axios.get(publicUrl)
+          // Public endpoint returns the user object directly (not wrapped in data)
+          displayedUser.value = response.data.data || response.data
+        }
       }
 
       // 2. Preencher Form

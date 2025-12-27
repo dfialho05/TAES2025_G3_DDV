@@ -169,7 +169,15 @@ class GameController extends Controller
     public function recentGames(Request $request, $id): JsonResponse
     {
         try {
+            // Try to find the user normally. If not found and the requester is an admin,
+            // allow admins to fetch data for soft-deleted (trashed) users by loading withTrashed().
             $user = User::find($id);
+            if (!$user) {
+                $authUser = $request->user();
+                if ($authUser && $authUser->type === "A") {
+                    $user = User::withTrashed()->find($id);
+                }
+            }
             if (!$user) {
                 return response()->json(["message" => "User not found"], 404);
             }
