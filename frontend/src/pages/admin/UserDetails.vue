@@ -118,6 +118,13 @@ onMounted(() => fetchUserDetails(1))
         <div>
           <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
             Transações de {{ user.name }}
+            <button
+              type="button"
+              @click="$router.push(`/profile/${user.id}`)"
+              class="ml-3 inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Ver Perfil
+            </button>
           </h1>
           <p class="text-gray-500 dark:text-gray-400 mt-1 font-medium">
             {{ user.email }} •
