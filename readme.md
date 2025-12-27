@@ -2,9 +2,6 @@
 
 Uma plataforma completa para jogar Bisca online, desenvolvida como projeto da disciplina TAES 2025. O sistema é uma **Web App com abordagem *mobile-first***, que suporta jogos multiplayer em tempo real e modo singleplayer contra bot.
 
-## ATENCAO
-Se o migrate e o seed foram feitos antes de dia 14/12 as 16:40 a aplicacao nao ira funcionar
-
 ## 📋 Índice
 
 - [Visão Geral](#-visão-geral)
@@ -112,8 +109,8 @@ cd api
 composer install
 cp .env.example .env
 php artisan key:generate
-php artisan migrate --seed  # Cria as tabelas e popula com dados iniciais (utilizadores, decks, etc.)
-php artisan storage:link    # Necessário para que as imagens dos decks sejam acessíveis
+php artisan migrate
+php artisan db:seed  # Opcional: dados de exemplo
 ```
 
 #### ⚠️ Configuração do .env (IMPORTANTE)
@@ -394,16 +391,11 @@ PAYMENTS_API_URL=http://localhost:8080/api/payments
 ```
 
 ### Problema: Decks temáticos não aparecem
-**Causa**: Script de criação de decks não foi executado ou o link simbólico do storage não foi criado.
+**Causa**: Script de criação de decks não foi executado
 **Solução**:
 ```bash
-# Gerar as imagens dos decks
 ./create_deck_variations.sh
 # Escolher opção 2 ou 3 se não tiver ImageMagick
-
-# Criar o link para as imagens serem públicas
-cd api
-php artisan storage:link
 ```
 
 ### Problema: Base de dados não encontrada

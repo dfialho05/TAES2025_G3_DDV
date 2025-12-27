@@ -251,9 +251,7 @@ class MatchController extends Controller
                 "user_id" => $id,
                 "total_matches" => $matches->count(),
                 "matches_with_opponents" => $matches
-                    ->filter(function ($m) {
-                        return $m["opponent"] !== null;
-                    })
+                    ->filter(fn($m) => $m["opponent"] !== null)
                     ->count(),
             ]);
 

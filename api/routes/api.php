@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\BoardThemeController;
@@ -12,10 +11,9 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\CoinPurchaseController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\MatchController;
-use App\Http\Controllers\LeaderboardController;
-use App\Http\Controllers\StatisticsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,46 +41,71 @@ Route::post("/register", [AuthController::class, "register"]);
 
 /*
 |--------------------------------------------------------------------------
-| Public Game & Resource Routes (No Authentication Required)
+| Public Game Routes (No Authentication Required)
 |--------------------------------------------------------------------------
 */
 
-Route::get("/leaderboard", [LeaderboardController::class, "getLeaderboard"]);
+// Individual leaderboard categories
+Route::get("/leaderboard", [
+    \App\Http\Controllers\LeaderboardController::class,
+    "getLeaderboard",
+]);
+
+// All leaderboards at once (for dashboard view)
 Route::get("/leaderboards/all", [
-    LeaderboardController::class,
+    \App\Http\Controllers\LeaderboardController::class,
     "getAllLeaderboards",
 ]);
+
 Route::get("/users/{id}/statistics", [
-    StatisticsController::class,
+    App\Http\Controllers\StatisticsController::class,
     "getUserStats",
 ]);
 
-// Basic Game Operations (Public)
+// Basic Game Operations
 Route::apiResource("games", GameController::class)->only([
     "index",
     "show",
     "store",
 ]);
 
-// Decks & Assets
+// Rotas públicas para decks (imagens podem ser acessadas sem autenticação)
 Route::get("/decks", [DeckController::class, "index"]);
-Route::get("/decks/{deckSlug}", [DeckController::class, "show"]);
-Route::get("/decks/{deckSlug}/assets", [
-    DeckController::class,
-    "getDeckAssets",
-]);
-Route::get("/decks/{deckSlug}/files", [DeckController::class, "listDeckFiles"]);
 Route::get("/decks/{deckSlug}/image/{cardName}", [
     DeckController::class,
     "getCardImage",
 ]);
-
+Route::get("/decks/{deckSlug}/assets", [
+    DeckController::class,
+    "getDeckAssets",
+]);
+Route::get("/decks/{deckSlug}", [DeckController::class, "show"]);
+Route::get("/decks/{deckSlug}/files", [DeckController::class, "listDeckFiles"]);
 /*
 |--------------------------------------------------------------------------
-| Public Profile & History Routes
+| Public Profile & History Routes (Optimized for Performance)
 |--------------------------------------------------------------------------
 */
 
+// OTIMIZADO: Histórico de Jogos Individuais (Para lista simples no perfil)
+Route::get("/users/{id}/games/recent", [GameController::class, "recentGames"]);
+
+// NOVO: Histórico completo de jogos com paginação (Para página de histórico)
+Route::get("/users/{id}/games", [GameController::class, "getAllUserGames"]);
+
+// OTIMIZADO: Histórico de Partidas com detalhes (Para acordeão no perfil)
+Route::get("/users/{id}/matches/recent", [
+    MatchController::class,
+    "recentMatches",
+]);
+
+// NOVO: Histórico completo de partidas com paginação (Para página de histórico)
+Route::get("/users/{id}/matches", [
+    MatchController::class,
+    "getAllUserMatches",
+]);
+
+// Buscar dados públicos do utilizador (Para página de histórico)
 Route::get("/users/{id}/profile", function ($id) {
     $user = \App\Models\User::find($id);
     if (!$user) {
@@ -98,48 +121,88 @@ Route::get("/users/{id}/profile", function ($id) {
     ]);
 });
 
-Route::get("/users/{id}/games/recent", [GameController::class, "recentGames"]);
-Route::get("/users/{id}/games", [GameController::class, "getAllUserGames"]);
+// Estatísticas públicas de utilizador
 Route::get("/users/{id}/games/stats", [GameController::class, "userStats"]);
-
-Route::get("/users/{id}/matches/recent", [
-    MatchController::class,
-    "recentMatches",
-]);
-Route::get("/users/{id}/matches", [
-    MatchController::class,
-    "getAllUserMatches",
-]);
 Route::get("/users/{id}/matches/stats", [MatchController::class, "userStats"]);
+
+// ORIGINAL: Histórico completo de partidas (Mantido para compatibilidade)
 Route::get("/matches/user/{id}", [MatchController::class, "matchesByUser"]);
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated Routes (Require Token)
+| Authenticated Routes (Require Valid Token)
 |--------------------------------------------------------------------------
 */
 
 Route::middleware("auth:sanctum")->group(function () {
-    // Me / Profile
+    /*
+    |--------------------------------------------------------------------------
+    | User Context & Profile Management
+    |--------------------------------------------------------------------------
+    */
+
+    // Current User Info
     Route::get("/users/me", function (Request $request) {
         return new \App\Http\Resources\UserResource($request->user());
     });
+
+    // Profile Updates
     Route::patch("/users/me", [AuthController::class, "updateProfile"]);
     Route::patch("/users/me/deactivate", [
         AuthController::class,
         "deleteAccount",
     ]);
-    Route::post("/logout", [AuthController::class, "logout"]);
 
-    // File Uploads
-    Route::post("/files/userphoto", [FileController::class, "uploadUserPhoto"]);
-    Route::post("/files/cardfaces", [FileController::class, "uploadCardFaces"]);
+    // Authentication
+    Route::post("logout", [AuthController::class, "logout"]);
 
-    // Personal Match/Game Management
+    /*
+    |--------------------------------------------------------------------------
+    | File Upload Management
+    |--------------------------------------------------------------------------
+    */
+
+    Route::prefix("files")->group(function () {
+        Route::post("userphoto", [FileController::class, "uploadUserPhoto"]);
+        Route::post("cardfaces", [FileController::class, "uploadCardFaces"]);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Game Management (Authenticated Operations)
+    |--------------------------------------------------------------------------
+    */
+
+    // Protected Game Operations
+    Route::apiResource("games", GameController::class)->except([
+        "index",
+        "show",
+        "store",
+    ]);
+
+    // Additional Game Endpoints
+    Route::get("/matches/{matchId}/games", [
+        GameController::class,
+        "gamesByMatch",
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Personal Match History (User Context Required)
+    |--------------------------------------------------------------------------
+    */
+
+    // Personal match history (requires authentication to know "me")
     Route::get("/matches/me", [MatchController::class, "history"]);
-    Route::post("/matches", [MatchController::class, "store"]);
+
+    // Match details (security enforced in controller)
     Route::get("/matches/{id}", [MatchController::class, "show"]);
+
+    // Match management
+    Route::post("/matches", [MatchController::class, "store"]);
     Route::patch("/matches/{id}", [MatchController::class, "update"]);
+
+    // Enhanced match management
     Route::post("/matches/{id}/start", [MatchController::class, "startMatch"]);
     Route::post("/matches/{id}/finish", [
         MatchController::class,
@@ -154,118 +217,137 @@ Route::middleware("auth:sanctum")->group(function () {
         "getMatchTransactions",
     ]);
 
+    // Game management within matches
     Route::post("/matches/{matchId}/games", [
         GameController::class,
         "createGameForMatch",
     ]);
-    Route::get("/matches/{matchId}/games", [
-        GameController::class,
-        "gamesByMatch",
-    ]);
+
+    // Enhanced game management
     Route::post("/games/{id}/start", [GameController::class, "startGame"]);
     Route::post("/games/{id}/finish", [GameController::class, "finishGame"]);
 
-    // Generic Resources
+    /*
+    |--------------------------------------------------------------------------
+    | User & Resource Management
+    |--------------------------------------------------------------------------
+    */
+
     Route::apiResources([
+        "users" => UserController::class,
         "card-faces" => CardFaceController::class,
         "board-themes" => BoardThemeController::class,
-        "users" => UserController::class,
     ]);
+
+    // Additional User Operations
     Route::patch("/users/{user}/photo-url", [
         UserController::class,
         "patchPhotoURL",
     ]);
 
-    // Store & Purchases
+    /*
+    |--------------------------------------------------------------------------
+    | E-commerce & Purchases
+    |--------------------------------------------------------------------------
+    */
+
     Route::post("/purchases/", [CoinPurchaseController::class, "initiate"]);
+
     Route::get("/store/decks", [StoreController::class, "index"]);
     Route::post("/store/buy", [StoreController::class, "buy"]);
     Route::post("/store/equip", [StoreController::class, "toggleActive"]);
-
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN ONLY SUB-GROUP
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware("admin")->group(function () {
-        // Dashboard & Global Stats
-        Route::get("/admin/stats", [AdminController::class, "stats"]);
-        Route::get("/admin/transactions", [
-            AdminController::class,
-            "allTransactions",
-        ]);
-
-        // Global Match Management
-        Route::get("/matches", [MatchController::class, "index"]);
-        Route::delete("/matches/{id}", [MatchController::class, "destroy"]);
-
-        // User Management (Admin specific)
-        Route::get("/admin/users", [AdminController::class, "listUsers"]);
-        Route::get("/admin/users/{id}", [AdminController::class, "showUser"]);
-        Route::get("/admin/users/{id}/transactions", [
-            AdminController::class,
-            "userTransactions",
-        ]);
-        Route::post("/admin/users/create-admin", [
-            AdminController::class,
-            "createAdmin",
-        ]);
-        Route::patch("/admin/users/{id}/block", [
-            AdminController::class,
-            "blockUser",
-        ]);
-        Route::patch("/admin/users/{id}/unblock", [
-            AdminController::class,
-            "unblockUser",
-        ]);
-        Route::delete("/admin/users/{id}", [
-            AdminController::class,
-            "destroyUser",
-        ]);
-
-        Route::get("/admin/charts", [AdminController::class, "getChartData"]);
-    });
 });
 
 /*
 |--------------------------------------------------------------------------
-| Media & Debug Routes
+| Avatar Image Routes (Public with CORS headers)
 |--------------------------------------------------------------------------
 */
 
-// Avatars
+// Avatar image serving
 Route::get("/avatars/{filename}", [AvatarController::class, "show"])->where(
     "filename",
     "[a-zA-Z0-9_\-\.]+",
 );
+
+// CORS preflight for avatars
 Route::options("/avatars/{filename}", [
     AvatarController::class,
     "options",
 ])->where("filename", "[a-zA-Z0-9_\-\.]+");
+
+// Avatar statistics (for debugging)
 Route::get("/avatars-stats", [AvatarController::class, "stats"]);
 
-// Debug Visual (Keep while developing)
-Route::get("/debug-image/{slug}", function ($slug) {
-    $path = storage_path("app/public/decks/{$slug}/preview.png");
-    if (!file_exists($path)) {
-        return response("❌ Ficheiro não encontrado em: " . $path, 404);
-    }
-    return response()->file($path, ["Cache-Control" => "no-store"]);
-});
-
-if (env("APP_DEBUG", false)) {
-    Route::get("/debug/admin-users-raw", function () {
-        return \App\Models\User::withTrashed()
-            ->orderByDesc("created_at")
-            ->get();
-    });
-}
+// Avatar test endpoint (for debugging)
+Route::get("/avatars-test/{filename}", [
+    AvatarController::class,
+    "test",
+])->where("filename", "[a-zA-Z0-9_\-\.]+");
 
 /*
 |--------------------------------------------------------------------------
-| Fallback
+| Admin Only Routes (Require Admin Privileges)
 |--------------------------------------------------------------------------
 */
+
+Route::middleware(["auth:sanctum", "admin"])->prefix('admin')->group(function () {
+    // Platform-wide match management (Admin only)
+    Route::get("/matches", [MatchController::class, "index"]);
+    Route::delete("/matches/{id}", [MatchController::class, "destroy"]);
+
+    // Platform statistics and monitoring
+    Route::get("/stats", [AdminController::class, "getStatistics"]);
+
+    // Store administration
+    Route::get('/decks', [AdminController::class, 'getDecks']);
+    Route::post('/decks', [AdminController::class, 'storeDeck']);
+    Route::patch('/decks/{id}', [AdminController::class, 'toggleDeck']);
+    Route::delete('/decks/{id}', [AdminController::class, 'deleteDeck']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Fallback Route for API
+|--------------------------------------------------------------------------
+*/
+
 Route::fallback(function () {
-    return response()->json(["message" => "API endpoint not found"], 404);
+    return response()->json(
+        [
+            "message" => "API endpoint not found",
+            "available_endpoints" => [
+                "GET /metadata" => "API information",
+                "POST /login" => "User authentication",
+                "POST /register" => "User registration",
+                "GET /users/{id}/games/recent" =>
+                    "Recent games for user profile",
+                "GET /users/{id}/matches/recent" =>
+                    "Recent matches for user profile",
+            ],
+        ],
+        404,
+    );
+});
+
+// Rota de Debug Visual (Apagar depois)
+Route::get("/debug-image/{slug}", function ($slug) {
+    // 1. Constrói o caminho exato
+    $path = storage_path("app/public/decks/{$slug}/preview.png");
+
+    // 2. Se não existir, mostra o erro no ecrã em vez de tentar adivinhar
+    if (!file_exists($path)) {
+        return response(
+            "❌ ERRO: O ficheiro não foi encontrado neste caminho exato:<br><strong>" .
+                $path .
+                "</strong>",
+            404,
+        );
+    }
+
+    // 3. Se existir, mostra a imagem e força o browser a não guardar cache
+    return response()->file($path, [
+        "Cache-Control" => "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma" => "no-cache",
+    ]);
 });

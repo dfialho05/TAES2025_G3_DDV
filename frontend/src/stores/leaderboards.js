@@ -10,8 +10,6 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
     mostWins: [],
     mostMatches: [],
     mostGames: [],
-    kingOfCapotes: [],
-    kingOfBandeiras: [],
   })
 
   const isLoading = ref(false)
@@ -24,9 +22,7 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
     return (
       leaderboards.value.mostWins.length === 0 &&
       leaderboards.value.mostMatches.length === 0 &&
-      leaderboards.value.mostGames.length === 0 &&
-      leaderboards.value.kingOfCapotes.length === 0 &&
-      leaderboards.value.kingOfBandeiras.length === 0
+      leaderboards.value.mostGames.length === 0
     )
   })
 
@@ -53,18 +49,6 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
       title: 'Most Games',
       emoji: '🎮',
       description: 'Players with the most individual games',
-    },
-    {
-      key: 'kingOfCapotes',
-      title: 'King of Capotes',
-      emoji: '👑',
-      description: 'Players with most wins between 91-119 points',
-    },
-    {
-      key: 'kingOfBandeiras',
-      title: 'King of Bandeiras',
-      emoji: '🏴',
-      description: 'Players with most wins with 120+ points',
     },
   ])
 
@@ -101,8 +85,6 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
         mostWins: response.data.leaderboards.most_wins?.data || [],
         mostMatches: response.data.leaderboards.most_matches?.data || [],
         mostGames: response.data.leaderboards.most_games?.data || [],
-        kingOfCapotes: response.data.leaderboards.king_of_capotes?.data || [],
-        kingOfBandeiras: response.data.leaderboards.king_of_bandeiras?.data || [],
       }
 
       console.log('Updated leaderboards:', leaderboards.value)
@@ -151,8 +133,6 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
       mostWins: [],
       mostMatches: [],
       mostGames: [],
-      kingOfCapotes: [],
-      kingOfBandeiras: [],
     }
     isLoading.value = false
     error.value = null

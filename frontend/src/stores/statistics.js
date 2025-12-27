@@ -14,8 +14,6 @@ export const useStatisticsStore = defineStore('statistics', () => {
     total_games: 0,
     game_wins: 0,
     game_win_rate: 0,
-    capotes: 0,
-    bandeiras: 0,
   })
 
   const isLoading = ref(false)
@@ -47,8 +45,6 @@ export const useStatisticsStore = defineStore('statistics', () => {
         total_games: 0,
         game_wins: 0,
         game_win_rate: 0,
-        capotes: 0,
-        bandeiras: 0,
       }
     } finally {
       isLoading.value = false
@@ -66,8 +62,6 @@ export const useStatisticsStore = defineStore('statistics', () => {
       total_games: 0,
       game_wins: 0,
       game_win_rate: 0,
-      capotes: 0,
-      bandeiras: 0,
     }
     error.value = null
     isLoading.value = false

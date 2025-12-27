@@ -26,7 +26,7 @@ class AdminMiddleware
         }
 
         // Verificar se o usuário é admin
-        if (!auth()->user()->isType("A")) {
+        if (auth()->user()->type !== 'A') {
             return response()->json(
                 [
                     "message" =>
