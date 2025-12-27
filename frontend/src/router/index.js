@@ -123,25 +123,27 @@ const router = createRouter({
       meta: { requiresAuth: true }, // Se usares proteção de rotas
     },
     {
-    path: '/admin/users',
-    name: 'admin-users',
-    component: () => import('@/pages/admin/UsersListPage.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: true,
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/pages/admin/MainPage.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/pages/admin/UsersListPage.vue'),
+        },
+        {
+          path: 'users/:id',
+          name: 'user-details',
+          component: () => import('@/pages/admin/UserDetails.vue'),
+          props: true, // Isto permite que o :id seja passado como prop para o componente
+        },
+      ],
     },
-    },
-    {
-  path: '/admin/users/:id',
-  name: 'user-details',
-  component: () => import('@/pages/admin/UserDetails.vue'),
-  props: true // Isto permite que o :id seja passado como prop para o componente
-}
-
+    // user-details route moved under '/admin' as a child of MainPage
   ],
 })
-
-
 
 // Async guard: if a route needs auth, try to restore the user from token before redirecting.
 router.beforeEach(async (to, from, next) => {
@@ -150,7 +152,7 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     // If already logged in, allow
     if (authStore.isLoggedIn) {
-       if (to.meta.requiresAdmin && !authStore.isAdmin) {
+      if (to.meta.requiresAdmin && !authStore.isAdmin) {
         return next({ name: 'home' })
       }
       return next()
@@ -176,7 +178,6 @@ router.beforeEach(async (to, from, next) => {
     // no token -> go to login
     return next({ name: 'login' })
   }
-
 
   // route doesn't require auth
   return next()
