@@ -27,12 +27,14 @@ onMounted(() => {
   console.log("✅ Lista de jogos pedida.");
 });
 
-// Criar Jogo (Player 1)
-const create = (tipoJogo) => {
-    console.log("🖱️ Cliquei em Criar Jogo", tipoJogo);
-    // IMPORTANTE: Passar '1' como terceiro argumento (número de vitórias)
+// --- ALTERAÇÃO AQUI ---
+// Agora aceita o numero de vitórias (targetWins)
+const create = (tipoJogo, targetWins = 1) => {
+    const modeName = targetWins > 1 ? 'Match' : 'Jogo Rápido';
+    console.log(`🖱️ Criar ${modeName}: Tipo ${tipoJogo}, Wins ${targetWins}`);
+
     // Argumentos: (tipo, modo, wins, isPractice)
-    biscaStore.startGame(tipoJogo, 'multiplayer', 1, false);
+    biscaStore.startGame(tipoJogo, 'multiplayer', targetWins, false);
 };
 
 // Entrar Jogo (Player 2)
@@ -46,7 +48,7 @@ watch(gameID, (newID) => {
     console.log("👀 O gameID mudou para:", newID);
     if (newID) {
         console.log("🚀 Jogo detetado! Redirecionando para a mesa...");
-        router.push('/games/singleplayer'); // Ou a rota correta da tua mesa de jogo
+        router.push('/games/singleplayer');
     }
 });
 
@@ -71,22 +73,50 @@ const goHome = () => {
             <div class="placeholder"></div>
         </header>
 
-        <section class="action-area">
-            <button @click="create(3)" class="btn-create">
-                <div class="icon-wrapper">🃏</div>
-                <div class="text-wrapper">
-                    <span class="btn-title">Bisca de 3</span>
-                    <span class="btn-desc">Criar Sala</span>
-                </div>
-            </button>
+        <section class="action-area-wrapper">
 
-            <button @click="create(9)" class="btn-create">
-                <div class="icon-wrapper">🃏</div>
-                <div class="text-wrapper">
-                    <span class="btn-title">Bisca de 9</span>
-                    <span class="btn-desc">Criar Sala</span>
+            <div class="action-column">
+                <h3 class="column-title">Jogo Rápido <small>(1 Vitória)</small></h3>
+                <div class="buttons-grid">
+                    <button @click="create(3, 1)" class="btn-create btn-green">
+                        <div class="icon-wrapper">🃏</div>
+                        <div class="text-wrapper">
+                            <span class="btn-title">Bisca de 3</span>
+                            <span class="btn-desc">Partida Única</span>
+                        </div>
+                    </button>
+
+                    <button @click="create(9, 1)" class="btn-create btn-green">
+                        <div class="icon-wrapper">🃏</div>
+                        <div class="text-wrapper">
+                            <span class="btn-title">Bisca de 9</span>
+                            <span class="btn-desc">Partida Única</span>
+                        </div>
+                    </button>
                 </div>
-            </button>
+            </div>
+
+            <div class="action-column">
+                <h3 class="column-title gold-text">MATCH <small>(4 Vitórias)</small></h3>
+                <div class="buttons-grid">
+                    <button @click="create(3, 4)" class="btn-create btn-gold">
+                        <div class="icon-wrapper">🏆</div>
+                        <div class="text-wrapper">
+                            <span class="btn-title">Match de 3</span>
+                            <span class="btn-desc">Ganha quem tiver 4 vitórias</span>
+                        </div>
+                    </button>
+
+                    <button @click="create(9, 4)" class="btn-create btn-gold">
+                        <div class="icon-wrapper">🏆</div>
+                        <div class="text-wrapper">
+                            <span class="btn-title">Match de 9</span>
+                            <span class="btn-desc">Ganha quem tiver 4 vitórias</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
         </section>
 
         <section class="games-area">
@@ -114,7 +144,7 @@ const goHome = () => {
                             <div class="badges">
                                 <span class="badge id-badge">#{{ game.id }}</span>
                                 <span class="badge type-badge">{{ game.type }}</span>
-                            </div>
+                                </div>
                         </div>
                     </div>
 
@@ -159,7 +189,7 @@ const goHome = () => {
 }
 
 .lobby-container {
-    max-width: 900px;
+    max-width: 1000px; /* Aumentei um pouco para caber as 2 colunas */
     margin: 0 auto;
     padding: 2rem 1rem;
     position: relative;
@@ -171,7 +201,7 @@ const goHome = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .btn-back {
@@ -216,41 +246,90 @@ const goHome = () => {
 .placeholder { width: 80px; }
 
 /* ================= ACTIONS ================= */
-.action-area {
-    margin-bottom: 3rem;
+.action-area-wrapper {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: 2rem;
+    margin-bottom: 3rem;
     flex-wrap: wrap;
 }
 
+.action-column {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.column-title {
+    text-align: center;
+    margin: 0;
+    font-size: 1.1rem;
+    color: #a7f3d0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.column-title small {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    display: block;
+    text-transform: none;
+}
+
+.column-title.gold-text {
+    color: #fcd34d;
+}
+
+.buttons-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
 .btn-create {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border: none;
-    padding: 1rem 2rem;
+    padding: 1rem 1.5rem;
     border-radius: 16px;
     color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+    gap: 1rem;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    flex: 1;
-    min-width: 250px;
-    max-width: 350px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-create:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 15px 35px rgba(16, 185, 129, 0.5);
+/* Estilo Verde (Jogo Rápido) */
+.btn-green {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+}
+.btn-green:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 25px rgba(16, 185, 129, 0.4);
+}
+
+/* Estilo Dourado (Match) */
+.btn-gold {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-gold:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 25px rgba(245, 158, 11, 0.4);
+    background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%);
 }
 
 .icon-wrapper {
-    font-size: 2.5rem;
+    font-size: 2rem;
     background: rgba(255,255,255,0.2);
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -259,17 +338,18 @@ const goHome = () => {
 
 .text-wrapper {
     text-align: left;
+    flex: 1;
 }
 
 .btn-title {
     display: block;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: bold;
 }
 
 .btn-desc {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     opacity: 0.9;
 }
 
@@ -470,7 +550,8 @@ const goHome = () => {
 }
 
 /* Mobile Responsiveness */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+    .action-area-wrapper { flex-direction: column; gap: 1rem; }
     .lobby-header { flex-direction: column; gap: 1rem; }
     .title-group h1 { font-size: 2rem; }
     .game-card { flex-direction: column; align-items: stretch; gap: 1rem; }
