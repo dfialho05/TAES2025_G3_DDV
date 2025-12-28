@@ -47,6 +47,8 @@ const goToLobby = () => {
 
 <template>
   <div class="flex flex-col md:flex-row justify-center items-stretch gap-6 mt-10 px-4 mb-10">
+
+    <!-- ================= SINGLE PLAYER ================= -->
     <Card
       class="w-full md:max-w-lg flex flex-col transition-all hover:shadow-md border-2 border-transparent hover:border-gray-200 dark:hover:border-gray-800"
     >
@@ -60,6 +62,8 @@ const goToLobby = () => {
       </CardHeader>
 
       <CardContent class="space-y-6 flex-1 flex flex-col">
+
+        <!-- PARTIDA COMPLETA -->
         <div class="space-y-2">
           <h3
             class="text-sm font-bold text-green-600 uppercase tracking-wide border-b border-green-100 pb-1 flex items-center justify-between"
@@ -69,30 +73,37 @@ const goToLobby = () => {
               LOGIN OBRIGATÓRIO
             </span>
           </h3>
+
           <div class="grid grid-cols-2 gap-3">
             <Button
+              :disabled="authStore.isAdmin"
               @click="startGame(3, 4)"
               variant="outline"
-              class="h-auto py-3 border-2 border-green-100 hover:border-green-500 hover:bg-green-50"
+              class="h-auto py-3 border-2"
+              :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
             >
               <div class="flex flex-col items-center">
-                <span class="text-lg font-bold text-green-700">Bisca de 3</span>
+                <span class="text-lg font-bold">Bisca de 3</span>
                 <span class="text-[10px] text-muted-foreground">Melhor de 4</span>
               </div>
             </Button>
+
             <Button
+              :disabled="authStore.isAdmin"
               @click="startGame(9, 4)"
               variant="outline"
-              class="h-auto py-3 border-2 border-green-100 hover:border-green-500 hover:bg-green-50"
+              class="h-auto py-3 border-2"
+              :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
             >
               <div class="flex flex-col items-center">
-                <span class="text-lg font-bold text-green-700">Bisca de 9</span>
+                <span class="text-lg font-bold">Bisca de 9</span>
                 <span class="text-[10px] text-muted-foreground">Melhor de 4</span>
               </div>
             </Button>
           </div>
         </div>
 
+        <!-- PARTIDA RÁPIDA -->
         <div class="space-y-2">
           <h3
             class="text-sm font-bold text-blue-600 uppercase tracking-wide border-b border-blue-100 pb-1 flex items-center justify-between"
@@ -102,30 +113,37 @@ const goToLobby = () => {
               LOGIN OBRIGATÓRIO
             </span>
           </h3>
+
           <div class="grid grid-cols-2 gap-3">
             <Button
+              :disabled="authStore.isAdmin"
               @click="startGame(3, 1)"
               variant="outline"
-              class="h-auto py-3 border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-50"
+              class="h-auto py-3 border-2"
+              :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
             >
               <div class="flex flex-col items-center">
-                <span class="text-lg font-bold text-blue-700">Bisca 3</span>
+                <span class="text-lg font-bold">Bisca 3</span>
                 <span class="text-[10px] text-muted-foreground">Morte Súbita</span>
               </div>
             </Button>
+
             <Button
+              :disabled="authStore.isAdmin"
               @click="startGame(9, 1)"
               variant="outline"
-              class="h-auto py-3 border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-50"
+              class="h-auto py-3 border-2"
+              :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
             >
               <div class="flex flex-col items-center">
-                <span class="text-lg font-bold text-blue-700">Bisca 9</span>
+                <span class="text-lg font-bold">Bisca 9</span>
                 <span class="text-[10px] text-muted-foreground">Morte Súbita</span>
               </div>
             </Button>
           </div>
         </div>
 
+        <!-- TREINO -->
         <div class="space-y-2">
           <h3
             class="text-sm font-bold text-gray-500 uppercase tracking-wide border-b border-gray-100 pb-1 flex items-center justify-between"
@@ -137,30 +155,42 @@ const goToLobby = () => {
               SEM LOGIN
             </span>
           </h3>
+
           <div class="grid grid-cols-2 gap-3">
             <Button
+              :disabled="authStore.isAdmin"
               @click="startPracticeGame(3, 1)"
               variant="outline"
-              class="h-auto py-3 border-dashed border-2 hover:bg-gray-100"
+              class="h-auto py-3 border-dashed border-2"
+              :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
             >
-              <div class="flex flex-col items-center">
-                <span class="text-md font-semibold text-gray-600">Practice 3</span>
-              </div>
+              <span class="text-md font-semibold">Practice 3</span>
             </Button>
+
             <Button
+              :disabled="authStore.isAdmin"
               @click="startPracticeGame(9, 1)"
               variant="outline"
-              class="h-auto py-3 border-dashed border-2 hover:bg-gray-100"
+              class="h-auto py-3 border-dashed border-2"
+              :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
             >
-              <div class="flex flex-col items-center">
-                <span class="text-md font-semibold text-gray-600">Practice 9</span>
-              </div>
+              <span class="text-md font-semibold">Practice 9</span>
             </Button>
           </div>
         </div>
+
+        <!-- AVISO ADMIN -->
+        <p
+          v-if="authStore.isAdmin"
+          class="text-sm text-center text-red-600 font-semibold mt-4"
+        >
+          ⚠️ Utilizadores administradores não podem jogar.
+        </p>
+
       </CardContent>
     </Card>
 
+    <!-- ================= MULTIPLAYER ================= -->
     <Card
       class="w-full md:max-w-md flex flex-col transition-all hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-800"
     >
@@ -176,19 +206,29 @@ const goToLobby = () => {
         </CardDescription>
       </CardHeader>
 
-      <CardContent class="flex items-center justify-center flex-1 min-h-[200px]">
+      <CardContent class="flex flex-col items-center justify-center flex-1 min-h-[200px] gap-3">
         <Button
+          :disabled="authStore.isAdmin"
           @click="goToLobby"
           variant="outline"
-          class="w-full h-auto py-8 flex flex-col gap-2 border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all group transform hover:scale-105 shadow-sm"
+          class="w-full h-auto py-8 flex flex-col gap-2 border-2"
+          :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
         >
           <span class="text-3xl">🎮</span>
-          <span class="text-2xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400"
-            >Entrar no Lobby</span
-          >
-          <span class="text-sm text-muted-foreground font-normal">Encontrar ou Criar Salas</span>
+          <span class="text-2xl font-bold">Entrar no Lobby</span>
+          <span class="text-sm text-muted-foreground">Encontrar ou Criar Salas</span>
         </Button>
+
+        <!-- AVISO ADMIN -->
+        <p
+          v-if="authStore.isAdmin"
+          class="text-sm text-red-600 font-semibold text-center"
+        >
+          ⚠️ Administradores não podem aceder ao modo Multiplayer.
+        </p>
       </CardContent>
     </Card>
+
   </div>
 </template>
+

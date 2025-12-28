@@ -1,9 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
 import { useAPIStore } from '@/stores/api'
 
-const route = useRoute()
 const apiStore = useAPIStore()
 
 const transactions = ref([])
@@ -27,40 +25,17 @@ const transactionTypes = {
 }
 
 /**
- * Fetch user details and the first page of transactions.
- * Accepts optional page param to load a specific page immediately.
- */
-const fetchUserDetails = async (page = 1) => {
-  const userId = route.params.id
-  loading.value = true
-  try {
-    const resUser = await apiStore.getUserById(userId)
-    user.value = resUser.data
-    await fetchTransactions(page)
-  } catch (err) {
-    console.error('Erro ao carregar detalhes', err)
-    user.value = null
-    transactions.value = []
-    pagination.value = { current_page: 1, per_page: perPage, total: 0, last_page: 1 }
-  } finally {
-    loading.value = false
-  }
-}
-
-/**
  * Load a page of transactions from the server.
  */
 const fetchTransactions = async (page = 1) => {
-  const userId = route.params.id
   loading.value = true
   try {
-    const resTrans = await apiStore.getUserTransactions(userId, page, perPage)
-    const payload = resTrans.data ?? {}
-    transactions.value = payload.data ?? []
-    pagination.value = payload.meta ?? {
+    const resTrans = await apiStore.getSelfTransactions(page, perPage)
+    transactions.value = resTrans.data ?? []
+    pagination.value = resTrans.meta ?? {
       current_page: page,
       per_page: perPage,
-      total: transactions.value.length,
+      total: 0,
       last_page: 1,
     }
   } catch (err) {
@@ -92,8 +67,21 @@ const formatDate = (dateString) => {
   })
 }
 
-onMounted(() => fetchUserDetails(1))
+onMounted(async () => {
+  loading.value = true
+  try {
+    user.value = await apiStore.getAuthUser()
+    await fetchTransactions(1) // pega as próprias transações
+  } catch (err) {
+    console.error('Erro ao carregar detalhes ou transações', err)
+    user.value = null
+    transactions.value = []
+  } finally {
+    loading.value = false
+  }
+})
 </script>
+
 
 <template>
   <div
@@ -117,20 +105,11 @@ onMounted(() => fetchUserDetails(1))
       >
         <div>
           <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Transações de {{ user.name }}
-            <button
-              type="button"
-              @click="$router.push(`/profile/${user.id}`)"
-              class="ml-3 inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              Ver Perfil
-            </button>
+            Minhas Transações
           </h1>
           <p class="text-gray-500 dark:text-gray-400 mt-1 font-medium">
-            {{ user.email }} •
-            <span
-              class="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs border dark:border-gray-700 text-gray-600 dark:text-gray-300"
-            >ID: {{ user.id }}</span>
+            {{ user.email }}
+           
           </p>
         </div>
         <div class="text-right text-sm text-gray-400 dark:text-gray-500">
