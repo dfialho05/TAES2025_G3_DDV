@@ -42,29 +42,33 @@ export const useBiscaStore = defineStore('bisca', () => {
     if (data.id) gameID.value = data.id
 
     if (data.gameOver || data.roundOver) {
-        console.log("📥 [Store] Estado Final Recebido. Pontos Ronda:", data.lastRoundPoints);
+      console.log('[Store] Estado Final Recebido. Pontos Ronda:', data.lastRoundPoints)
     }
 
     // ATUALIZAR OBJETIVOS E MODO
-    if (data.winsNeeded) gameTarget.value = parseInt(data.winsNeeded);
-    if (data.gameType) gameMode.value = parseInt(data.gameType);
+    if (data.winsNeeded) gameTarget.value = parseInt(data.winsNeeded)
+    if (data.gameType) gameMode.value = parseInt(data.gameType)
 
     // Identificar Jogador
-    const myId = String(authStore.currentUser?.id || '');
-    const p1Id = String(data.player1Id || '');
+    const myId = String(authStore.currentUser?.id || '')
+    const p1Id = String(data.player1Id || '')
 
     if (myId === p1Id) {
-        mySide.value = 'player1';
+      mySide.value = 'player1'
     } else {
-        mySide.value = 'player2';
+      mySide.value = 'player2'
     }
 
-    console.log(`🔍 Perspetiva definida: Sou ${mySide.value} (Meu ID: ${myId}, P1 ID: ${p1Id})`);
+    console.log(`Perspetiva definida: Sou ${mySide.value} (Meu ID: ${myId}, P1 ID: ${p1Id})`)
 
     // Mapear dados
     if (mySide.value === 'player1') {
       playerHand.value = data.player1Hand || []
-      opponentName.value = data.p2Name ? data.p2Name : (data.p2Name === null ? 'Aguardando...' : 'Bot')
+      opponentName.value = data.p2Name
+        ? data.p2Name
+        : data.p2Name === null
+          ? 'Aguardando...'
+          : 'Bot'
       isWaiting.value = data.p2Name === null
       opponentHandCount.value = (data.player2Hand || []).length || data.botCardCount || 0
     } else {
@@ -175,14 +179,37 @@ export const useBiscaStore = defineStore('bisca', () => {
     if (currentTurn.value === 'user') socketStore.emitPlayCard(gameID.value, index)
   }
   const fetchGames = () => socketStore.emitGetGames()
-  const setAvailableGames = (l) => availableGames.value = l
+  const setAvailableGames = (l) => (availableGames.value = l)
 
   return {
-    gameID, mySide, playerHand, opponentHandCount, botCardCount, opponentName,
-    isWaiting, trunfo, trunfoNaipe, tableCards, score, logs, currentTurn,
-    isGameOver, isRoundOver, cardsLeft, availableGames, sessionScore,
-    gameTarget, gameMode, // Exportar gameMode
-    popupData, processGameState, setAvailableGames, startGame, joinGame,
-    fetchGames, playCard, quitGame, closeRoundPopup,
+    gameID,
+    mySide,
+    playerHand,
+    opponentHandCount,
+    botCardCount,
+    opponentName,
+    isWaiting,
+    trunfo,
+    trunfoNaipe,
+    tableCards,
+    score,
+    logs,
+    currentTurn,
+    isGameOver,
+    isRoundOver,
+    cardsLeft,
+    availableGames,
+    sessionScore,
+    gameTarget,
+    gameMode, // Exportar gameMode
+    popupData,
+    processGameState,
+    setAvailableGames,
+    startGame,
+    joinGame,
+    fetchGames,
+    playCard,
+    quitGame,
+    closeRoundPopup,
   }
 })

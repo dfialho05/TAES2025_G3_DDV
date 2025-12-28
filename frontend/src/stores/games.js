@@ -68,7 +68,7 @@ export const useGamesStore = defineStore('games', {
       this.errors.recentGames = null
 
       try {
-        console.log(`🔄 [GamesStore] Fetching recent games for user ${userId}...`)
+        console.log(`[GamesStore] Fetching recent games for user ${userId}...`)
 
         const response = await axios.get(`/users/${userId}/games/recent`)
 
@@ -77,7 +77,7 @@ export const useGamesStore = defineStore('games', {
 
         // Processa e atualiza os dados dos jogos
         this.recentGames = gamesData.map((game, index) => {
-          console.log(`🎮 [GamesStore] Processing Game ${index + 1}:`, game)
+          console.log(`[GamesStore] Processing Game ${index + 1}:`, game)
           return {
             ...game,
             // Garante que o campo is_winner está definido
@@ -90,7 +90,7 @@ export const useGamesStore = defineStore('games', {
         console.log('✅ [GamesStore] Recent Games processed:', this.recentGames.length, 'items')
 
         if (this.recentGames.length > 0) {
-          console.log('🎯 [GamesStore] First Game Sample:', this.recentGames[0])
+          console.log('[GamesStore] First Game Sample:', this.recentGames[0])
         }
 
         return this.recentGames

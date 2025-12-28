@@ -71,7 +71,7 @@ export const useMatchesStore = defineStore('matches', {
       this.errors.recentMatches = null
 
       try {
-        console.log(`🔄 [MatchesStore] Fetching recent matches for user ${userId}...`)
+        console.log(`[MatchesStore] Fetching recent matches for user ${userId}...`)
 
         const response = await axios.get(`/users/${userId}/matches/recent`)
 
@@ -80,7 +80,7 @@ export const useMatchesStore = defineStore('matches', {
 
         // Processa e atualiza os dados das partidas
         this.recentMatches = matchesData.map((match, index) => {
-          console.log(`🏆 [MatchesStore] Processing Match ${index + 1}:`, match)
+          console.log(`[MatchesStore] Processing Match ${index + 1}:`, match)
           return {
             ...match,
             // Garante que o campo is_winner está definido
@@ -99,19 +99,15 @@ export const useMatchesStore = defineStore('matches', {
           }
         })
 
-        console.log(
-          '✅ [MatchesStore] Recent Matches processed:',
-          this.recentMatches.length,
-          'items',
-        )
+        console.log('[MatchesStore] Recent Matches processed:', this.recentMatches.length, 'items')
 
         if (this.recentMatches.length > 0) {
-          console.log('🏅 [MatchesStore] First Match Sample:', this.recentMatches[0])
+          console.log('[MatchesStore] First Match Sample:', this.recentMatches[0])
         }
 
         return this.recentMatches
       } catch (error) {
-        console.error('❌ [MatchesStore] Error fetching recent matches:', error)
+        console.error('[MatchesStore] Error fetching recent matches:', error)
 
         this.errors.recentMatches =
           error.response?.data?.message || 'Erro ao carregar partidas recentes.'
@@ -171,7 +167,7 @@ export const useMatchesStore = defineStore('matches', {
         this.currentMatch = response.data || null
         return this.currentMatch
       } catch (error) {
-        console.error('❌ [MatchesStore] Error fetching match details:', error)
+        console.error('[MatchesStore] Error fetching match details:', error)
         this.errors.details =
           error.response?.data?.message || 'Erro ao carregar detalhes da partida.'
         throw error
@@ -192,7 +188,7 @@ export const useMatchesStore = defineStore('matches', {
         this.matchStats = response.data || {}
         return this.matchStats
       } catch (error) {
-        console.error('❌ [MatchesStore] Error fetching match stats:', error)
+        console.error('[MatchesStore] Error fetching match stats:', error)
         this.errors.stats =
           error.response?.data?.message || 'Erro ao carregar estatísticas de partidas.'
         throw error
@@ -223,7 +219,7 @@ export const useMatchesStore = defineStore('matches', {
 
         return this.matches
       } catch (error) {
-        console.error('❌ [MatchesStore] Error fetching my history:', error)
+        console.error('[MatchesStore] Error fetching my history:', error)
         this.errors.matches = error.response?.data?.message || 'Erro ao carregar seu histórico.'
         throw error
       } finally {
@@ -244,7 +240,7 @@ export const useMatchesStore = defineStore('matches', {
 
         return newMatch
       } catch (error) {
-        console.error('❌ [MatchesStore] Error creating match:', error)
+        console.error('[MatchesStore] Error creating match:', error)
         throw error
       }
     },
@@ -269,7 +265,7 @@ export const useMatchesStore = defineStore('matches', {
 
         return updatedMatch
       } catch (error) {
-        console.error('❌ [MatchesStore] Error updating match:', error)
+        console.error('[MatchesStore] Error updating match:', error)
         throw error
       }
     },
@@ -346,7 +342,7 @@ export const useMatchesStore = defineStore('matches', {
       try {
         await Promise.all([this.fetchRecentMatches(userId), this.fetchMatchStats(userId)])
       } catch (error) {
-        console.error('❌ [MatchesStore] Error during refresh:', error)
+        console.error('[MatchesStore] Error during refresh:', error)
       }
     },
   },

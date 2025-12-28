@@ -130,7 +130,8 @@ onMounted(() => fetchUserDetails(1))
             {{ user.email }} •
             <span
               class="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs border dark:border-gray-700 text-gray-600 dark:text-gray-300"
-            >ID: {{ user.id }}</span>
+              >ID: {{ user.id }}</span
+            >
           </p>
         </div>
         <div class="text-right text-sm text-gray-400 dark:text-gray-500">
@@ -144,16 +145,24 @@ onMounted(() => fetchUserDetails(1))
         <table class="w-full text-left table-auto border-separate border-spacing-0">
           <thead>
             <tr class="bg-gray-50 dark:bg-gray-700/50">
-              <th class="p-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider">
+              <th
+                class="p-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider"
+              >
                 Data / Hora
               </th>
-              <th class="p-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider">
+              <th
+                class="p-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider"
+              >
                 Origem
               </th>
-              <th class="p-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider text-center">
+              <th
+                class="p-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider text-center"
+              >
                 Tipo
               </th>
-              <th class="p-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider text-right">
+              <th
+                class="p-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider text-right"
+              >
                 Valor
               </th>
             </tr>
@@ -172,15 +181,18 @@ onMounted(() => fetchUserDetails(1))
                   <span
                     v-if="t.match_id"
                     class="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-semibold border border-blue-100 dark:border-blue-800"
-                  >Match #{{ t.match_id }}</span>
+                    >Match #{{ t.match_id }}</span
+                  >
                   <span
                     v-if="t.game_id"
                     class="px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-xs font-semibold border border-purple-100 dark:border-purple-800"
-                  >Game #{{ t.game_id }}</span>
+                    >Game #{{ t.game_id }}</span
+                  >
                   <span
                     v-if="!t.match_id && !t.game_id"
                     class="text-gray-300 dark:text-gray-600 text-xs italic"
-                  >Sem origem direta</span>
+                    >Sem origem direta</span
+                  >
                 </div>
               </td>
               <td class="p-4 text-center">
@@ -193,17 +205,21 @@ onMounted(() => fetchUserDetails(1))
               <td class="p-4 text-right whitespace-nowrap">
                 <span
                   class="text-base font-black tabular-nums"
-                  :class="t.coins >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'"
+                  :class="
+                    t.coins >= 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-500 dark:text-red-400'
+                  "
                 >
                   {{ t.coins > 0 ? '+' : '' }}{{ t.coins }}
-                  <span class="ml-1 text-sm">🪙</span>
+                  <span class="ml-1 text-sm">coins</span>
                 </span>
               </td>
             </tr>
 
             <tr v-if="transactions.length === 0">
               <td colspan="4" class="p-20 text-center">
-                <div class="text-gray-300 dark:text-gray-700 text-5xl mb-4 text-center">📭</div>
+                <div class="text-gray-300 dark:text-gray-700 text-5xl mb-4 text-center"></div>
                 <p class="text-gray-400 dark:text-gray-500 font-medium text-lg text-center">
                   Sem histórico de moedas.
                 </p>

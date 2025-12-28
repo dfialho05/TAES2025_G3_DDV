@@ -48,7 +48,7 @@ export const useSocketStore = defineStore('socket', () => {
     // NÃO enviamos nada agora. Esperamos pelo watch do currentUser.
     // Se enviarmos agora, o servidor regista como "loading" e buga o jogo.
     if (!userData && hasToken) {
-      console.log('⏳ [Socket] Aguardando dados do utilizador autenticado...')
+      console.log('[Socket] Aguardando dados do utilizador autenticado...')
       return
     }
 
@@ -62,7 +62,7 @@ export const useSocketStore = defineStore('socket', () => {
     }
 
     // CASO 3: Utilizador autenticado e carregado
-    console.log('📤 [Socket] Enviando identidade (JOIN):', userData)
+    console.log('[Socket] Enviando identidade (JOIN):', userData)
     socket.value.emit('join', userData)
   }
 
@@ -70,7 +70,7 @@ export const useSocketStore = defineStore('socket', () => {
     if (!socket.value) return
 
     socket.value.on('connect', () => {
-      console.log(`✅ [Socket] Conectado! ID: ${socket.value.id}`)
+      console.log(`[Socket] Conectado! ID: ${socket.value.id}`)
       isConnected.value = true
 
       // Tenta anunciar imediatamente (caso seja guest ou user já esteja em cache)
@@ -78,12 +78,12 @@ export const useSocketStore = defineStore('socket', () => {
     })
 
     socket.value.on('disconnect', () => {
-      console.log(`❌ [Socket] Desconectado`)
+      console.log(`[Socket] Desconectado`)
       isConnected.value = false
     })
 
     socket.value.on('game-joined', (data) => {
-      console.log('📥 [Socket] Entrei no jogo:', data.id)
+      console.log('[Socket] Entrei no jogo:', data.id)
       biscaStore.processGameState(data)
     })
 
@@ -91,7 +91,7 @@ export const useSocketStore = defineStore('socket', () => {
     socket.value.on('games', (list) => biscaStore.setAvailableGames(list))
 
     socket.value.on('balance_update', ({ userId, balance }) => {
-      console.log(`💰 [Socket] Balance atualizada para user ${userId}: ${balance} coins`)
+      console.log(`[Socket] Balance atualizada para user ${userId}: ${balance} coins`)
       // Atualizar balance no authStore se for o utilizador atual
       if (authStore.currentUser && String(authStore.currentUser.id) === String(userId)) {
         authStore.currentUser.coins_balance = balance
@@ -99,7 +99,7 @@ export const useSocketStore = defineStore('socket', () => {
     })
 
     socket.value.on('error', (err) => {
-      console.error('⚠️ Erro do Socket:', err)
+      console.error('[Socket] Erro do Socket:', err)
     })
   }
 
@@ -109,7 +109,7 @@ export const useSocketStore = defineStore('socket', () => {
     () => authStore.currentUser,
     (newUser) => {
       if (newUser && isConnected.value) {
-        console.log('👤 [Socket] Dados de utilizador atualizados. Reenviando identidade...')
+        console.log('[Socket] Dados de utilizador atualizados. Reenviando identidade...')
         // Atualiza token interno do socket para reconexões futuras
         if (socket.value && socket.value.auth) {
           socket.value.auth.token = authStore.token
@@ -122,7 +122,7 @@ export const useSocketStore = defineStore('socket', () => {
   // --- AÇÕES ---
   const emitCreateGame = (type, mode, targetWins, isPractice = false) => {
     if (!socket.value) return
-    console.log(`📤 Criando jogo: Tipo ${type}, Wins ${targetWins}`)
+    console.log(`Criando jogo: Tipo ${type}, Wins ${targetWins}`)
     socket.value.emit('create-game', type, mode, targetWins, isPractice)
   }
 

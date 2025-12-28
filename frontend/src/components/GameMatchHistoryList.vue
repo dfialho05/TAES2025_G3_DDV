@@ -4,7 +4,7 @@
     <div
       class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-slate-100 dark:border-gray-700 shadow-sm"
     >
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">🔍 Filtros</h3>
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Filtros</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Date Range -->
         <div class="space-y-2">
@@ -93,7 +93,7 @@
       <div v-if="showGames" class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm">
         <div class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center">
           <h3 class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            🎲 Jogos {{ filters.type === 'games' ? 'Filtrados' : '' }}
+            Jogos {{ filters.type === 'games' ? 'Filtrados' : '' }}
           </h3>
           <span
             class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-600 px-2 py-1 rounded"
@@ -114,7 +114,7 @@
             v-else-if="filteredGames.length === 0"
             class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm"
           >
-            <div class="mb-2">🎮</div>
+            <div class="mb-2"></div>
             <div class="font-medium">Nenhum jogo encontrado</div>
             <div class="text-xs mt-1 text-gray-500 dark:text-gray-400">
               Tenta ajustar os filtros para ver mais resultados
@@ -193,7 +193,7 @@
       <div v-if="showMatches" class="bg-white dark:bg-gray-800 rounded-xl border shadow-sm">
         <div class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center">
           <h3 class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            🏆 Partidas {{ filters.type === 'matches' ? 'Filtradas' : '' }}
+            Partidas {{ filters.type === 'matches' ? 'Filtradas' : '' }}
           </h3>
           <span
             class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-600 px-2 py-1 rounded"
@@ -214,7 +214,7 @@
             v-else-if="filteredMatches.length === 0"
             class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm"
           >
-            <div class="mb-2">🛡️</div>
+            <div class="mb-2"></div>
             <div class="font-medium">Nenhuma partida encontrada</div>
             <div class="text-xs mt-1 text-gray-300 dark:text-gray-400">
               Tenta ajustar os filtros para ver mais resultados
@@ -482,8 +482,6 @@ const applyCommonFilters = (item) => {
 
   return true
 }
-
-
 
 const toggleMatch = (matchId) => {
   expandedMatchId.value = expandedMatchId.value === matchId ? null : matchId

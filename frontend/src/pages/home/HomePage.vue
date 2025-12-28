@@ -47,7 +47,6 @@ const goToLobby = () => {
 
 <template>
   <div class="flex flex-col md:flex-row justify-center items-stretch gap-6 mt-10 px-4 mb-10">
-
     <!-- ================= SINGLE PLAYER ================= -->
     <Card
       class="w-full md:max-w-lg flex flex-col transition-all hover:shadow-md border-2 border-transparent hover:border-gray-200 dark:hover:border-gray-800"
@@ -62,13 +61,12 @@ const goToLobby = () => {
       </CardHeader>
 
       <CardContent class="space-y-6 flex-1 flex flex-col">
-
         <!-- PARTIDA COMPLETA -->
         <div class="space-y-2">
           <h3
             class="text-sm font-bold text-green-600 uppercase tracking-wide border-b border-green-100 pb-1 flex items-center justify-between"
           >
-            <span>🏆 PARTIDA COMPLETA (Race to 4)</span>
+            <span>PARTIDA COMPLETA (Race to 4)</span>
             <span class="text-[9px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
               LOGIN OBRIGATÓRIO
             </span>
@@ -108,7 +106,7 @@ const goToLobby = () => {
           <h3
             class="text-sm font-bold text-blue-600 uppercase tracking-wide border-b border-blue-100 pb-1 flex items-center justify-between"
           >
-            <span>⚡ Partida Rápida (1 jogo)</span>
+            <span>Partida Rápida (1 jogo)</span>
             <span class="text-[9px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
               LOGIN OBRIGATÓRIO
             </span>
@@ -148,7 +146,7 @@ const goToLobby = () => {
           <h3
             class="text-sm font-bold text-gray-500 uppercase tracking-wide border-b border-gray-100 pb-1 flex items-center justify-between"
           >
-            <span>🎯 Treino</span>
+            <span>Treino</span>
             <span
               class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium"
             >
@@ -180,13 +178,9 @@ const goToLobby = () => {
         </div>
 
         <!-- AVISO ADMIN -->
-        <p
-          v-if="authStore.isAdmin"
-          class="text-sm text-center text-red-600 font-semibold mt-4"
-        >
-          ⚠️ Utilizadores administradores não podem jogar.
+        <p v-if="authStore.isAdmin" class="text-sm text-center text-red-600 font-semibold mt-4">
+          Utilizadores administradores não podem jogar.
         </p>
-
       </CardContent>
     </Card>
 
@@ -196,7 +190,7 @@ const goToLobby = () => {
     >
       <CardHeader>
         <CardTitle class="text-3xl font-bold text-center flex items-center justify-center gap-2">
-          🌍 MultiPlayer
+          MultiPlayer
         </CardTitle>
         <CardDescription class="text-center flex flex-col items-center gap-1">
           <span>Joga contra pessoas reais</span>
@@ -214,21 +208,16 @@ const goToLobby = () => {
           class="w-full h-auto py-8 flex flex-col gap-2 border-2"
           :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
         >
-          <span class="text-3xl">🎮</span>
+          <span class="text-3xl"></span>
           <span class="text-2xl font-bold">Entrar no Lobby</span>
           <span class="text-sm text-muted-foreground">Encontrar ou Criar Salas</span>
         </Button>
 
         <!-- AVISO ADMIN -->
-        <p
-          v-if="authStore.isAdmin"
-          class="text-sm text-red-600 font-semibold text-center"
-        >
-          ⚠️ Administradores não podem aceder ao modo Multiplayer.
+        <p v-if="authStore.isAdmin" class="text-sm text-red-600 font-semibold text-center">
+          Administradores não podem aceder ao modo Multiplayer.
         </p>
       </CardContent>
     </Card>
-
   </div>
 </template>
-

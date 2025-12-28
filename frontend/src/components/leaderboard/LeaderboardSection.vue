@@ -4,7 +4,6 @@
   >
     <div class="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
       <h3 class="mb-2 text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-        <span class="title-emoji">{{ emoji }}</span>
         {{ title }}
       </h3>
       <p class="text-sm text-gray-500 dark:text-gray-300 m-0">{{ description }}</p>
@@ -25,7 +24,7 @@
         v-else-if="entries.length === 0"
         class="text-center py-8 text-gray-500 dark:text-gray-300"
       >
-        <div class="text-2xl mb-2">📊</div>
+        <div class="text-2xl mb-2"></div>
         <p>Sem dados disponíveis</p>
       </div>
 
@@ -153,11 +152,11 @@ const getPositionClass = (position) => {
 const getMedal = (position) => {
   switch (position) {
     case 1:
-      return '🥇'
+      return 'Gold'
     case 2:
-      return '🥈'
+      return 'Silver'
     case 3:
-      return '🥉'
+      return 'Bronze'
     default:
       return position
   }

@@ -269,7 +269,7 @@
                 class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center"
               >
                 <h3 class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  🎲 Últimos Jogos
+                  Últimos Jogos
                 </h3>
                 <RouterLink
                   :to="{ name: 'history', params: { id: displayedUser.id } }"
@@ -306,7 +306,7 @@
                   v-else-if="gamesStore.errors.recentGames"
                   class="p-8 text-center text-red-400 text-sm"
                 >
-                  <div class="mb-2">⚠️ {{ gamesStore.errors.recentGames }}</div>
+                  <div class="mb-2">{{ gamesStore.errors.recentGames }}</div>
                   <button @click="loadProfileData" class="text-xs underline hover:no-underline">
                     Tentar novamente
                   </button>
@@ -315,7 +315,7 @@
                   v-else-if="gamesStore.recentGames.length === 0"
                   class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm"
                 >
-                  <div class="mb-2">🎮</div>
+                  <div class="mb-2"></div>
                   <div class="font-medium">Nenhum jogo encontrado</div>
                   <div class="text-xs mt-1 text-gray-500 dark:text-gray-300">
                     Este utilizador ainda não jogou jogos individuais
@@ -428,7 +428,7 @@
                 class="p-4 border-b bg-slate-50/50 dark:bg-gray-700 flex justify-between items-center"
               >
                 <h3 class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  🏆 Últimas Partidas
+                  Últimas Partidas
                 </h3>
                 <RouterLink
                   :to="{ name: 'history', params: { id: displayedUser.id } }"
@@ -466,7 +466,7 @@
                   v-else-if="matchesStore.errors.recentMatches"
                   class="p-8 text-center text-red-400 text-sm"
                 >
-                  <div class="mb-2">⚠️ {{ matchesStore.errors.recentMatches }}</div>
+                  <div class="mb-2">{{ matchesStore.errors.recentMatches }}</div>
                   <button @click="loadProfileData" class="text-xs underline hover:no-underline">
                     Tentar novamente
                   </button>
@@ -476,7 +476,7 @@
                   v-else-if="matchesStore.recentMatches.length === 0"
                   class="p-8 text-center text-gray-400 dark:text-gray-300 text-sm"
                 >
-                  <div class="mb-2">🛡️</div>
+                  <div class="mb-2"></div>
                   <div class="font-medium">Nenhuma partida encontrada</div>
                   <div class="text-xs mt-1 text-gray-300 dark:text-gray-500">
                     Este utilizador ainda não participou em partidas
@@ -754,28 +754,26 @@
               </div>
 
               <div class="space-y-1.5 relative">
-  <label
-    for="password"
-    class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider"
-  >
-    Password
-  </label>
-  <input
-    id="password"
-    v-model="formData.password"
-    :type="showPassword ? 'text' : 'password'"
-    class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100 w-full pr-10 rounded-md border px-3 py-2"
-  />
-  <button
-    type="button"
-    @click="showPassword = !showPassword"
-    class="absolute inset-y-0 right-2 flex items-center justify-center text-gray-500 hover:text-gray-700"
-  >
-    {{ showPassword ? '🙈' : '👁️' }}
-  </button>
-</div>
-
-
+                <label
+                  for="password"
+                  class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider"
+                >
+                  Password
+                </label>
+                <input
+                  id="password"
+                  v-model="formData.password"
+                  :type="showPassword ? 'text' : 'password'"
+                  class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100 w-full pr-10 rounded-md border px-3 py-2"
+                />
+                <button
+                  type="button"
+                  @click="showPassword = !showPassword"
+                  class="absolute inset-y-0 right-2 flex items-center justify-center text-gray-500 hover:text-gray-700"
+                >
+                  {{ showPassword ? '🙈' : '👁️' }}
+                </button>
+              </div>
 
               <div class="pt-4 space-y-3">
                 <Button @click="saveProfile" class="w-full font-semibold shadow-sm"
@@ -811,7 +809,7 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, watch, onUnmounted ,reactive} from 'vue'
+import { ref, inject, computed, watch, onUnmounted, reactive } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
@@ -1011,14 +1009,13 @@ watch(
         }
       }
 
-      
       // 2. Preencher Form
       if (isOwner.value) {
         formData.value = {
           name: displayedUser.value.name,
           nickname: displayedUser.value.nickname,
           email: displayedUser.value.email,
-          password: '' ,
+          password: '',
         }
       }
 

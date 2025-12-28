@@ -31,68 +31,68 @@ const {
   gameTarget,
   popupData,
   isGameOver,
-  isRoundOver
+  isRoundOver,
 } = storeToRefs(gameStore)
 
 const isConnected = computed(() => socketStore.isConnected)
 
 // TIMER VISUAL
-const timerProgress = ref(100);
-let timerInterval = null;
+const timerProgress = ref(100)
+let timerInterval = null
 
 const startLocalTimer = () => {
-    clearInterval(timerInterval);
-    timerProgress.value = 100;
+  clearInterval(timerInterval)
+  timerProgress.value = 100
 
-    if (isGameOver.value || isRoundOver.value) return;
-    if (!currentTurn.value) return;
+  if (isGameOver.value || isRoundOver.value) return
+  if (!currentTurn.value) return
 
-    const totalTime = 20000;
-    const step = 100;
-    const decrement = 100 / (totalTime / step);
+  const totalTime = 20000
+  const step = 100
+  const decrement = 100 / (totalTime / step)
 
-    timerInterval = setInterval(() => {
-        timerProgress.value -= decrement;
-        if (timerProgress.value <= 0) {
-            timerProgress.value = 0;
-            clearInterval(timerInterval);
-        }
-    }, step);
-};
+  timerInterval = setInterval(() => {
+    timerProgress.value -= decrement
+    if (timerProgress.value <= 0) {
+      timerProgress.value = 0
+      clearInterval(timerInterval)
+    }
+  }, step)
+}
 
 watch([currentTurn, tableCards], () => {
-    setTimeout(startLocalTimer, 50);
-});
+  setTimeout(startLocalTimer, 50)
+})
 
 // URL SYNC - A MÁGICA ACONTECE AQUI
 watch(
-    [gameID, gameTarget, gameMode],
-    ([newId, newTarget, newMode]) => {
-        if (newId) {
-            const currentId = route.query.id;
-            const currentWins = route.query.wins;
-            const currentMode = route.query.mode;
+  [gameID, gameTarget, gameMode],
+  ([newId, newTarget, newMode]) => {
+    if (newId) {
+      const currentId = route.query.id
+      const currentWins = route.query.wins
+      const currentMode = route.query.mode
 
-            // Verifica se precisa atualizar o URL
-            if (
-                String(currentId) !== String(newId) ||
-                String(currentWins) !== String(newTarget) ||
-                String(currentMode) !== String(newMode)
-            ) {
-                 console.log(`🔗 Atualizar URL: ID=${newId}, Wins=${newTarget}, Mode=${newMode}`);
-                 router.replace({
-                    query: {
-                        ...route.query,
-                        id: newId,
-                        wins: newTarget,
-                        mode: newMode
-                    }
-                 });
-            }
-        }
-    },
-    { immediate: true } // Garante execução imediata
-);
+      // Verifica se precisa atualizar o URL
+      if (
+        String(currentId) !== String(newId) ||
+        String(currentWins) !== String(newTarget) ||
+        String(currentMode) !== String(newMode)
+      ) {
+        console.log(`🔗 Atualizar URL: ID=${newId}, Wins=${newTarget}, Mode=${newMode}`)
+        router.replace({
+          query: {
+            ...route.query,
+            id: newId,
+            wins: newTarget,
+            mode: newMode,
+          },
+        })
+      }
+    }
+  },
+  { immediate: true }, // Garante execução imediata
+)
 
 // SCROLL LOGIC
 const playerHandRef = ref(null)
@@ -142,22 +142,21 @@ onMounted(async () => {
   }
   // 2. Entrar em jogo existente (Link partilhado ou Refresh)
   else if (route.query.id) {
-     const targetId = route.query.id;
+    const targetId = route.query.id
 
-     if (!socketStore.isConnected) {
-         const unwatch = watch(isConnected, (connected) => {
-             if(connected) {
-                 gameStore.joinGame(targetId);
-                 unwatch();
-             }
-         });
-     } else {
-         if (gameID.value !== targetId) {
-             gameStore.joinGame(targetId);
-         }
-     }
-  }
-  else if (!gameID.value) {
+    if (!socketStore.isConnected) {
+      const unwatch = watch(isConnected, (connected) => {
+        if (connected) {
+          gameStore.joinGame(targetId)
+          unwatch()
+        }
+      })
+    } else {
+      if (gameID.value !== targetId) {
+        gameStore.joinGame(targetId)
+      }
+    }
+  } else if (!gameID.value) {
     router.push('/games/lobby')
   }
 })
@@ -167,7 +166,7 @@ watch(gameID, (newVal) => {
 })
 
 onUnmounted(() => {
-  clearInterval(timerInterval);
+  clearInterval(timerInterval)
   if (gameID.value) gameStore.quitGame()
 })
 
@@ -179,7 +178,7 @@ const handleRestart = () => {
 }
 
 const handleExit = () => {
-  gameStore.quitGame();
+  gameStore.quitGame()
   router.push('/')
 }
 </script>
@@ -188,7 +187,7 @@ const handleExit = () => {
   <div class="game-container">
     <div v-if="isWaiting" class="overlay waiting-overlay">
       <div class="waiting-box">
-        <div class="spinner">⏳</div>
+        <div class="spinner">Loading</div>
         <h2>A preparar Jogo...</h2>
       </div>
     </div>
@@ -205,8 +204,8 @@ const handleExit = () => {
         >
           <div class="result-header">
             <h1>{{ popupData.title }}</h1>
-            <div class="stars" v-if="popupData.isWin">⭐⭐⭐</div>
-            <div class="stars" v-else>💔</div>
+            <div class="stars" v-if="popupData.isWin">WIN</div>
+            <div class="stars" v-else>LOSS</div>
           </div>
 
           <div class="result-body">
@@ -226,14 +225,14 @@ const handleExit = () => {
                 class="achievement-badge"
                 :class="popupData.achievement.toLowerCase().replace(' ', '-')"
               >
-                🏅 {{ popupData.achievement }}
+                {{ popupData.achievement }}
               </div>
             </div>
           </div>
 
           <div class="result-actions">
             <button v-if="!popupData.isMatchEnd" @click="handleNextRound" class="btn-primary">
-              Próxima Ronda ➜
+              Próxima Ronda ->
             </button>
 
             <template v-else>
@@ -307,7 +306,13 @@ const handleExit = () => {
         </div>
 
         <div class="timer-bar-container" v-if="!isGameOver && !isRoundOver">
-           <div class="timer-bar" :style="{ width: timerProgress + '%', backgroundColor: timerProgress < 30 ? '#ef4444' : '#fbbf24' }"></div>
+          <div
+            class="timer-bar"
+            :style="{
+              width: timerProgress + '%',
+              backgroundColor: timerProgress < 30 ? '#ef4444' : '#fbbf24',
+            }"
+          ></div>
         </div>
       </div>
 
@@ -352,19 +357,21 @@ const handleExit = () => {
 
 /* TIMER BAR STYLES */
 .timer-bar-container {
-    width: 100%;
-    max-width: 300px;
-    height: 6px;
-    background: rgba(0,0,0,0.3);
-    margin-top: 5px;
-    border-radius: 3px;
-    overflow: hidden;
+  width: 100%;
+  max-width: 300px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  margin-top: 5px;
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .timer-bar {
-    height: 100%;
-    background-color: #fbbf24;
-    transition: width 0.1s linear, background-color 0.3s;
+  height: 100%;
+  background-color: #fbbf24;
+  transition:
+    width 0.1s linear,
+    background-color 0.3s;
 }
 
 .overlay {

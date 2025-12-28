@@ -29,7 +29,9 @@ export function getErrorMessage(error) {
       case 404:
         return data?.message || 'Recurso não encontrado.'
       case 422:
-        return formatValidationErrors(data?.errors) || data?.message || 'Dados de validação inválidos.'
+        return (
+          formatValidationErrors(data?.errors) || data?.message || 'Dados de validação inválidos.'
+        )
       case 429:
         return 'Muitas tentativas. Tente novamente mais tarde.'
       case 500:
@@ -135,7 +137,7 @@ export function createErrorObject(error, context = 'Unknown') {
     isServer: isServerError(error),
     isClient: isClientError(error),
     timestamp: new Date().toISOString(),
-    original: error
+    original: error,
   }
 }
 
@@ -149,7 +151,7 @@ export const errorLogger = {
    * @param {Object} details - Detalhes adicionais
    */
   error(message, details = {}) {
-    console.error(`❌ ${message}`, details)
+    console.error(message, details)
   },
 
   /**
@@ -158,7 +160,7 @@ export const errorLogger = {
    * @param {Object} details - Detalhes adicionais
    */
   warn(message, details = {}) {
-    console.warn(`⚠️ ${message}`, details)
+    console.warn(message, details)
   },
 
   /**
@@ -167,7 +169,7 @@ export const errorLogger = {
    * @param {Object} details - Detalhes adicionais
    */
   info(message, details = {}) {
-    console.log(`ℹ️ ${message}`, details)
+    console.log(message, details)
   },
 
   /**
@@ -176,8 +178,8 @@ export const errorLogger = {
    * @param {Object} details - Detalhes adicionais
    */
   success(message, details = {}) {
-    console.log(`✅ ${message}`, details)
-  }
+    console.log(message, details)
+  },
 }
 
 /**
@@ -209,7 +211,7 @@ export async function retryOperation(fn, options = {}) {
     baseDelay = 1000,
     maxDelay = 10000,
     backoffMultiplier = 2,
-    context = 'Retry Operation'
+    context = 'Retry Operation',
   } = options
 
   let attempt = 1
@@ -226,18 +228,18 @@ export async function retryOperation(fn, options = {}) {
       if (attempt === maxAttempts) {
         errorLogger.error(`${context} failed after ${maxAttempts} attempts`, {
           error: getErrorMessage(error),
-          attempts: maxAttempts
+          attempts: maxAttempts,
         })
         throw error
       }
 
       errorLogger.warn(`${context} failed on attempt ${attempt}, retrying...`, {
         error: getErrorMessage(error),
-        nextDelay: delay
+        nextDelay: delay,
       })
 
       // Esperar antes da próxima tentativa
-      await new Promise(resolve => setTimeout(resolve, delay))
+      await new Promise((resolve) => setTimeout(resolve, delay))
 
       // Aumentar delay para próxima tentativa (backoff exponencial)
       delay = Math.min(delay * backoffMultiplier, maxDelay)
@@ -272,11 +274,11 @@ export function debounce(func, wait) {
  */
 export function throttle(func, limit) {
   let inThrottle
-  return function(...args) {
+  return function (...args) {
     if (!inThrottle) {
       func.apply(this, args)
       inThrottle = true
-      setTimeout(() => inThrottle = false, limit)
+      setTimeout(() => (inThrottle = false), limit)
     }
   }
 }
@@ -291,5 +293,5 @@ export default {
   safeAsync,
   retryOperation,
   debounce,
-  throttle
+  throttle,
 }

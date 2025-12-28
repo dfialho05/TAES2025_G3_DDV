@@ -5,7 +5,7 @@
 
       <div class="bg-secondary/50 px-6 py-3 rounded-xl flex items-center gap-2 border">
         <span class="text-muted-foreground font-medium">Balance:</span>
-        <span class="text-2xl font-bold text-yellow-600">{{ userBalance }} 💰</span>
+        <span class="text-2xl font-bold text-yellow-600">{{ userBalance }} coins</span>
       </div>
     </div>
 

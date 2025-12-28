@@ -31,39 +31,39 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
   })
 
   const periods = computed(() => [
-    { value: 'all', label: 'All Time', emoji: '🏆' },
-    { value: 'month', label: 'This Month', emoji: '📅' },
+    { value: 'all', label: 'All Time', emoji: '' },
+    { value: 'month', label: 'This Month', emoji: '' },
   ])
 
   const leaderboardTypes = computed(() => [
     {
       key: 'mostWins',
       title: 'Most Wins',
-      emoji: '🏆',
+      emoji: '',
       description: 'Players with the most victories',
     },
     {
       key: 'mostMatches',
       title: 'Most Matches',
-      emoji: '🎯',
+      emoji: '',
       description: 'Players who have played the most matches',
     },
     {
       key: 'mostGames',
       title: 'Most Games',
-      emoji: '🎮',
+      emoji: '',
       description: 'Players with the most individual games',
     },
     {
       key: 'kingOfCapotes',
       title: 'King of Capotes',
-      emoji: '👑',
+      emoji: '',
       description: 'Players with most wins between 91-119 points',
     },
     {
       key: 'kingOfBandeiras',
       title: 'King of Bandeiras',
-      emoji: '🏴',
+      emoji: '',
       description: 'Players with most wins with 120+ points',
     },
   ])

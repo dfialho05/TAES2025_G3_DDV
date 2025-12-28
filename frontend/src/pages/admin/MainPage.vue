@@ -98,14 +98,14 @@
                 v-else-if="chartError"
                 class="flex flex-col items-center justify-center h-full text-red-500"
               >
-                <span>⚠️ Erro ao carregar dados</span>
+                <span>Erro ao carregar dados</span>
               </div>
 
               <div
                 v-else-if="chartLoaded && activityChartData.labels.length === 0"
                 class="flex flex-col items-center justify-center h-full text-gray-400"
               >
-                <span>🎲 Sem jogos no último ano</span>
+                <span>Sem jogos no último ano</span>
               </div>
 
               <div v-else class="flex items-center justify-center h-full text-gray-400">

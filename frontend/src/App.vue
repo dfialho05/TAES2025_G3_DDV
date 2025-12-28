@@ -15,7 +15,7 @@
       </div>
 
       <RouterLink to="/purchase" v-if="authStore.isPlayer">
-        <span class="text-xs font-bold"> {{ authStore.currentUser?.coins_balance }} 🪙 </span>
+        <span class="text-xs font-bold"> {{ authStore.currentUser?.coins_balance }} </span>
       </RouterLink>
     </div>
 

@@ -3,7 +3,7 @@
     <!-- Header -->
     <header class="text-center space-y-2">
       <h1 class="text-4xl font-bold flex justify-center items-center gap-2">
-        <span>🏆</span> Leaderboards
+        <span class="sr-only">Trophy</span> Leaderboards
       </h1>
       <p class="text-gray-500 dark:text-gray-300 text-lg">
         Vê os melhores jogadores em diferentes categorias
@@ -18,17 +18,17 @@
           <button
             v-for="period in periods"
             :key="period.value"
-              @click="changePeriod(period.value)"
-              :class="[
+            @click="changePeriod(period.value)"
+            :class="[
               'px-4 py-2 rounded-lg border transition-all font-medium',
-              selectedPeriod === period.value 
-                 ? 'bg-blue-600 border-blue-600 text-white dark:bg-blue-700 dark:border-blue-700 dark:text-white' 
-                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200'
+              selectedPeriod === period.value
+                ? 'bg-blue-600 border-blue-600 text-white dark:bg-blue-700 dark:border-blue-700 dark:text-white'
+                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200',
             ]"
-  :disabled="isLoading"
->
-  <span class="mr-1">{{ period.emoji }}</span>{{ period.label }}
-</button>
+            :disabled="isLoading"
+          >
+            {{ period.label }}
+          </button>
         </div>
       </div>
       <button
@@ -36,23 +36,31 @@
         :disabled="isLoading"
         class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
       >
-        <span :class="['transition-transform', { 'animate-spin': isLoading }]">🔄</span>
+        <span :class="['transition-transform', { 'animate-spin': isLoading }]">Refresh</span>
         Refresh
       </button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading && isEmpty" class="flex flex-col items-center py-20 text-gray-500 dark:text-gray-300">
-      <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 dark:border-primary-dark dark:border-t-transparent"></div>
+    <div
+      v-if="isLoading && isEmpty"
+      class="flex flex-col items-center py-20 text-gray-500 dark:text-gray-300"
+    >
+      <div
+        class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 dark:border-primary-dark dark:border-t-transparent"
+      ></div>
       <span>A carregar leaderboards...</span>
     </div>
 
     <!-- Error State -->
     <div v-else-if="error" class="text-center py-20 text-red-500 dark:text-red-400 space-y-2">
-      <div class="text-4xl mb-2">❌</div>
+      <div class="text-4xl mb-2">Error</div>
       <h3 class="font-semibold text-lg">Erro ao carregar leaderboards</h3>
       <p>{{ error }}</p>
-      <button @click="refreshLeaderboards" class="mt-4 px-6 py-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg transition">
+      <button
+        @click="refreshLeaderboards"
+        class="mt-4 px-6 py-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg transition"
+      >
         Tentar novamente
       </button>
     </div>
@@ -61,15 +69,19 @@
     <div v-else>
       <!-- Quick Stats -->
       <div v-if="!isEmpty" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md dark:shadow-lg flex items-center gap-4 transition-colors">
-          <span class="text-3xl">👑</span>
+        <div
+          class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md dark:shadow-lg flex items-center gap-4 transition-colors"
+        >
+          <span class="text-3xl">Players</span>
           <div>
             <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ totalPlayers }}</div>
             <div class="text-gray-500 dark:text-gray-300 text-sm">Jogadores Ativos</div>
           </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md dark:shadow-lg flex items-center gap-4 transition-colors">
-          <span class="text-3xl">🎮</span>
+        <div
+          class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md dark:shadow-lg flex items-center gap-4 transition-colors"
+        >
+          <span class="text-3xl">Games</span>
           <div>
             <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ totalGames }}</div>
             <div class="text-gray-500 dark:text-gray-300 text-sm">Total de Jogos</div>
@@ -93,7 +105,10 @@
       </div>
 
       <!-- User Positions -->
-      <div v-if="currentUser && userPositions.length > 0" class="bg-gradient-to-r from-purple-700 to-indigo-900 dark:from-purple-800 dark:to-indigo-950 text-white rounded-xl p-6 mt-8 transition-colors">
+      <div
+        v-if="currentUser && userPositions.length > 0"
+        class="bg-gradient-to-r from-purple-700 to-indigo-900 dark:from-purple-800 dark:to-indigo-950 text-white rounded-xl p-6 mt-8 transition-colors"
+      >
         <h3 class="text-xl font-bold mb-4">As tuas posições:</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <div
@@ -101,7 +116,7 @@
             :key="position.type"
             class="bg-white/10 dark:bg-white/5 backdrop-blur-sm p-4 rounded-lg flex items-center gap-3 transition-colors"
           >
-            <span class="text-2xl">{{ position.emoji }}</span>
+            <span class="text-2xl"></span>
             <div class="flex flex-col">
               <span class="text-sm opacity-90">{{ position.title }}</span>
               <span class="font-bold text-lg">#{{ position.position }}</span>
