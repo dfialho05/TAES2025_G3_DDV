@@ -21,10 +21,6 @@ const startPracticeGame = (cards, wins) => {
 
 // Função para iniciar jogos que precisam de login
 const startGame = (cards, wins) => {
-  if (!authStore.isLoggedIn) {
-    router.push({ name: 'login' })
-    return
-  }
 
   router.push({
     name: 'singleplayer',

@@ -49,8 +49,14 @@ export const useBiscaStore = defineStore('bisca', () => {
     if (data.winsNeeded) gameTarget.value = parseInt(data.winsNeeded)
     if (data.gameType) gameMode.value = parseInt(data.gameType)
 
-    // Identificar Jogador
-    const myId = String(authStore.currentUser?.id || '')
+    // === IDENTIFICAR JOGADOR ===
+    // Tenta obter ID do login. Se vazio, tenta obter ID de convidado do socketStore.
+    let myId = String(authStore.currentUser?.id || '')
+
+    if (!myId && socketStore.guestUserId) {
+        myId = String(socketStore.guestUserId)
+    }
+
     const p1Id = String(data.player1Id || '')
 
     if (myId === p1Id) {
@@ -60,6 +66,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
 
     console.log(`Perspetiva definida: Sou ${mySide.value} (Meu ID: ${myId}, P1 ID: ${p1Id})`)
+    // ============================
 
     // Mapear dados
     if (mySide.value === 'player1') {

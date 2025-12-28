@@ -7,6 +7,10 @@ import { useBiscaStore } from './biscaStore'
 export const useSocketStore = defineStore('socket', () => {
   const socket = ref(null)
   const isConnected = ref(false)
+
+  // NOVO: Guardar o ID temporário de convidado
+  const guestUserId = ref(null)
+
   const authStore = useAuthStore()
   const biscaStore = useBiscaStore()
 
@@ -46,7 +50,6 @@ export const useSocketStore = defineStore('socket', () => {
 
     // CASO 1: Temos token, mas o user ainda não carregou (está a fazer fetch)
     // NÃO enviamos nada agora. Esperamos pelo watch do currentUser.
-    // Se enviarmos agora, o servidor regista como "loading" e buga o jogo.
     if (!userData && hasToken) {
       console.log('[Socket] Aguardando dados do utilizador autenticado...')
       return
@@ -54,11 +57,20 @@ export const useSocketStore = defineStore('socket', () => {
 
     // CASO 2: Modo Convidado / Anónimo (sem token)
     if (!userData) {
+      // Cria o ID baseado no Socket ID
+      const gId = `guest-${socket.value.id.substring(0, 5)}`
+
       userData = {
-        id: `guest-${socket.value.id.substring(0, 5)}`,
+        id: gId,
         name: `Convidado ${socket.value.id.substring(0, 4)}`,
         isGuest: true,
       }
+
+      // IMPORTANTE: Guardamos este ID no state para o biscaStore o conseguir ler
+      guestUserId.value = gId
+    } else {
+      // Se for login real, limpamos o guestId
+      guestUserId.value = null
     }
 
     // CASO 3: Utilizador autenticado e carregado
@@ -150,6 +162,7 @@ export const useSocketStore = defineStore('socket', () => {
   return {
     socket,
     isConnected,
+    guestUserId, // <--- Exportado para ser usado no biscaStore
     connect,
     disconnect,
     handleConnection,
