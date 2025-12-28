@@ -21,10 +21,11 @@ class StoreMatchRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         // Set default values if not provided
+        // Stake is always 10 coins for matches
         $this->merge([
             "type" => $this->type ?? "3", // Default to Bisca dos 3
             "status" => $this->status ?? "Pending",
-            "stake" => $this->stake ?? 3,
+            "stake" => 10, // Always 10 coins for matches
         ]);
 
         // If player1_user_id is not provided, use the authenticated user
@@ -132,36 +133,45 @@ class StoreMatchRequest extends FormRequest
                 }
             }
 
-            // Check if players have enough coins for the stake
-            if ($this->has("stake") && $this->stake > 0) {
-                if ($this->has("player1_user_id")) {
-                    $player1 = \App\Models\User::where(
-                        "id",
-                        $this->player1_user_id,
-                    )->first();
-                    if ($player1 && $player1->coins_balance < $this->stake) {
-                        $validator
-                            ->errors()
-                            ->add(
-                                "stake",
-                                "Player 1 does not have enough coins for this stake.",
-                            );
-                    }
-                }
+            // Check if players have enough coins for the stake (10 coins)
+            $requiredStake = 10;
 
-                if ($this->has("player2_user_id")) {
-                    $player2 = \App\Models\User::where(
-                        "id",
-                        $this->player2_user_id,
-                    )->first();
-                    if ($player2 && $player2->coins_balance < $this->stake) {
-                        $validator
-                            ->errors()
-                            ->add(
-                                "stake",
-                                "Player 2 does not have enough coins for this stake.",
-                            );
-                    }
+            if ($this->has("player1_user_id")) {
+                $player1 = \App\Models\User::where(
+                    "id",
+                    $this->player1_user_id,
+                )->first();
+                if (
+                    $player1 &&
+                    !$player1->isBot() &&
+                    $player1->coins_balance < $requiredStake
+                ) {
+                    $validator
+                        ->errors()
+                        ->add(
+                            "stake",
+                            "You need at least {$requiredStake} coins to enter a match.",
+                        );
+                }
+            }
+
+            if ($this->has("player2_user_id")) {
+                $player2 = \App\Models\User::where(
+                    "id",
+                    $this->player2_user_id,
+                )->first();
+                // Skip BOT (id = 0) balance check
+                if (
+                    $player2 &&
+                    !$player2->isBot() &&
+                    $player2->coins_balance < $requiredStake
+                ) {
+                    $validator
+                        ->errors()
+                        ->add(
+                            "stake",
+                            "Player 2 does not have enough coins for this match (needs {$requiredStake} coins).",
+                        );
                 }
             }
         });

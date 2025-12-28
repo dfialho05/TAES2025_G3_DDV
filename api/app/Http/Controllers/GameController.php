@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Game;
 use App\Models\Matches;
 use App\Models\User;
+use App\Services\Game\GameStakeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,13 @@ use Illuminate\Http\Request;
 
 class GameController extends Controller
 {
+    protected GameStakeService $stakeService;
+
+    public function __construct(GameStakeService $stakeService)
+    {
+        $this->stakeService = $stakeService;
+    }
+
     public function index()
     {
         return GameResource::collection(Game::all());
@@ -60,6 +68,8 @@ class GameController extends Controller
                 $validated["match_id"] = null;
             }
 
+            DB::beginTransaction();
+
             // Define timestamps
             if (
                 isset($validated["status"]) &&
@@ -70,13 +80,41 @@ class GameController extends Controller
 
             $game = Game::create($validated);
 
+            // Process entry fees for standalone multiplayer games (2 coins per player)
+            $isStandalone = $game->match_id === null;
+            $isMultiplayer =
+                $game->player2_user_id !== null && $game->player2_user_id !== 0;
+
+            if (
+                $isStandalone &&
+                $isMultiplayer &&
+                $validated["status"] === "Playing"
+            ) {
+                $entryResult = $this->stakeService->processGameEntry($game);
+
+                if (!$entryResult["success"]) {
+                    DB::rollBack();
+                    return response()->json(
+                        [
+                            "message" => "Failed to process entry fees",
+                            "error" => $entryResult["message"],
+                        ],
+                        400,
+                    );
+                }
+            }
+
+            DB::commit();
+
             Log::info("[GameController] Standalone/Linked Game created", [
                 "id" => $game->id,
                 "match_id" => $game->match_id,
+                "entry_fees_charged" => $isStandalone && $isMultiplayer,
             ]);
 
             return response()->json(new GameResource($game), 201);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error("Error creating game: " . $e->getMessage());
             return response()->json(
                 [
@@ -188,6 +226,29 @@ class GameController extends Controller
                 "total_time" => $totalTime,
                 "is_draw" => is_null($validated["winner_user_id"]),
             ]);
+
+            // Process game payout for standalone multiplayer games (4 coins to winner)
+            $isStandalone = $game->match_id === null;
+            $isMultiplayer =
+                $game->player2_user_id !== null && $game->player2_user_id !== 0;
+
+            if (
+                $isStandalone &&
+                $isMultiplayer &&
+                $validated["winner_user_id"]
+            ) {
+                $payoutResult = $this->stakeService->processGamePayout(
+                    $game,
+                    $validated["winner_user_id"],
+                    $loserId,
+                );
+
+                Log::info("[GameController] Game payout result", [
+                    "game_id" => $game->id,
+                    "success" => $payoutResult["success"],
+                    "payout" => $payoutResult["payout"],
+                ]);
+            }
 
             DB::commit();
 
@@ -586,14 +647,44 @@ class GameController extends Controller
                 return response()->json(["message" => "Game not found"], 404);
             }
 
+            DB::beginTransaction();
+
             $game->update([
                 "status" => "Playing",
                 "began_at" => Carbon::now(),
             ]);
 
+            // Process entry fees for standalone multiplayer games (2 coins per player)
+            $isStandalone = $game->match_id === null;
+            $isMultiplayer =
+                $game->player2_user_id !== null && $game->player2_user_id !== 0;
+
+            if ($isStandalone && $isMultiplayer) {
+                $entryResult = $this->stakeService->processGameEntry($game);
+
+                if (!$entryResult["success"]) {
+                    DB::rollBack();
+                    return response()->json(
+                        [
+                            "message" => "Failed to process entry fees",
+                            "error" => $entryResult["message"],
+                        ],
+                        400,
+                    );
+                }
+
+                Log::info("[GameController] Entry fees charged", [
+                    "game_id" => $game->id,
+                    "pot" => $entryResult["pot"],
+                ]);
+            }
+
+            DB::commit();
+
             Log::info("[GameController] Game started", [
                 "game_id" => $game->id,
                 "began_at" => $game->began_at,
+                "entry_fees_charged" => $isStandalone && $isMultiplayer,
             ]);
 
             return response()->json([
@@ -601,6 +692,7 @@ class GameController extends Controller
                 "game" => new GameResource($game),
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error("[GameController] Error starting game", [
                 "game_id" => $id,
                 "error" => $e->getMessage(),

@@ -6,10 +6,13 @@ const io = new Server(3000, {
   cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
+// Make io globally available for balance updates
+global.io = io;
+
 io.on("connection", async (socket) => {
   // CAPTURAR TOKEN
   const token = socket.handshake.auth.token;
-  socket.data.token = token; 
+  socket.data.token = token;
 
   if (token) {
     console.log(`🔌 Socket ${socket.id} ligado COM Token.`);

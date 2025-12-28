@@ -33,6 +33,15 @@ Route::get("/metadata", function (Request $request) {
     ];
 });
 
+Route::get("/stakes/info", function () {
+    return response()->json([
+        "match_stake" => 10,
+        "game_stake" => 2,
+        "match_payout" => 20,
+        "game_payout" => 4,
+    ]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Public Authentication Routes
@@ -182,18 +191,15 @@ Route::middleware("auth:sanctum")->group(function () {
     Route::get("/store/decks", [StoreController::class, "index"]);
     Route::post("/store/buy", [StoreController::class, "buy"]);
     Route::post("/store/equip", [StoreController::class, "toggleActive"]);
-    Route::middleware("auth:sanctum")->group(function () {
-    
-});
+    Route::middleware("auth:sanctum")->group(function () {});
 
-Route::get("/transactions", function (Request $request) {
-    $user = $request->user();
-    $transactions = CoinTransaction::where('user_id', $user->id)
-                        ->orderBy('transaction_datetime', 'desc')
-                        ->paginate(15); // paginação
-    return response()->json($transactions);
-});
-
+    Route::get("/transactions", function (Request $request) {
+        $user = $request->user();
+        $transactions = CoinTransaction::where("user_id", $user->id)
+            ->orderBy("transaction_datetime", "desc")
+            ->paginate(15); // paginação
+        return response()->json($transactions);
+    });
 
     /*
     |--------------------------------------------------------------------------
