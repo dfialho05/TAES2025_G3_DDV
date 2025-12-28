@@ -726,6 +726,18 @@
                   class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100"
                 />
               </div>
+              <div class="space-y-1.5">
+                <Label
+                  for="nickname"
+                  class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider"
+                  >Nickname</Label
+                >
+                <Input
+                  id="nickname"
+                  v-model="formData.nickname"
+                  class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100"
+                />
+              </div>
 
               <div class="space-y-1.5">
                 <Label
@@ -740,6 +752,30 @@
                   class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100"
                 />
               </div>
+
+              <div class="space-y-1.5 relative">
+  <label
+    for="password"
+    class="text-xs uppercase text-slate-500 dark:text-gray-400 font-semibold tracking-wider"
+  >
+    Password
+  </label>
+  <input
+    id="password"
+    v-model="formData.password"
+    :type="showPassword ? 'text' : 'password'"
+    class="bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100 w-full pr-10 rounded-md border px-3 py-2"
+  />
+  <button
+    type="button"
+    @click="showPassword = !showPassword"
+    class="absolute inset-y-0 right-2 flex items-center justify-center text-gray-500 hover:text-gray-700"
+  >
+    {{ showPassword ? '🙈' : '👁️' }}
+  </button>
+</div>
+
+
 
               <div class="pt-4 space-y-3">
                 <Button @click="saveProfile" class="w-full font-semibold shadow-sm"
@@ -775,7 +811,7 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, watch, onUnmounted } from 'vue'
+import { ref, inject, computed, watch, onUnmounted ,reactive} from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
@@ -857,8 +893,9 @@ const apiBaseURL = inject('apiBaseURL')
 // --- Estados ---
 const displayedUser = ref(null)
 const loadingUser = ref(true)
-const formData = ref({ name: '', email: '' })
+const formData = ref({ name: '', nickname: '', email: '', password: '' })
 const expandedMatchId = ref(null)
+const showPassword = ref(false)
 
 // --- Computed ---
 const isOwner = computed(() => {
@@ -974,11 +1011,14 @@ watch(
         }
       }
 
+      
       // 2. Preencher Form
       if (isOwner.value) {
         formData.value = {
           name: displayedUser.value.name,
+          nickname: displayedUser.value.nickname,
           email: displayedUser.value.email,
+          password: '' ,
         }
       }
 
@@ -1103,9 +1143,25 @@ const uploadPhoto = async () => {
 const saveProfile = async () => {
   if (!isOwner.value) return
 
+  const dataToSend = { ...formData.value }
+
+  // 🔐 Se estiver a tentar mudar a password
+  if (dataToSend.password) {
+    // eslint-disable-next-line no-undef
+    if (!confirm('Deseja alterar a palavra-passe?')) {
+      dataToSend.password = ''
+      return
+    }
+
+    // eslint-disable-next-line no-undef
+    const currentPwd = prompt('Introduza a palavra-passe atual:')
+    if (!currentPwd) return
+
+    dataToSend.current_password = currentPwd
+  }
+
   const [error] = await safeAsync(async () => {
-    const userToUpdate = { ...authStore.currentUser, ...formData.value }
-    await apiStore.putUser(userToUpdate)
+    await apiStore.putUser(dataToSend)
     await authStore.getUser()
     displayedUser.value = authStore.currentUser
   }, 'Save profile')

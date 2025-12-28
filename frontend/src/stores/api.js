@@ -186,7 +186,7 @@ export const useAPIStore = defineStore('api', () => {
   }
 
   const putUser = (user) => {
-    return axios.put(`/users/${user.id}`, user)
+    return axios.patch('/users/me', user)
   }
 
   const patchUserPhoto = (id, photo_url) => {
