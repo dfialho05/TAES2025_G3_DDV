@@ -329,6 +329,19 @@ class MatchController extends Controller
     public function store(StoreMatchRequest $request): JsonResponse
     {
         try {
+            $user = $request->user();
+
+            // Prevent administrators from creating matches
+            if ($user && $user->type === "A") {
+                return response()->json(
+                    [
+                        "message" =>
+                            "Administrators are not allowed to create or enter matches.",
+                    ],
+                    403,
+                );
+            }
+
             DB::beginTransaction();
 
             $validated = $request->validated();
@@ -520,7 +533,18 @@ class MatchController extends Controller
             $isParticipant = $match->hasPlayer($user->id);
             $isAdmin = $user->type === "A";
 
-            if (!$isAdmin && !$isParticipant) {
+            // Prevent administrators from entering/starting matches
+            if ($isAdmin) {
+                return response()->json(
+                    [
+                        "message" =>
+                            "Administrators are not allowed to create or enter matches.",
+                    ],
+                    403,
+                );
+            }
+
+            if (!$isParticipant) {
                 return response()->json(["message" => "Unauthorized"], 403);
             }
 
@@ -1171,3 +1195,5 @@ class MatchController extends Controller
         }
     }
 }
+
+// so para dar nojo pq quero um ficheiro com 1200 linhas certas
