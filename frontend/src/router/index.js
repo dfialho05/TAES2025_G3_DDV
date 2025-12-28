@@ -78,11 +78,58 @@ const router = createRouter({
     },
 
 
+    // --- ALTERAÇÃO: Rota de Perfil (acesso restringido: owner ou admin) ---
     {
       path: '/profile/:id',
       name: 'profile',
       component: ProfilePage,
-      // Nota: Removemos o meta: { requiresAuth: true } para ser público
+      // Antes de entrar, tentamos garantir que:
+      // 1) se já somos admin -> permitimos;
+      // 2) se somos o dono do perfil -> permitimos;
+      // 3) caso contrário, tentamos restaurar o user a partir do token em sessionStorage
+      //    (se existir) antes de decidir. Se não houver token -> redirecionar para login.
+      beforeEnter: async (to, from, next) => {
+        const authStore = useAuthStore()
+        const requestedId = String(to.params.id)
+
+        // If the current user is already known and is admin -> allow
+        if (authStore.isAdmin) {
+          return next()
+        }
+
+        // If already logged in and is the owner of the profile -> allow
+        if (
+          authStore.isLoggedIn &&
+          authStore.currentUser &&
+          String(authStore.currentUser.id) === requestedId
+        ) {
+          return next()
+        }
+
+        // Try to restore user from token in sessionStorage (if any)
+        const SESSION_TOKEN_KEY = 'apiToken'
+        const token = sessionStorage.getItem(SESSION_TOKEN_KEY)
+        if (token) {
+          // ensure axios has header and try to fetch the user
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+          try {
+            await authStore.getUser()
+            // after fetching user, re-evaluate permissions
+            if (authStore.isAdmin) return next()
+            if (String(authStore.currentUser?.id) === requestedId) return next()
+            // not admin and not owner -> redirect to home
+            return next({ name: 'home' })
+          } catch (err) {
+            // token invalid/expired -> clean and redirect to login
+            sessionStorage.removeItem(SESSION_TOKEN_KEY)
+            delete axios.defaults.headers.common['Authorization']
+            return next({ name: 'login' })
+          }
+        }
+
+        // No token and not owner/admin -> require login
+        return next({ name: 'login' })
+      },
     },
 
     // --- Rota de Histórico ---

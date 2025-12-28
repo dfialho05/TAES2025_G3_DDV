@@ -117,7 +117,7 @@
       </div>
     </div>
 
-    <div v-if="showDashboard">
+    <div v-if="isExactAdmin">
       <section>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
@@ -209,36 +209,40 @@
           class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mt-6"
         >
           <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-            Utilizadores Recentes
+            Histórico de Transações
           </h2>
           <div v-if="loading" class="text-gray-500 dark:text-gray-400 py-4">
             A carregar dados...
           </div>
           <ul v-else class="space-y-2">
-            <li v-if="users.length === 0" class="text-gray-500 dark:text-gray-400 italic">
-              Sem utilizadores recentes para mostrar
+            <li v-if="transactions.length === 0" class="text-gray-500 dark:text-gray-400 italic">
+              Sem transações recentes para mostrar
             </li>
             <li
-              v-for="u in users"
-              :key="u.id"
+              v-for="t in transactions"
+              :key="t.id"
               class="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <div>
-                <div class="font-medium text-gray-900 dark:text-white">{{ u.name }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">{{ u.email }}</div>
+                <div class="font-medium text-gray-900 dark:text-white">
+                  {{ t.user_id ? `User #${t.user_id}` : '—' }} — {{ t.coins }} moedas
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ t.transaction_datetime }}
+                </div>
               </div>
               <div class="flex items-center gap-3">
-                <span
-                  :class="
-                    u.type === 'A' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                  "
-                  class="text-[10px] px-2 py-0.5 rounded font-bold"
-                  >{{ u.type === 'A' ? 'ADMIN' : 'PLAYER' }}</span
-                >
                 <router-link
-                  :to="{ name: 'user-details', params: { id: u.id } }"
-                  class="text-blue-500 hover:text-blue-700"
-                  >👁️</router-link
+                  v-if="t.user_id"
+                  :to="{ name: 'user-details', params: { id: t.user_id } }"
+                  class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
+                  >Perfil</router-link
+                >
+                <a
+                  href="#"
+                  class="text-sm text-gray-500 hover:text-gray-700"
+                  @click.prevent="loadMoreTransactions"
+                  >Carregar mais</a
                 >
               </div>
             </li>
@@ -247,7 +251,7 @@
       </section>
     </div>
 
-    <div v-else class="mt-4">
+    <div class="mt-4">
       <router-view />
     </div>
   </div>
@@ -271,6 +275,7 @@ import {
 } from 'chart.js'
 import { useAPIStore } from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
+import { useAdminChartsStore } from '@/stores/adminCharts'
 import { toast } from 'vue-sonner'
 
 ChartJS.register(
@@ -288,7 +293,10 @@ const apiStore = useAPIStore()
 const authStore = useAuthStore()
 const route = useRoute()
 
-const users = ref([])
+const transactions = ref([])
+const txPagination = ref({ current_page: 1, per_page: 6, total: 0, last_page: 1 })
+const txPage = ref(1)
+const txPerPage = ref(6)
 const stats = ref(null)
 const loading = ref(false)
 const adminName = computed(() => authStore.currentUser?.name)
@@ -320,7 +328,16 @@ const chartOptions = {
   },
 }
 
-const showDashboard = computed(() => route.name === 'admin' || route.path === '/admin')
+const isExactAdmin = computed(() => {
+  // Only treat exact /admin route (or named 'admin') as the place to show the dashboard UI.
+  // This ensures nested admin child routes (e.g. /admin/users/507) still mount their <router-view/>
+  // while the full dashboard UI is only visible at the root admin page.
+  try {
+    return typeof route.path === 'string' && (route.path === '/admin' || route.name === 'admin')
+  } catch {
+    return false
+  }
+})
 
 const fetchDashboardData = async () => {
   loading.value = true
@@ -332,26 +349,45 @@ const fetchDashboardData = async () => {
     const statsRes = await axios.get('/admin/stats')
     stats.value = statsRes.data
 
-    // 2. Users
-    const usersRes = await apiStore.getAllUsers(1, 6)
-    users.value = usersRes.data?.data ?? []
-
-    // 3. Charts
+    // 2. Transactions (recent)
     try {
-      // Request 365 days (1 year) of daily data from the API
-      const chartsRes = await axios.get(`/admin/charts?days=365`)
-      const { revenue = [], activity = [] } = chartsRes.data || {}
+      const txRes = await axios.get('/admin/transactions', {
+        params: { page: 1, per_page: 6 },
+      })
+      transactions.value = txRes.data?.data ?? []
+      txPagination.value = txRes.data?.meta ?? {
+        current_page: 1,
+        per_page: 6,
+        total: transactions.value.length,
+        last_page: 1,
+      }
+      // reset page state
+      txPage.value = 1
+    } catch (txErr) {
+      console.warn('Erro ao buscar transações:', txErr)
+      transactions.value = []
+      txPagination.value = { current_page: 1, per_page: 6, total: 0, last_page: 1 }
+    }
+
+    // 3. Charts (moving load to adminCharts store)
+    try {
+      // Use the adminCharts store to fetch and cache chart data
+      const adminCharts = useAdminChartsStore()
+      await adminCharts.fetchCharts({ days: 365 })
+      const revenue = adminCharts.revenue
+      const activity = adminCharts.activity
 
       revenueChartData.value = {
         labels: revenue.map((item) => item.date),
         datasets: [
           {
-            label: 'Lucro (€)',
+            label: 'Receita (€)',
             backgroundColor: '#10b981',
             borderColor: '#10b981',
             data: revenue.map((item) => item.total),
             tension: 0.3,
             fill: false,
+            pointRadius: 1,
           },
         ],
       }
@@ -369,7 +405,7 @@ const fetchDashboardData = async () => {
       // Sucesso
       chartLoaded.value = true
     } catch (chartErr) {
-      console.warn('Erro nos gráficos:', chartErr)
+      console.warn('Erro ao carregar gráficos via store:', chartErr)
       // Marca como erro, mas não bloqueia o resto da página
       chartError.value = true
       chartLoaded.value = true // Importante para parar o loading
@@ -382,14 +418,40 @@ const fetchDashboardData = async () => {
   }
 }
 
+const loadMoreTransactions = async () => {
+  // Prevent loading beyond last page
+  if (txPage.value >= (txPagination.value?.last_page || 1)) return
+  txPage.value++
+  try {
+    const res = await axios.get('/admin/transactions', {
+      params: { page: txPage.value, per_page: txPerPage.value },
+    })
+    const more = res.data?.data ?? []
+    transactions.value = transactions.value.concat(more)
+    txPagination.value = res.data?.meta ?? txPagination.value
+  } catch (e) {
+    console.warn('Erro ao carregar mais transações', e)
+  }
+}
+
 onMounted(() => {
-  if (showDashboard.value) fetchDashboardData()
+  // If the current path is under /admin, ensure dashboard data (charts, transactions) is loaded.
+  // This handles F5 refreshes on nested admin routes like /admin/users/507.
+  if (typeof route.path === 'string' && route.path.startsWith('/admin')) {
+    fetchDashboardData()
+  } else if (showDashboard.value) {
+    // fallback (keeps previous behaviour)
+    fetchDashboardData()
+  }
 })
 
 watch(
-  () => route.name,
-  (newName) => {
-    if (newName === 'admin') fetchDashboardData()
+  () => route.path,
+  (newPath) => {
+    // When navigating to any route under /admin, reload dashboard data.
+    if (typeof newPath === 'string' && newPath.startsWith('/admin')) {
+      fetchDashboardData()
+    }
   },
 )
 </script>

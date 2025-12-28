@@ -3,7 +3,8 @@
 Uma plataforma completa para jogar Bisca online, desenvolvida como projeto da disciplina TAES 2025. O sistema é uma **Web App com abordagem *mobile-first***, que suporta jogos multiplayer em tempo real e modo singleplayer contra bot.
 
 ## ATENCAO
-Se o migrate e o seed foram feitos antes de dia 14/12 as 16:40 a aplicacao nao ira funcionar
+Se o migrate e o seed foram feitos antes de dia 14/12 as 16:40 a aplicacao nao ira funcionar logo diretamente
+Houveram upgrades no dia 16/12 para resolver alguns bugs as 16:30
 
 ## 📋 Índice
 
