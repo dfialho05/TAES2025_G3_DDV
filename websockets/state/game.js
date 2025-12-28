@@ -10,6 +10,7 @@ const TURN_LIMIT_MS = 20000; // 20 Segundos
 
 let currentGameID = 0;
 
+export const getRawGames = () => games;
 // --- FUNÇÕES AUXILIARES DO TIMER ---
 
 const startTurnTimer = (gameId, io) => {
@@ -214,6 +215,7 @@ export const getGames = () =>
     }));
 
 export const getGame = (id) => games.get(id);
+
 
 export const removeGame = (id) => {
   // Limpar timer de animação

@@ -23,7 +23,14 @@ export const connectionsHandlers = (io, socket) => {
   });
 
   socket.on("disconnect", () => {
-    ConnectionState.removeUser(socket.id);
-    console.log(`❌ User desconectado: ${socket.id}`);
+    // Tenta remover e guarda o user removido numa variável
+    const removedUser = ConnectionState.removeUser(socket.id);
+    
+    if (removedUser) {
+        console.log(`❌ User desconectado e removido: ${removedUser.name} (${socket.id})`);
+    } else {
+        // Se já não existia (talvez limpo noutro lado ou conexão fantasma)
+        console.log(`❌ Socket desconectado: ${socket.id}`);
+    }
   });
 };
