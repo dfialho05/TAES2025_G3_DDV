@@ -65,7 +65,6 @@ export class BiscaGame {
   }
 
   playCard(player, index) {
-    // Bloqueia jogada se o jogo estiver "pausado" no popup ou acabado
     if (this.gameOver || this.roundOver || this.turn !== player) return false;
     
     const currentHand = player === "player1" ? this.player1Hand : this.player2Hand;
@@ -115,6 +114,9 @@ export class BiscaGame {
     return winner;
   }
 
+  // =========================================================
+  //  MÉTODO DE TIMEOUT / DESISTÊNCIA
+  // =========================================================
   async resolveTimeout(loserSide) {
     if (this.gameOver) return;
 
@@ -127,7 +129,7 @@ export class BiscaGame {
         winnerName = this.player1.name;
     }
 
-    console.log(`⏰ [Game Logic] Tempo esgotou para ${loserSide}. Vitória para ${winnerSide}.`);
+    console.log(`⏰ [Game Logic] Tempo/Desistência de ${loserSide}. Vitória para ${winnerSide}.`);
 
     // 1. Recolher TODAS as cartas
     let allCards = [
@@ -150,14 +152,13 @@ export class BiscaGame {
     // 3. Atribuir pontos ao vencedor
     this.score[winnerSide] += pointsToAdd;
     
-    // --- CORREÇÃO AQUI: Atualizar lastRoundPoints para o Frontend mostrar no Popup ---
+    // Atualizar explicitamente lastRoundPoints para o Frontend mostrar o placar correto (ex: 120-0)
     this.lastRoundPoints = { 
-        player1: this.score.player1, 
-        player2: this.score.player2 
+        player1: Number(this.score.player1), 
+        player2: Number(this.score.player2) 
     };
-    // ---------------------------------------------------------------------------------
 
-    this.logs = `⏰ Tempo esgotado! ${winnerName} recebeu todas as cartas (+${pointsToAdd} pts).`;
+    this.logs = `⏰ Jogo Terminado! ${winnerName} venceu por desistência ou tempo.`;
 
     // 4. Limpar estado visual
     this.deck = [];
@@ -170,9 +171,8 @@ export class BiscaGame {
     this.matchWins[winnerSide] = this.winsNeeded; 
     
     this.gameOver = true;
-    this.roundOver = true; // Ativa o popup
+    this.roundOver = true; 
     
-    // Atualiza totais
     this.matchTotalPoints.player1 += this.score.player1;
     this.matchTotalPoints.player2 += this.score.player2;
 
@@ -192,13 +192,10 @@ export class BiscaGame {
 
     return true;
   }
-  // =========================================================
-
 
   async cleanupRound(winner) {
     this.tableCards = [];
 
-    // Se acabaram as cartas, é o fim do Jogo Individual (Ronda completa)
     if (this.player1Hand.length === 0 && this.player2Hand.length === 0) {
       
       const s1 = this.score.player1; 
@@ -217,7 +214,6 @@ export class BiscaGame {
       if (s1 > s2) roundWinner = "player1";
       else if (s2 > s1) roundWinner = "player2";
 
-      // 1. Salvar resultado do Jogo Individual na BD
       if (this.callbacks.onGameEnd && this.dbCurrentGameId) {
           await this.callbacks.onGameEnd(this.dbCurrentGameId, roundWinner, s1, s2);
       }
@@ -231,13 +227,11 @@ export class BiscaGame {
         this.matchWins[roundWinner] += marksToAdd;
         const winnerName = this[roundWinner] ? this[roundWinner].name : (roundWinner === "player1" ? "Player 1" : "Bot");
 
-        // 2. Verificar se a Match acabou
         if (this.matchWins[roundWinner] >= this.winsNeeded) {
           this.gameOver = true;
           this.turn = null;
           this.logs = `🏆 FIM DA PARTIDA: ${winnerName} venceu!`;
           
-          // 3. Salvar fim da Match na BD
           if (this.callbacks.onMatchEnd) {
               await this.callbacks.onMatchEnd(
                   roundWinner, 
@@ -247,16 +241,14 @@ export class BiscaGame {
                   this.matchTotalPoints.player2
               );
           }
-          return; // Retorna para não iniciar nova ronda
+          return; 
         }
         this.logs = `${winnerName} ganhou a ronda: ${winType}. Placar: ${this.matchWins.player1} - ${this.matchWins.player2}`;
       } else {
         this.logs = "Empate (60-60)!";
       }
       
-      // Se a match não acabou, prepara o próximo baralho
       await this.startNewMatch();
-      
       this.roundOver = true; 
       this.turn = winner; 
       
@@ -291,7 +283,11 @@ export class BiscaGame {
     return {
       id: this.id, 
       
-      // IDs cruciais para o Frontend saber quem é quem
+      // DADOS PARA O FRONTEND SINCRONIZAR
+      winsNeeded: this.winsNeeded, 
+      gameType: this.gameType,
+      // --------------------------------
+
       player1Id: this.player1 ? String(this.player1.id) : null,
       player2Id: this.player2 ? String(this.player2.id) : null,
 
@@ -309,9 +305,7 @@ export class BiscaGame {
       logs: this.logs, 
       p1Name: this.player1 ? this.player1.name : "Player 1", 
       p2Name: p2Name, 
-      matchWins: this.matchWins,
-      winsNeeded: this.winsNeeded,
-      id: this.id,
+      matchWins: this.matchWins, 
       matchTotalPoints: this.matchTotalPoints, 
       botCardCount: this.player2Hand.length,
     };

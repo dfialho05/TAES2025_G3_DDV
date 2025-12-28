@@ -7,13 +7,12 @@ export const useBiscaStore = defineStore('bisca', () => {
   const socketStore = useSocketStore()
   const authStore = useAuthStore()
 
-  // =========================================
-  // 1. ESTADO (STATE)
-  // =========================================
+  // STATE
   const gameID = ref(null)
-  const mySide = ref('player1') // Será atualizado dinamicamente
+  const mySide = ref('player1')
   const opponentName = ref('Oponente')
   const isWaiting = ref(false)
+  const gameMode = ref(3) // Guardar o modo (3 ou 9)
 
   const playerHand = ref([])
   const opponentHandCount = ref(0)
@@ -22,13 +21,12 @@ export const useBiscaStore = defineStore('bisca', () => {
   const tableCards = ref([])
   const cardsLeft = ref(0)
 
-  // Pontuações
   const score = ref({ me: 0, opponent: 0 })
   const lastRoundScore = ref({ me: 0, opponent: 0 })
-  const sessionScore = ref({ me: 0, opponent: 0 }) // Placar de vitórias (ex: 2-1)
+  const sessionScore = ref({ me: 0, opponent: 0 })
 
   const currentTurn = ref(null)
-  const gameTarget = ref(1) // Quantas vitórias para ganhar a match
+  const gameTarget = ref(1) // Wins Needed
 
   const isGameOver = ref(false)
   const isRoundOver = ref(false)
@@ -36,36 +34,25 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   const availableGames = ref([])
 
-  // Computeds auxiliares
   const botCardCount = computed(() => opponentHandCount.value)
 
-  // =========================================
-  // 2. LÓGICA CENTRAL (PROCESSAR DADOS DO SERVIDOR)
-  // =========================================
+  // LOGIC
   const processGameState = (data) => {
-
-    // Se o ID for diferente do atual, ignorar (a menos que seja novo jogo)
     if (gameID.value && data.id && String(data.id) !== String(gameID.value)) return
     if (data.id) gameID.value = data.id
 
-    // Log de Debug para estado final
     if (data.gameOver || data.roundOver) {
         console.log("📥 [Store] Estado Final Recebido. Pontos Ronda:", data.lastRoundPoints);
     }
 
-    // --- CORREÇÃO IMPORTANTE PARA AS BOLINHAS ---
-    // Atualiza o objetivo do jogo (ex: 4 vitórias) para ambos os jogadores
-    if (data.winsNeeded) {
-        gameTarget.value = parseInt(data.winsNeeded);
-    }
-    // --------------------------------------------
+    // ATUALIZAR OBJETIVOS E MODO
+    if (data.winsNeeded) gameTarget.value = parseInt(data.winsNeeded);
+    if (data.gameType) gameMode.value = parseInt(data.gameType);
 
-    // Quem sou eu?
+    // Identificar Jogador
     const myId = String(authStore.currentUser?.id || '');
-    const p1Id = String(data.player1Id || ''); // Vem do backend agora
+    const p1Id = String(data.player1Id || '');
 
-    // Se o meu ID for igual ao do Dono da Sala (P1), eu sou P1.
-    // Caso contrário, assumo que sou o P2.
     if (myId === p1Id) {
         mySide.value = 'player1';
     } else {
@@ -74,39 +61,19 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     console.log(`🔍 Perspetiva definida: Sou ${mySide.value} (Meu ID: ${myId}, P1 ID: ${p1Id})`);
 
-    // ---------------------------------------------------------
-    // MAPEAMENTO DE DADOS COM BASE NA PERSPETIVA
-    // ---------------------------------------------------------
+    // Mapear dados
     if (mySide.value === 'player1') {
-      // VISÃO DO JOGADOR 1
       playerHand.value = data.player1Hand || []
-
-      // Nome do oponente
-      opponentName.value = data.p2Name
-        ? data.p2Name
-        : (data.p2Name === null ? 'Aguardando...' : 'Bot')
-
-      // Estado de espera (só P1 espera por P2)
+      opponentName.value = data.p2Name ? data.p2Name : (data.p2Name === null ? 'Aguardando...' : 'Bot')
       isWaiting.value = data.p2Name === null
-
-      // Cartas do oponente (P2 ou Bot)
       opponentHandCount.value = (data.player2Hand || []).length || data.botCardCount || 0
-
     } else {
-      // VISÃO DO JOGADOR 2
-      isWaiting.value = false // P2 nunca espera, o jogo já existe
-
-      // Nome do oponente (que é o P1)
+      isWaiting.value = false
       opponentName.value = data.p1Name || 'Player 1'
-
-      // Minha mão é a mão do P2
       playerHand.value = data.player2Hand || []
-
-      // Cartas do oponente (P1)
       opponentHandCount.value = (data.player1Hand || []).length || 0
     }
 
-    // Dados Comuns
     trunfo.value = data.trunfo
     trunfoNaipe.value = data.trunfoNaipe
     tableCards.value = data.tableCards
@@ -115,9 +82,6 @@ export const useBiscaStore = defineStore('bisca', () => {
     isRoundOver.value = data.roundOver
     logs.value = data.logs
 
-    // ---------------------------------------------------------
-    // MAPEAMENTO DE PONTUAÇÕES
-    // ---------------------------------------------------------
     const p1Score = data.score?.player1 || 0
     const p2Score = data.score?.player2 || 0
     const p1Last = data.lastRoundPoints?.player1 || 0
@@ -135,25 +99,17 @@ export const useBiscaStore = defineStore('bisca', () => {
       sessionScore.value = { me: p2Wins, opponent: p1Wins }
     }
 
-    // Turno
     if (data.turn === mySide.value) currentTurn.value = 'user'
-    else if (data.turn) currentTurn.value = 'bot' // ou opponent
+    else if (data.turn) currentTurn.value = 'bot'
     else currentTurn.value = null
   }
 
-  // =========================================
-  // 3. COMPUTED: POPUP DE FINAL DE JOGO/RONDA
-  // =========================================
   const popupData = computed(() => {
     if (!isGameOver.value && !isRoundOver.value) return null
 
     const pointsMe = lastRoundScore.value.me
     const pointsOpp = lastRoundScore.value.opponent
-
-    // Venceu a ronda?
     const roundWin = pointsMe > pointsOpp
-
-    // Venceu o Jogo Completo (Match)?
     const matchWin =
       sessionScore.value.me >= gameTarget.value ||
       (isGameOver.value && sessionScore.value.me > sessionScore.value.opponent)
@@ -165,7 +121,6 @@ export const useBiscaStore = defineStore('bisca', () => {
       title = roundWin ? 'VENCESTE A RONDA!' : 'PERDESTE A RONDA'
     }
 
-    // Conquistas (Bandeira, Capote, etc)
     let achievement = null
     if (pointsMe === 120) achievement = 'BANDEIRA'
     else if (pointsMe >= 91) achievement = 'CAPOTE'
@@ -183,9 +138,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   })
 
-  // =========================================
-  // 4. AÇÕES (ACTIONS)
-  // =========================================
+  // ACTIONS
   const startGame = (type, mode, wins, isPractice = false) => {
     gameID.value = null
     playerHand.value = []
@@ -195,15 +148,13 @@ export const useBiscaStore = defineStore('bisca', () => {
     isGameOver.value = false
     isRoundOver.value = false
     gameTarget.value = parseInt(wins) || 1
+    gameMode.value = type
 
     socketStore.emitCreateGame(type, mode, wins, isPractice)
   }
 
-  // Avança para a próxima ronda (fecha popup)
   const closeRoundPopup = () => {
-    if (gameID.value) {
-      socketStore.emitNextRound(gameID.value)
-    }
+    if (gameID.value) socketStore.emitNextRound(gameID.value)
     isRoundOver.value = false
   }
 
@@ -219,57 +170,19 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  const joinGame = (id) => {
-    socketStore.emitJoinGame(id)
-  }
-
+  const joinGame = (id) => socketStore.emitJoinGame(id)
   const playCard = (index) => {
-    if (currentTurn.value === 'user') {
-        socketStore.emitPlayCard(gameID.value, index)
-    }
+    if (currentTurn.value === 'user') socketStore.emitPlayCard(gameID.value, index)
   }
-
-  const fetchGames = () => {
-    socketStore.emitGetGames()
-  }
-
-  const setAvailableGames = (l) => {
-    availableGames.value = l
-  }
+  const fetchGames = () => socketStore.emitGetGames()
+  const setAvailableGames = (l) => availableGames.value = l
 
   return {
-    // State
-    gameID,
-    mySide,
-    playerHand,
-    opponentHandCount,
-    botCardCount,
-    opponentName,
-    isWaiting,
-    trunfo,
-    trunfoNaipe,
-    tableCards,
-    score,
-    logs,
-    currentTurn,
-    isGameOver,
-    isRoundOver,
-    cardsLeft,
-    availableGames,
-    sessionScore,
-    gameTarget,
-
-    // Computed
-    popupData,
-
-    // Actions
-    processGameState,
-    setAvailableGames,
-    startGame,
-    joinGame,
-    fetchGames,
-    playCard,
-    quitGame,
-    closeRoundPopup,
+    gameID, mySide, playerHand, opponentHandCount, botCardCount, opponentName,
+    isWaiting, trunfo, trunfoNaipe, tableCards, score, logs, currentTurn,
+    isGameOver, isRoundOver, cardsLeft, availableGames, sessionScore,
+    gameTarget, gameMode, // Exportar gameMode
+    popupData, processGameState, setAvailableGames, startGame, joinGame,
+    fetchGames, playCard, quitGame, closeRoundPopup,
   }
 })

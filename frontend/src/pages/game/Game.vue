@@ -14,7 +14,6 @@ const gameStore = useBiscaStore()
 const deckStore = useDeckStore()
 const socketStore = useSocketStore()
 
-// Extrair refs reativas do Store
 const {
   playerHand,
   opponentHandCount: botCardCount,
@@ -23,6 +22,7 @@ const {
   opponentName,
   isWaiting,
   score,
+  gameMode, // <-- Certifica-te que está aqui
   logs,
   currentTurn,
   cardsLeft,
@@ -36,7 +36,7 @@ const {
 
 const isConnected = computed(() => socketStore.isConnected)
 
-// --- LÓGICA DO TIMER VISUAL (NOVO) ---
+// TIMER VISUAL
 const timerProgress = ref(100);
 let timerInterval = null;
 
@@ -47,8 +47,8 @@ const startLocalTimer = () => {
     if (isGameOver.value || isRoundOver.value) return;
     if (!currentTurn.value) return;
 
-    const totalTime = 20000; // 20 segundos (igual ao backend)
-    const step = 100; // 100ms
+    const totalTime = 20000;
+    const step = 100;
     const decrement = 100 / (totalTime / step);
 
     timerInterval = setInterval(() => {
@@ -60,25 +60,51 @@ const startLocalTimer = () => {
     }, step);
 };
 
-// Reiniciar timer sempre que o turno muda ou cartas são jogadas
 watch([currentTurn, tableCards], () => {
     setTimeout(startLocalTimer, 50);
 });
-// -------------------------------------
 
-// Scroll indicators state
+// URL SYNC - A MÁGICA ACONTECE AQUI
+watch(
+    [gameID, gameTarget, gameMode],
+    ([newId, newTarget, newMode]) => {
+        if (newId) {
+            const currentId = route.query.id;
+            const currentWins = route.query.wins;
+            const currentMode = route.query.mode;
+
+            // Verifica se precisa atualizar o URL
+            if (
+                String(currentId) !== String(newId) ||
+                String(currentWins) !== String(newTarget) ||
+                String(currentMode) !== String(newMode)
+            ) {
+                 console.log(`🔗 Atualizar URL: ID=${newId}, Wins=${newTarget}, Mode=${newMode}`);
+                 router.replace({
+                    query: {
+                        ...route.query,
+                        id: newId,
+                        wins: newTarget,
+                        mode: newMode
+                    }
+                 });
+            }
+        }
+    },
+    { immediate: true } // Garante execução imediata
+);
+
+// SCROLL LOGIC
 const playerHandRef = ref(null)
 const showLeftScroll = ref(false)
 const showRightScroll = ref(false)
 
 const checkScrollIndicators = () => {
   if (!playerHandRef.value) return
-
   const element = playerHandRef.value
   const scrollLeft = element.scrollLeft
   const scrollWidth = element.scrollWidth
   const clientWidth = element.clientWidth
-
   showLeftScroll.value = scrollLeft > 0
   showRightScroll.value = scrollLeft < scrollWidth - clientWidth
 }
@@ -89,24 +115,22 @@ watch(playerHand, async () => {
 })
 
 const scrollLeft = () => {
-  if (playerHandRef.value) {
-    playerHandRef.value.scrollBy({ left: -60, behavior: 'smooth' })
-  }
+  if (playerHandRef.value) playerHandRef.value.scrollBy({ left: -60, behavior: 'smooth' })
 }
 
 const scrollRight = () => {
-  if (playerHandRef.value) {
-    playerHandRef.value.scrollBy({ left: 60, behavior: 'smooth' })
-  }
+  if (playerHandRef.value) playerHandRef.value.scrollBy({ left: 60, behavior: 'smooth' })
 }
 
+// SETUP
 onMounted(async () => {
   const isPractice = route.query.practice === 'true'
   socketStore.handleConnection(isPractice)
 
   if (deckStore.decks.length === 0) await deckStore.fetchDecks()
 
-  if (route.query.mode) {
+  // 1. Criar novo jogo (vem do Lobby com mode+wins)
+  if (route.query.mode && route.query.wins && !route.query.id) {
     const cards = parseInt(route.query.mode)
     const targetWins = parseInt(route.query.wins) || 1
 
@@ -115,8 +139,26 @@ onMounted(async () => {
         gameStore.startGame(cards, 'singleplayer', targetWins, isPractice)
       }, 500)
     }
-  } else {
-    if (!gameID.value) router.push('/games/lobby')
+  }
+  // 2. Entrar em jogo existente (Link partilhado ou Refresh)
+  else if (route.query.id) {
+     const targetId = route.query.id;
+
+     if (!socketStore.isConnected) {
+         const unwatch = watch(isConnected, (connected) => {
+             if(connected) {
+                 gameStore.joinGame(targetId);
+                 unwatch();
+             }
+         });
+     } else {
+         if (gameID.value !== targetId) {
+             gameStore.joinGame(targetId);
+         }
+     }
+  }
+  else if (!gameID.value) {
+    router.push('/games/lobby')
   }
 })
 
@@ -125,13 +167,11 @@ watch(gameID, (newVal) => {
 })
 
 onUnmounted(() => {
-  clearInterval(timerInterval); // Limpar intervalo
+  clearInterval(timerInterval);
   if (gameID.value) gameStore.quitGame()
 })
 
-const handleNextRound = () => {
-  gameStore.closeRoundPopup()
-}
+const handleNextRound = () => gameStore.closeRoundPopup()
 
 const handleRestart = () => {
   const isPractice = route.query.practice === 'true'
@@ -139,6 +179,7 @@ const handleRestart = () => {
 }
 
 const handleExit = () => {
+  gameStore.quitGame();
   router.push('/')
 }
 </script>
@@ -312,7 +353,7 @@ const handleExit = () => {
 /* TIMER BAR STYLES */
 .timer-bar-container {
     width: 100%;
-    max-width: 300px; /* Limita a largura para não ser gigante */
+    max-width: 300px;
     height: 6px;
     background: rgba(0,0,0,0.3);
     margin-top: 5px;
