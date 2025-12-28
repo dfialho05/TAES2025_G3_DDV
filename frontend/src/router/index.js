@@ -83,11 +83,8 @@ const router = createRouter({
       path: '/profile/:id',
       name: 'profile',
       component: ProfilePage,
-      // Antes de entrar, tentamos garantir que:
-      // 1) se já somos admin -> permitimos;
-      // 2) se somos o dono do perfil -> permitimos;
-      // 3) caso contrário, tentamos restaurar o user a partir do token em sessionStorage
-      //    (se existir) antes de decidir. Se não houver token -> redirecionar para login.
+
+
       beforeEnter: async (to, from, next) => {
         const authStore = useAuthStore()
         const requestedId = String(to.params.id)
@@ -130,6 +127,9 @@ const router = createRouter({
         // No token and not owner/admin -> require login
         return next({ name: 'login' })
       },
+
+
+
     },
 
     // --- Rota de Histórico ---

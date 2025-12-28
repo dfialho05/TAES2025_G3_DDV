@@ -309,7 +309,9 @@ export class BiscaGame {
       logs: this.logs, 
       p1Name: this.player1 ? this.player1.name : "Player 1", 
       p2Name: p2Name, 
-      matchWins: this.matchWins, 
+      matchWins: this.matchWins,
+      winsNeeded: this.winsNeeded,
+      id: this.id,
       matchTotalPoints: this.matchTotalPoints, 
       botCardCount: this.player2Hand.length,
     };

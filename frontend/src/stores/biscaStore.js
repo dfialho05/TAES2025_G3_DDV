@@ -44,13 +44,23 @@ export const useBiscaStore = defineStore('bisca', () => {
   // =========================================
   const processGameState = (data) => {
 
+    // Se o ID for diferente do atual, ignorar (a menos que seja novo jogo)
     if (gameID.value && data.id && String(data.id) !== String(gameID.value)) return
     if (data.id) gameID.value = data.id
 
+    // Log de Debug para estado final
     if (data.gameOver || data.roundOver) {
         console.log("📥 [Store] Estado Final Recebido. Pontos Ronda:", data.lastRoundPoints);
     }
 
+    // --- CORREÇÃO IMPORTANTE PARA AS BOLINHAS ---
+    // Atualiza o objetivo do jogo (ex: 4 vitórias) para ambos os jogadores
+    if (data.winsNeeded) {
+        gameTarget.value = parseInt(data.winsNeeded);
+    }
+    // --------------------------------------------
+
+    // Quem sou eu?
     const myId = String(authStore.currentUser?.id || '');
     const p1Id = String(data.player1Id || ''); // Vem do backend agora
 
