@@ -233,7 +233,7 @@ onMounted(() => fetchUsersPage(1))
                   fetchUsersPage(1)
                 }
               "
-              class="px-3 py-1 bg-gray-100 text-gray-800 rounded hover:bg-gray-200 text-sm"
+              class="px-3 py-1 bg-gray-100 text-gray-800 rounded hover:bg-gray-200 text-sm dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 "
             >
               Limpar
             </button>
@@ -243,7 +243,7 @@ onMounted(() => fetchUsersPage(1))
             <select
               v-model="sortOption"
               @change="() => fetchUsersPage(1)"
-              class="px-2 py-1 border rounded text-sm"
+              class="px-2 py-1 border rounded text-sm dark:bg-gray-800 dark:text-gray-200"
             >
               <option value="">Padrão</option>
               <option value="alpha_asc">A → Z</option>
@@ -345,7 +345,7 @@ onMounted(() => fetchUsersPage(1))
           placeholder="Password"
           class="px-2 py-1 border rounded"
         />
-        <select v-model="newUser.type" class="px-2 py-1 border rounded">
+        <select v-model="newUser.type" class="px-2 py-1 border rounded dark:bg-gray-800 dark:text-gray-200">
           <option value="P">Player</option>
           <option value="A">Admin</option>
         </select>
