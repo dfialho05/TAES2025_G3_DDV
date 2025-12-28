@@ -15,7 +15,7 @@ export const useSocketStore = defineStore('socket', () => {
 
   const connect = (allowAnonymous = false) => {
     // Obtém token se existir
-    const token = allowAnonymous ? null : (authStore.token || localStorage.getItem('token'))
+    const token = allowAnonymous ? null : authStore.token || localStorage.getItem('token')
 
     if (socket.value) socket.value.disconnect()
 
@@ -39,17 +39,17 @@ export const useSocketStore = defineStore('socket', () => {
 
   // Função centralizada para anunciar quem é o utilizador ao servidor
   const announceUser = () => {
-    if (!socket.value) return;
+    if (!socket.value) return
 
-    let userData = authStore.currentUser;
-    const hasToken = authStore.token || localStorage.getItem('token');
+    let userData = authStore.currentUser
+    const hasToken = authStore.token || localStorage.getItem('token')
 
     // CASO 1: Temos token, mas o user ainda não carregou (está a fazer fetch)
     // NÃO enviamos nada agora. Esperamos pelo watch do currentUser.
     // Se enviarmos agora, o servidor regista como "loading" e buga o jogo.
     if (!userData && hasToken) {
-        console.log("⏳ [Socket] Aguardando dados do utilizador autenticado...");
-        return;
+      console.log('⏳ [Socket] Aguardando dados do utilizador autenticado...')
+      return
     }
 
     // CASO 2: Modo Convidado / Anónimo (sem token)
@@ -57,13 +57,13 @@ export const useSocketStore = defineStore('socket', () => {
       userData = {
         id: `guest-${socket.value.id.substring(0, 5)}`,
         name: `Convidado ${socket.value.id.substring(0, 4)}`,
-        isGuest: true
+        isGuest: true,
       }
     }
 
     // CASO 3: Utilizador autenticado e carregado
-    console.log("📤 [Socket] Enviando identidade (JOIN):", userData);
-    socket.value.emit('join', userData);
+    console.log('📤 [Socket] Enviando identidade (JOIN):', userData)
+    socket.value.emit('join', userData)
   }
 
   const setupListeners = () => {
@@ -74,7 +74,7 @@ export const useSocketStore = defineStore('socket', () => {
       isConnected.value = true
 
       // Tenta anunciar imediatamente (caso seja guest ou user já esteja em cache)
-      announceUser();
+      announceUser()
     })
 
     socket.value.on('disconnect', () => {
@@ -83,35 +83,46 @@ export const useSocketStore = defineStore('socket', () => {
     })
 
     socket.value.on('game-joined', (data) => {
-      console.log("📥 [Socket] Entrei no jogo:", data.id);
+      console.log('📥 [Socket] Entrei no jogo:', data.id)
       biscaStore.processGameState(data)
     })
 
     socket.value.on('game_state', (data) => biscaStore.processGameState(data))
     socket.value.on('games', (list) => biscaStore.setAvailableGames(list))
 
+    socket.value.on('balance_update', ({ userId, balance }) => {
+      console.log(`💰 [Socket] Balance atualizada para user ${userId}: ${balance} coins`)
+      // Atualizar balance no authStore se for o utilizador atual
+      if (authStore.currentUser && String(authStore.currentUser.id) === String(userId)) {
+        authStore.currentUser.coins_balance = balance
+      }
+    })
+
     socket.value.on('error', (err) => {
-        console.error("⚠️ Erro do Socket:", err);
-    });
+      console.error('⚠️ Erro do Socket:', err)
+    })
   }
 
   // --- O FIX PRINCIPAL ---
   // Observa mudanças no utilizador. Assim que o login/fetch acabar, atualiza o socket.
-  watch(() => authStore.currentUser, (newUser) => {
+  watch(
+    () => authStore.currentUser,
+    (newUser) => {
       if (newUser && isConnected.value) {
-          console.log("👤 [Socket] Dados de utilizador atualizados. Reenviando identidade...");
-          // Atualiza token interno do socket para reconexões futuras
-          if(socket.value && socket.value.auth) {
-              socket.value.auth.token = authStore.token;
-          }
-          announceUser();
+        console.log('👤 [Socket] Dados de utilizador atualizados. Reenviando identidade...')
+        // Atualiza token interno do socket para reconexões futuras
+        if (socket.value && socket.value.auth) {
+          socket.value.auth.token = authStore.token
+        }
+        announceUser()
       }
-  });
+    },
+  )
 
   // --- AÇÕES ---
   const emitCreateGame = (type, mode, targetWins, isPractice = false) => {
-    if (!socket.value) return;
-    console.log(`📤 Criando jogo: Tipo ${type}, Wins ${targetWins}`);
+    if (!socket.value) return
+    console.log(`📤 Criando jogo: Tipo ${type}, Wins ${targetWins}`)
     socket.value.emit('create-game', type, mode, targetWins, isPractice)
   }
 
@@ -132,7 +143,7 @@ export const useSocketStore = defineStore('socket', () => {
 
   const handleConnection = (allowAnonymous = false) => {
     if (!isConnected.value) {
-        connect(allowAnonymous)
+      connect(allowAnonymous)
     }
   }
 

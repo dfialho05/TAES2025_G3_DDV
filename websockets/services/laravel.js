@@ -21,9 +21,13 @@ async function apiCall(method, endpoint, data = null, token = null) {
     });
     return response.data;
   } catch (error) {
-    if (error.response)
+    if (error.response) {
       console.error(`❌ Laravel Error [${endpoint}]:`, error.response.data);
-    else console.error(`❌ Network/Axios Error [${endpoint}]:`, error.message);
+      console.error(`   Status: ${error.response.status}`);
+      console.error(`   Data sent:`, data);
+    } else {
+      console.error(`❌ Network/Axios Error [${endpoint}]:`, error.message);
+    }
     return null;
   }
 }
@@ -33,7 +37,7 @@ export const createMatch = async (player1, player2, type, stake = 0, token) => {
   const p2Id = player2 ? player2.id : BOT_ID;
   const body = {
     type: type,
-    status: "Playing",
+    status: "Pending", // Changed from "Playing" - will start when both players ready
     player1_user_id: player1.id,
     player2_user_id: p2Id,
     stake: stake,
@@ -42,6 +46,11 @@ export const createMatch = async (player1, player2, type, stake = 0, token) => {
   };
   const result = await apiCall("POST", "/matches", body, token);
   return result ? result : null;
+};
+
+// Start a match (charges entry fees from both players)
+export const startMatch = async (matchId, token) => {
+  return await apiCall("POST", `/matches/${matchId}/start`, {}, token);
 };
 
 // 2. Finalizar MATCH
@@ -126,4 +135,21 @@ export const finishGame = async (
     player2_points: p2Points,
   };
   return await apiCall("POST", `/games/${gameId}/finish`, body, token);
+};
+
+// 6. Start a game (charges entry fees for standalone games)
+export const startGame = async (gameId, token) => {
+  return await apiCall("POST", `/games/${gameId}/start`, {}, token);
+};
+
+// 7. Obter saldo atualizado do utilizador
+export const getUserBalance = async (token) => {
+  const result = await apiCall("GET", "/users/me", null, token);
+  return result ? result.data.coins_balance : null;
+};
+
+// 8. Obter informações completas do utilizador
+export const getUserInfo = async (token) => {
+  const result = await apiCall("GET", "/users/me", null, token);
+  return result ? result.data : null;
 };
