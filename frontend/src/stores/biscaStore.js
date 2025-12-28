@@ -1,13 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useSocketStore } from './socket'
+import { useAuthStore } from './auth'
 
 export const useBiscaStore = defineStore('bisca', () => {
   const socketStore = useSocketStore()
+  const authStore = useAuthStore()
 
-  // 1. ESTADO
+  // =========================================
+  // 1. ESTADO (STATE)
+  // =========================================
   const gameID = ref(null)
-  const mySide = ref('player1')
+  const mySide = ref('player1') // Será atualizado dinamicamente
   const opponentName = ref('Oponente')
   const isWaiting = ref(false)
 
@@ -18,12 +22,13 @@ export const useBiscaStore = defineStore('bisca', () => {
   const tableCards = ref([])
   const cardsLeft = ref(0)
 
+  // Pontuações
   const score = ref({ me: 0, opponent: 0 })
   const lastRoundScore = ref({ me: 0, opponent: 0 })
+  const sessionScore = ref({ me: 0, opponent: 0 }) // Placar de vitórias (ex: 2-1)
 
   const currentTurn = ref(null)
-  const sessionScore = ref({ me: 0, opponent: 0 })
-  const gameTarget = ref(1)
+  const gameTarget = ref(1) // Quantas vitórias para ganhar a match
 
   const isGameOver = ref(false)
   const isRoundOver = ref(false)
@@ -31,69 +36,114 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   const availableGames = ref([])
 
+  // Computeds auxiliares
   const botCardCount = computed(() => opponentHandCount.value)
 
-  // 2. LÓGICA DE DADOS
+  // =========================================
+  // 2. LÓGICA CENTRAL (PROCESSAR DADOS DO SERVIDOR)
+  // =========================================
   const processGameState = (data) => {
+
     if (gameID.value && data.id && String(data.id) !== String(gameID.value)) return
     if (data.id) gameID.value = data.id
 
+    if (data.gameOver || data.roundOver) {
+        console.log("📥 [Store] Estado Final Recebido. Pontos Ronda:", data.lastRoundPoints);
+    }
+
+    const myId = String(authStore.currentUser?.id || '');
+    const p1Id = String(data.player1Id || ''); // Vem do backend agora
+
+    // Se o meu ID for igual ao do Dono da Sala (P1), eu sou P1.
+    // Caso contrário, assumo que sou o P2.
+    if (myId === p1Id) {
+        mySide.value = 'player1';
+    } else {
+        mySide.value = 'player2';
+    }
+
+    console.log(`🔍 Perspetiva definida: Sou ${mySide.value} (Meu ID: ${myId}, P1 ID: ${p1Id})`);
+
+    // ---------------------------------------------------------
+    // MAPEAMENTO DE DADOS COM BASE NA PERSPETIVA
+    // ---------------------------------------------------------
     if (mySide.value === 'player1') {
+      // VISÃO DO JOGADOR 1
       playerHand.value = data.player1Hand || []
+
+      // Nome do oponente
       opponentName.value = data.p2Name
         ? data.p2Name
-        : data.p2Name === null
-          ? 'Aguardando...'
-          : 'Bot'
+        : (data.p2Name === null ? 'Aguardando...' : 'Bot')
+
+      // Estado de espera (só P1 espera por P2)
       isWaiting.value = data.p2Name === null
+
+      // Cartas do oponente (P2 ou Bot)
       opponentHandCount.value = (data.player2Hand || []).length || data.botCardCount || 0
+
     } else {
-      isWaiting.value = false
+      // VISÃO DO JOGADOR 2
+      isWaiting.value = false // P2 nunca espera, o jogo já existe
+
+      // Nome do oponente (que é o P1)
       opponentName.value = data.p1Name || 'Player 1'
+
+      // Minha mão é a mão do P2
       playerHand.value = data.player2Hand || []
+
+      // Cartas do oponente (P1)
       opponentHandCount.value = (data.player1Hand || []).length || 0
     }
 
+    // Dados Comuns
     trunfo.value = data.trunfo
     trunfoNaipe.value = data.trunfoNaipe
     tableCards.value = data.tableCards
     cardsLeft.value = data.cardsLeft
-
     isGameOver.value = data.gameOver
     isRoundOver.value = data.roundOver
-
     logs.value = data.logs
 
-    // Score
-    const p1Current = data.score.player1 || 0
-    const p2Current = data.score.player2 || 0
+    // ---------------------------------------------------------
+    // MAPEAMENTO DE PONTUAÇÕES
+    // ---------------------------------------------------------
+    const p1Score = data.score?.player1 || 0
+    const p2Score = data.score?.player2 || 0
     const p1Last = data.lastRoundPoints?.player1 || 0
     const p2Last = data.lastRoundPoints?.player2 || 0
     const p1Wins = data.matchWins?.player1 || 0
     const p2Wins = data.matchWins?.player2 || 0
 
     if (mySide.value === 'player1') {
-      score.value = { me: p1Current, opponent: p2Current }
+      score.value = { me: p1Score, opponent: p2Score }
       lastRoundScore.value = { me: p1Last, opponent: p2Last }
       sessionScore.value = { me: p1Wins, opponent: p2Wins }
     } else {
-      score.value = { me: p2Current, opponent: p1Current }
+      score.value = { me: p2Score, opponent: p1Score }
       lastRoundScore.value = { me: p2Last, opponent: p1Last }
       sessionScore.value = { me: p2Wins, opponent: p1Wins }
     }
 
+    // Turno
     if (data.turn === mySide.value) currentTurn.value = 'user'
-    else if (data.turn) currentTurn.value = 'bot'
+    else if (data.turn) currentTurn.value = 'bot' // ou opponent
     else currentTurn.value = null
   }
 
-  // 3. COMPUTEDS
+  // =========================================
+  // 3. COMPUTED: POPUP DE FINAL DE JOGO/RONDA
+  // =========================================
   const popupData = computed(() => {
     if (!isGameOver.value && !isRoundOver.value) return null
 
     const pointsMe = lastRoundScore.value.me
     const pointsOpp = lastRoundScore.value.opponent
+
+    // Venceu a ronda?
     const roundWin = pointsMe > pointsOpp
+
+    // Venceu o Jogo Completo (Match)?
     const matchWin =
       sessionScore.value.me >= gameTarget.value ||
       (isGameOver.value && sessionScore.value.me > sessionScore.value.opponent)
@@ -105,6 +155,7 @@ export const useBiscaStore = defineStore('bisca', () => {
       title = roundWin ? 'VENCESTE A RONDA!' : 'PERDESTE A RONDA'
     }
 
+    // Conquistas (Bandeira, Capote, etc)
     let achievement = null
     if (pointsMe === 120) achievement = 'BANDEIRA'
     else if (pointsMe >= 91) achievement = 'CAPOTE'
@@ -122,7 +173,9 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   })
 
-  // 4. AÇÕES
+  // =========================================
+  // 4. AÇÕES (ACTIONS)
+  // =========================================
   const startGame = (type, mode, wins, isPractice = false) => {
     gameID.value = null
     playerHand.value = []
@@ -136,7 +189,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     socketStore.emitCreateGame(type, mode, wins, isPractice)
   }
 
-  // NOVO: Avisa o servidor para avançar
+  // Avança para a próxima ronda (fecha popup)
   const closeRoundPopup = () => {
     if (gameID.value) {
       socketStore.emitNextRound(gameID.value)
@@ -159,17 +212,23 @@ export const useBiscaStore = defineStore('bisca', () => {
   const joinGame = (id) => {
     socketStore.emitJoinGame(id)
   }
+
   const playCard = (index) => {
-    if (currentTurn.value === 'user') socketStore.emitPlayCard(gameID.value, index)
+    if (currentTurn.value === 'user') {
+        socketStore.emitPlayCard(gameID.value, index)
+    }
   }
+
   const fetchGames = () => {
     socketStore.emitGetGames()
   }
+
   const setAvailableGames = (l) => {
     availableGames.value = l
   }
 
   return {
+    // State
     gameID,
     mySide,
     playerHand,
@@ -189,7 +248,11 @@ export const useBiscaStore = defineStore('bisca', () => {
     availableGames,
     sessionScore,
     gameTarget,
+
+    // Computed
     popupData,
+
+    // Actions
     processGameState,
     setAvailableGames,
     startGame,

@@ -1,28 +1,38 @@
 <script setup>
-import { onMounted, watch, onUnmounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBiscaStore } from '@/stores/biscaStore';
 import { useSocketStore } from '@/stores/socket';
 import { storeToRefs } from 'pinia';
+import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
 const biscaStore = useBiscaStore();
 const socketStore = useSocketStore();
+const authStore = useAuthStore();
 
 // Extraímos gameID e availableGames para serem reativos
 const { availableGames, gameID, logs } = storeToRefs(biscaStore);
 
 onMounted(() => {
   console.log("📍 Lobby Montado");
-  socketStore.bindGameEvents();
+
+  // Se não estiver conectado, força conexão
+  if (!socketStore.isConnected) {
+    socketStore.handleConnection(true); // true = permite anónimo se necessário
+  }
+
+  // Pedir lista de jogos
   socketStore.emitGetGames();
-  console.log("✅ Eventos de jogo ligados e lista pedida.");
+  console.log("✅ Lista de jogos pedida.");
 });
 
 // Criar Jogo (Player 1)
 const create = (tipoJogo) => {
-    console.log("🖱️ Cliquei em Criar Jogo");
-    biscaStore.startGame(tipoJogo, 'multiplayer');
+    console.log("🖱️ Cliquei em Criar Jogo", tipoJogo);
+    // IMPORTANTE: Passar '1' como terceiro argumento (número de vitórias)
+    // Argumentos: (tipo, modo, wins, isPractice)
+    biscaStore.startGame(tipoJogo, 'multiplayer', 1, false);
 };
 
 // Entrar Jogo (Player 2)
@@ -36,7 +46,7 @@ watch(gameID, (newID) => {
     console.log("👀 O gameID mudou para:", newID);
     if (newID) {
         console.log("🚀 Jogo detetado! Redirecionando para a mesa...");
-        router.push('/games/singleplayer');
+        router.push('/games/singleplayer'); // Ou a rota correta da tua mesa de jogo
     }
 });
 
@@ -58,14 +68,15 @@ const goHome = () => {
                 <h1>Lobby Multiplayer</h1>
                 <span class="subtitle">Desafia jogadores em tempo real</span>
             </div>
-            <div class="placeholder"></div> </header>
+            <div class="placeholder"></div>
+        </header>
 
         <section class="action-area">
             <button @click="create(3)" class="btn-create">
                 <div class="icon-wrapper">🃏</div>
                 <div class="text-wrapper">
                     <span class="btn-title">Bisca de 3</span>
-                    <span class="btn-desc">New room</span>
+                    <span class="btn-desc">Criar Sala</span>
                 </div>
             </button>
 
@@ -73,7 +84,7 @@ const goHome = () => {
                 <div class="icon-wrapper">🃏</div>
                 <div class="text-wrapper">
                     <span class="btn-title">Bisca de 9</span>
-                    <span class="btn-desc">New room</span>
+                    <span class="btn-desc">Criar Sala</span>
                 </div>
             </button>
         </section>
@@ -82,7 +93,7 @@ const goHome = () => {
             <h2 class="section-title">Salas Disponíveis</h2>
 
             <div v-if="availableGames.length === 0" class="empty-state">
-                <div v-if="!socketStore.joined" class="loading-pulse">
+                <div v-if="!socketStore.isConnected" class="loading-pulse">
                     <span class="spinner">↻</span> A ligar ao servidor...
                 </div>
                 <div v-else class="empty-content">
@@ -102,7 +113,7 @@ const goHome = () => {
                             <span class="game-host">Sala de {{ game.creator || 'Anónimo' }}</span>
                             <div class="badges">
                                 <span class="badge id-badge">#{{ game.id }}</span>
-                                <span class="badge type-badge">{{ game.type || 'Clássico' }}</span>
+                                <span class="badge type-badge">{{ game.type }}</span>
                             </div>
                         </div>
                     </div>
@@ -117,11 +128,11 @@ const goHome = () => {
 
     <footer class="status-bar">
         <div class="status-item">
-            <span class="indicator" :class="{ 'online': socketStore.joined }"></span>
-            {{ socketStore.joined ? 'Conectado' : 'Desconectado' }}
+            <span class="indicator" :class="{ 'online': socketStore.isConnected }"></span>
+            {{ socketStore.isConnected ? 'Conectado' : 'A ligar...' }}
         </div>
         <div class="status-divider">|</div>
-        <div class="status-item">ID: {{ gameID || '--' }}</div>
+        <div class="status-item">User: {{ authStore.currentUser ? authStore.currentUser.id : 'Visitante' }}</div>
         <div class="status-divider">|</div>
         <div class="status-item logs">{{ logs }}</div>
     </footer>
@@ -134,7 +145,7 @@ const goHome = () => {
     min-height: 100vh;
     width: 100%;
     position: relative;
-    background: radial-gradient(circle at top, #1e4d3b, #0f2920); /* Verde Mesa de Jogo */
+    background: radial-gradient(circle at top, #1e4d3b, #0f2920);
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     color: white;
     overflow-x: hidden;
@@ -202,13 +213,15 @@ const goHome = () => {
     text-transform: uppercase;
 }
 
-.placeholder { width: 80px; } /* Equilibrio visual */
+.placeholder { width: 80px; }
 
 /* ================= ACTIONS ================= */
 .action-area {
     margin-bottom: 3rem;
     display: flex;
     justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 .btn-create {
@@ -223,8 +236,9 @@ const goHome = () => {
     gap: 1.5rem;
     box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    width: 100%;
-    max-width: 400px;
+    flex: 1;
+    min-width: 250px;
+    max-width: 350px;
 }
 
 .btn-create:hover {
@@ -447,12 +461,12 @@ const goHome = () => {
 /* Transitions */
 .list-enter-active,
 .list-leave-active {
-  transition: all 0.4s ease;
+    transition: all 0.4s ease;
 }
 .list-enter-from,
 .list-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
+    opacity: 0;
+    transform: translateY(20px);
 }
 
 /* Mobile Responsiveness */

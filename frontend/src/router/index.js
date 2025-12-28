@@ -3,7 +3,7 @@ import axios from 'axios'
 
 import AboutPage from '@/pages/about/AboutPage.vue'
 import HomePage from '@/pages/home/HomePage.vue'
-import SinglePlayerGamePage from '@/pages/game/SinglePlayerGamePage.vue'
+import Game from '@/pages/game/Game.vue'
 import LoginPage from '@/pages/login/LoginPage.vue'
 import RegisterPage from '@/pages/register/RegisterPage.vue'
 import ProfilePage from '@/pages/profile/ProfilePage.vue'
@@ -35,7 +35,7 @@ const router = createRouter({
         {
           path: 'singleplayer',
           name: 'singleplayer',
-          component: SinglePlayerGamePage,
+          component: Game,
         },
       ],
     },
@@ -61,21 +61,22 @@ const router = createRouter({
       component: RegisterPage,
     },
 
-    // --- ALTERAÇÃO: Rota de Perfil Genérica (Redirecionamento) ---
+
     {
       path: '/profile',
       name: 'profile-redirect',
       beforeEnter: (to, from, next) => {
         const authStore = useAuthStore()
-        if (authStore.currentUser?.id) {
-          // Se estiver logado, manda para o perfil dele com ID explícito
-          next({ name: 'profile', params: { id: authStore.currentUser.id } })
+        if (authStore.user?.id) {
+
+          next({ name: 'profile', params: { id: authStore.user.id } })
         } else {
-          // Se não estiver logado, manda fazer login
+
           next({ name: 'login' })
         }
       },
     },
+
 
     // --- ALTERAÇÃO: Rota de Perfil (acesso restringido: owner ou admin) ---
     {

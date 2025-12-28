@@ -115,6 +115,86 @@ export class BiscaGame {
     return winner;
   }
 
+  async resolveTimeout(loserSide) {
+    if (this.gameOver) return;
+
+    const winnerSide = loserSide === 'player1' ? 'player2' : 'player1';
+    
+    let winnerName = "Player 1";
+    if (winnerSide === "player2") {
+        winnerName = this.player2 ? this.player2.name : "Bot";
+    } else if (this.player1) {
+        winnerName = this.player1.name;
+    }
+
+    console.log(`⏰ [Game Logic] Tempo esgotou para ${loserSide}. Vitória para ${winnerSide}.`);
+
+    // 1. Recolher TODAS as cartas
+    let allCards = [
+        ...this.deck,
+        ...this.player1Hand,
+        ...this.player2Hand,
+        ...this.tableCards.map(move => move.card)
+    ];
+
+    if (this.trunfo) {
+        allCards.push(this.trunfo);
+    }
+
+    // 2. Calcular pontos
+    let pointsToAdd = 0;
+    allCards.forEach(card => {
+        pointsToAdd += (card.value || 0);
+    });
+
+    // 3. Atribuir pontos ao vencedor
+    this.score[winnerSide] += pointsToAdd;
+    
+    // --- CORREÇÃO AQUI: Atualizar lastRoundPoints para o Frontend mostrar no Popup ---
+    this.lastRoundPoints = { 
+        player1: this.score.player1, 
+        player2: this.score.player2 
+    };
+    // ---------------------------------------------------------------------------------
+
+    this.logs = `⏰ Tempo esgotado! ${winnerName} recebeu todas as cartas (+${pointsToAdd} pts).`;
+
+    // 4. Limpar estado visual
+    this.deck = [];
+    this.player1Hand = [];
+    this.player2Hand = [];
+    this.tableCards = [];
+    this.trunfo = null;
+
+    // 5. Forçar Fim de Jogo e Vitória na Match
+    this.matchWins[winnerSide] = this.winsNeeded; 
+    
+    this.gameOver = true;
+    this.roundOver = true; // Ativa o popup
+    
+    // Atualiza totais
+    this.matchTotalPoints.player1 += this.score.player1;
+    this.matchTotalPoints.player2 += this.score.player2;
+
+    // 6. Callbacks da BD
+    if (this.callbacks.onGameEnd && this.dbCurrentGameId) {
+        await this.callbacks.onGameEnd(this.dbCurrentGameId, winnerSide, this.score.player1, this.score.player2);
+    }
+    if (this.callbacks.onMatchEnd) {
+        await this.callbacks.onMatchEnd(
+            winnerSide, 
+            this.matchWins.player1, 
+            this.matchWins.player2, 
+            this.matchTotalPoints.player1, 
+            this.matchTotalPoints.player2
+        );
+    }
+
+    return true;
+  }
+  // =========================================================
+
+
   async cleanupRound(winner) {
     this.tableCards = [];
 
@@ -124,7 +204,6 @@ export class BiscaGame {
       const s1 = this.score.player1; 
       const s2 = this.score.player2; 
       
-      // Acumula pontos totais da Match
       this.matchTotalPoints.player1 += s1;
       this.matchTotalPoints.player2 += s2;
 
@@ -173,15 +252,11 @@ export class BiscaGame {
         this.logs = `${winnerName} ganhou a ronda: ${winType}. Placar: ${this.matchWins.player1} - ${this.matchWins.player2}`;
       } else {
         this.logs = "Empate (60-60)!";
-        if (this.callbacks.onGameEnd && this.dbCurrentGameId) {
-             // Em caso de empate, talvez queiras registar algo, mas o winner já foi como null acima
-        }
       }
       
       // Se a match não acabou, prepara o próximo baralho
       await this.startNewMatch();
       
-      // PAUSA O JOGO (para o popup) e define vencedor da última vaza para começar a próxima
       this.roundOver = true; 
       this.turn = winner; 
       
@@ -215,6 +290,11 @@ export class BiscaGame {
     
     return {
       id: this.id, 
+      
+      // IDs cruciais para o Frontend saber quem é quem
+      player1Id: this.player1 ? String(this.player1.id) : null,
+      player2Id: this.player2 ? String(this.player2.id) : null,
+
       player1Hand: this.player1Hand, 
       player2Hand: this.player2Hand, 
       score: this.score, 
@@ -231,7 +311,6 @@ export class BiscaGame {
       p2Name: p2Name, 
       matchWins: this.matchWins, 
       matchTotalPoints: this.matchTotalPoints, 
-      playerHand: this.player1Hand, 
       botCardCount: this.player2Hand.length,
     };
   }
