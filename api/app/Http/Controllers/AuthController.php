@@ -2,189 +2,188 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Resources\UserResource;
+use App\Services\User\UserService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
-use App\Models\User;
-use App\Http\Resources\UserResource;
-use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    /**
+     * @var UserService
+     */
+    protected UserService $userService;
+
+    /**
+     * AuthController constructor.
+     *
+     * @param UserService $userService
+     */
+    public function __construct(UserService $userService)
     {
-        $request->validate([
+        $this->userService = $userService;
+    }
+
+    /**
+     * Authenticate user and return token
+     *
+     * @param Request $request
+     * @return JsonResponse
+     * @throws ValidationException
+     */
+    public function login(Request $request): JsonResponse
+    {
+        $credentials = $request->validate([
             "email" => "required|email",
             "password" => "required",
         ]);
 
-        if (!Auth::attempt($request->only("email", "password"))) {
+        if (!Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
                 "email" => ["The provided credentials are incorrect."],
             ]);
         }
 
         $user = Auth::user();
-        $token = $user->createToken("auth-token")->plainTextToken;
 
-        return response()->json([
-            "token" => $token,
-        ]);
-    }
-
-    public function logout(Request $request)
-    {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json([
-            "message" => "Logged out successfully",
-        ]);
-    }
-
-    public function register(Request $request)
-    {
-        // TODO: perguntar ao stor a melhor abordagem em questao ao registrar um usuario ja apagado
-        // TODO: nao faz sentido o nickname poder ser igual a outro usuario mesmo que apagado
-        $data = $request->validate([
-            "name" => ["required", "string", "max:255"],
-            "email" => [
-                "required",
-                "string",
-                "email",
-                "max:255",
-                Rule::unique("users", "email")->where(function ($query) {
-                    $query->whereNull("deleted_at");
-                }),
-            ],
-            "password" => ["required", "string", "min:3"],
-            "nickname" => [
-                "sometimes",
-                "nullable",
-                "string",
-                "max:20",
-                "unique:users,nickname",
-                // Rule::unique("users", "nickname")->where(function ($query) {
-                //     $query->whereNull("deleted_at");
-                // }),
-            ],
-            "photo_avatar_filename" => ["sometimes", "nullable", "string"],
-        ]);
-
-        // TODO: Se tiver tempo mudar esta estrutura para recuperar a conta soft deleted
-        // Transação: se já existir um user soft-deleted com o mesmo email,
-        // marca-o adicionando "?deleted" ao email antes do create, evitando conflito UNIQUE.
-        $result = DB::transaction(function () use ($data) {
-            // finds a soft-deleted user with this email
-            $trashed = User::withTrashed()
-                ->where("email", $data["email"])
-                ->whereNotNull("deleted_at")
-                ->first();
-
-            if ($trashed) {
-                // adds the "?deleted" suffix, keeping the rest of the email the same
-                $trashed->email =
-                    $trashed->email . "?deleted_newAccount:" . $trashed->id;
-                $trashed->save();
-            }
-        });
-
-        // creates the new user
-        $user = User::create([
-            "name" => $data["name"],
-            "email" => $data["email"],
-            "password" => Hash::make($data["password"]),
-            "nickname" => $data["nickname"] ?? null,
-            "photo_avatar_filename" => $data["photo_avatar_filename"] ?? null,
-            "coins_balance" => 10,
-        ]);
-
-        $token = $user->createToken("auth-token")->plainTextToken;
-
-        return response()->json(
-            [
-                "token" => $token,
-                "user" => new UserResource($user),
-            ],
-            201,
-        );
-    }
-
-    public function updateProfile(Request $request)
-    {
-        $user = $request->user();
-
-        $data = $request->validate([
-            "name" => ["sometimes", "required", "string", "max:255"],
-            "email" => [
-                "sometimes",
-                "required",
-                "string",
-                "email",
-                "max:255",
-                Rule::unique("users")->ignore($user->id),
-            ],
-            "nickname" => [
-                "sometimes",
-                "nullable",
-                "string",
-                "max:20",
-                Rule::unique("users")->ignore($user->id),
-            ],
-            "password" => ["sometimes", "nullable", "string", "min:3"],
-            "photo_avatar_filename" => ["sometimes", "nullable", "string"],
-        ]);
-
-        if (
-            array_key_exists("password", $data) &&
-            $data["password"] !== null &&
-            $data["password"] !== ""
-        ) {
-            $data["password"] = Hash::make($data["password"]);
-        } else {
-            unset($data["password"]);
-        }
-
-        $user->update($data);
-
-        return new UserResource($user);
-    }
-
-    public function deleteAccount(Request $request)
-    {
-        $user = $request->user();
-
-        $request->validate([
-            "current_password" => ["required", "string"],
-        ]);
-
-        if (
-            !Hash::check($request->input("current_password"), $user->password)
-        ) {
-            return response()->json(
-                [
-                    "message" => "Current password is incorrect.",
-                ],
-                422,
-            );
-        }
-
-        // Administrators are not allowed to delete their own accounts
-        if (isset($user->type) && $user->type === "A") {
+        // Check if user is blocked
+        if ($user->isBlocked()) {
+            Auth::logout();
             return response()->json(
                 [
                     "message" =>
-                        "Administrators cannot delete their own accounts.",
+                        "Your account has been blocked. Please contact support.",
                 ],
                 403,
             );
         }
 
-        // This is a soft delete, don't worry.
-        $user->delete();
+        $token = $user->createToken("auth-token")->plainTextToken;
 
         return response()->json([
-            "message" => "Account deleted successfully.",
+            "token" => $token,
+            "user" => new UserResource($user),
         ]);
+    }
+
+    /**
+     * Logout user and revoke token
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            "message" => "Logged out successfully",
+        ]);
+    }
+
+    /**
+     * Register a new user
+     *
+     * @param RegisterRequest $request
+     * @return JsonResponse
+     */
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        try {
+            $user = $this->userService->register($request->validated());
+
+            $token = $user->createToken("auth-token")->plainTextToken;
+
+            return response()->json(
+                [
+                    "token" => $token,
+                    "user" => new UserResource($user),
+                    "message" =>
+                        "Registration successful! Welcome bonus of 10 coins has been credited to your account.",
+                ],
+                201,
+            );
+        } catch (\Exception $e) {
+            return response()->json(
+                [
+                    "message" => "Registration failed. Please try again.",
+                    "error" => config("app.debug") ? $e->getMessage() : null,
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Update authenticated user's profile
+     *
+     * @param UpdateProfileRequest $request
+     * @return UserResource
+     */
+    public function updateProfile(UpdateProfileRequest $request): UserResource
+    {
+        $user = $this->userService->updateProfile(
+            $request->user(),
+            $request->validated(),
+        );
+
+        return new UserResource($user);
+    }
+
+    /**
+     * Delete authenticated user's account
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        $request->validate([
+            "current_password" => ["required", "string"],
+        ]);
+
+        try {
+            $this->userService->deleteAccount(
+                $request->user(),
+                $request->input("current_password"),
+            );
+
+            // Revoke all tokens
+            $request->user()->tokens()->delete();
+
+            return response()->json([
+                "message" => "Account deleted successfully.",
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json(
+                [
+                    "message" => $e->getMessage(),
+                    "errors" => $e->errors(),
+                ],
+                422,
+            );
+        } catch (\Exception $e) {
+            return response()->json(
+                [
+                    "message" => $e->getMessage(),
+                ],
+                403,
+            );
+        }
+    }
+
+    /**
+     * Get authenticated user
+     *
+     * @param Request $request
+     * @return UserResource
+     */
+    public function me(Request $request): UserResource
+    {
+        return new UserResource($request->user());
     }
 }
