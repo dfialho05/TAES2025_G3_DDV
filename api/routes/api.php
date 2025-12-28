@@ -16,6 +16,7 @@ use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\StatisticsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\CoinTransaction;
 
 /*
 |--------------------------------------------------------------------------
@@ -181,6 +182,18 @@ Route::middleware("auth:sanctum")->group(function () {
     Route::get("/store/decks", [StoreController::class, "index"]);
     Route::post("/store/buy", [StoreController::class, "buy"]);
     Route::post("/store/equip", [StoreController::class, "toggleActive"]);
+    Route::middleware("auth:sanctum")->group(function () {
+    
+});
+
+Route::get("/transactions", function (Request $request) {
+    $user = $request->user();
+    $transactions = CoinTransaction::where('user_id', $user->id)
+                        ->orderBy('transaction_datetime', 'desc')
+                        ->paginate(15); // paginação
+    return response()->json($transactions);
+});
+
 
     /*
     |--------------------------------------------------------------------------

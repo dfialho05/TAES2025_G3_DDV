@@ -118,6 +118,9 @@
         </form>
       </CardContent>
     </Card>
+    <Button type="button" variant="outline" @click="goToTransactions" class="w-full sm:w-auto">
+      Ver histórico de transações
+    </Button>
   </div>
 </template>
 
@@ -125,6 +128,7 @@
 import { ref, computed } from 'vue'
 import { usePurchaseStore } from '@/stores/purchase'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -134,6 +138,12 @@ import { Input } from '@/components/ui/input'
 const euros = ref('')
 const paymentType = ref('MBWAY')
 const paymentReference = ref('')
+const router = useRouter()
+
+//ir para o hitorico de transaçoes
+const goToTransactions = () => {
+  router.push({ name: 'transactions' })
+}
 
 // Compute coins based on Euros input (1 EUR = 10 Coins)
 const calculatedCoins = computed(() => {

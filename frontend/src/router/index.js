@@ -164,6 +164,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+    path: '/transactions',
+    name: 'transactions',
+    component: () => import('@/pages/purchase/UserTransactionsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+    {
       path: '/shop',
       name: 'Shop',
       component: ShopPage,

@@ -184,9 +184,6 @@ export const useAPIStore = defineStore('api', () => {
       throw err
     }
   }
-  const getAuthUser = () => {
-    return axios.get('/users/me')
-  }
 
   const putUser = (user) => {
     return axios.put(`/users/${user.id}`, user)
@@ -277,6 +274,31 @@ export const useAPIStore = defineStore('api', () => {
       params: { page },
     })
   }
+
+  // dentro do defineStore('api', ...)
+const getSelfTransactions = async (page = 1, perPage = 50) => {
+  const res = await axios.get('/transactions', {
+    params: { page, per_page: perPage },
+  });
+  return {
+    data: res.data.data ?? [],
+    meta: res.data.meta ?? {
+      current_page: page,
+      per_page: perPage,
+      total: 0,
+      last_page: 1,
+    },
+  }
+}
+
+
+const getAuthUser = async () => {
+  const res = await axios.get('/users/me')
+  return res.data
+}
+
+
+
 
   // --- GAMES (Correção do erro "apiStore.getGames is not a function") ---
   const getGames = async () => {
@@ -378,5 +400,7 @@ export const useAPIStore = defineStore('api', () => {
     deactivateUser,
     getUserById,
     getUserTransactions,
+    getSelfTransactions,
+    getAuthUser,
   }
 })
