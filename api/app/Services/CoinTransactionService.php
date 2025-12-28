@@ -1,6 +1,4 @@
-<?php
-
-namespace App\Services;
+<?php namespace App\Services;
 
 use App\Models\CoinTransaction;
 use App\Models\CoinTransactionType;
@@ -21,6 +19,9 @@ class CoinTransactionService
      * @param array $relatedIds IDs de Match, Game ou Custom.
      * @param array $custom Dados customizados para a transação.
      * @return CoinTransaction A transação criada.
+     *
+     * @throws \InvalidArgumentException
+     * @throws \Exception Se o utilizador for administrador (não pode receber/ter moedas).
      */
     public function createCreditTransaction(
         User $user,
@@ -32,6 +33,13 @@ class CoinTransactionService
         if ($coins <= 0) {
             throw new \InvalidArgumentException(
                 "Credit amount must be positive.",
+            );
+        }
+
+        // Impedir administradores de receber/ter moedas
+        if (method_exists($user, "isType") && $user->isType("A")) {
+            throw new \Exception(
+                "Administradores não podem comprar, receber ou manter moedas.",
             );
         }
 
@@ -75,6 +83,9 @@ class CoinTransactionService
 
     /**
      * Cria uma transação de DÉBITO (retirar moedas).
+     *
+     * @throws \InvalidArgumentException
+     * @throws \Exception Se saldo insuficiente ou se o utilizador for administrador.
      */
     public function createDebitTransaction(
         User $user,
@@ -89,6 +100,13 @@ class CoinTransactionService
             );
         }
 
+        // Impedir administradores de realizar transações de moedas
+        if (method_exists($user, "isType") && $user->isType("A")) {
+            throw new \Exception(
+                "Administradores não podem comprar, receber ou manter moedas.",
+            );
+        }
+
         return DB::transaction(function () use (
             $user,
             $typeName,
@@ -99,6 +117,13 @@ class CoinTransactionService
             $user = User::where("id", $user->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            // Verificação adicional após lock para garantir que o tipo não mudou
+            if (method_exists($user, "isType") && $user->isType("A")) {
+                throw new \Exception(
+                    "Administradores não podem comprar, receber ou manter moedas.",
+                );
+            }
 
             $txType = CoinTransactionType::where("name", $typeName)
                 ->where("type", CoinTransactionType::TYPE_DEBIT)
