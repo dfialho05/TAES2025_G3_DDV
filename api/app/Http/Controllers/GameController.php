@@ -31,6 +31,28 @@ class GameController extends Controller
     public function store(StoreGameRequest $request)
     {
         try {
+            // Impedir que administradores criem jogos
+            $authUser = $request->user();
+            if (
+                $authUser &&
+                isset($authUser->type) &&
+                $authUser->type === "A"
+            ) {
+                Log::warning(
+                    "[GameController] Admin attempted to create a game",
+                    [
+                        "user_id" => $authUser->id ?? null,
+                    ],
+                );
+                return response()->json(
+                    [
+                        "message" =>
+                            "Acesso negado. Administradores não podem criar jogos.",
+                    ],
+                    403,
+                );
+            }
+
             $validated = $request->validated();
 
             // Se for Standalone (sem match_id), garantimos que é NULL
@@ -77,6 +99,29 @@ class GameController extends Controller
         // ... (Este método mantém-se igual ao que te dei antes, pois é específico para Matches)
         // Apenas para referência, garante que ele existe aqui.
         try {
+            // Impedir que administradores criem jogos dentro de uma match
+            $authUser = $request->user();
+            if (
+                $authUser &&
+                isset($authUser->type) &&
+                $authUser->type === "A"
+            ) {
+                Log::warning(
+                    "[GameController] Admin attempted to create a game for match",
+                    [
+                        "user_id" => $authUser->id ?? null,
+                        "match_id" => $matchId,
+                    ],
+                );
+                return response()->json(
+                    [
+                        "message" =>
+                            "Acesso negado. Administradores não podem criar jogos em partidas.",
+                    ],
+                    403,
+                );
+            }
+
             $match = Matches::find($matchId);
             if (!$match) {
                 return response()->json(["message" => "Match not found"], 404);
@@ -513,6 +558,29 @@ class GameController extends Controller
     public function startGame(Request $request, $id): JsonResponse
     {
         try {
+            // Impedir que administradores entrem/iniciem jogos
+            $authUser = $request->user();
+            if (
+                $authUser &&
+                isset($authUser->type) &&
+                $authUser->type === "A"
+            ) {
+                Log::warning(
+                    "[GameController] Admin attempted to start a game",
+                    [
+                        "user_id" => $authUser->id ?? null,
+                        "game_id" => $id,
+                    ],
+                );
+                return response()->json(
+                    [
+                        "message" =>
+                            "Acesso negado. Administradores não podem entrar/iniciar jogos.",
+                    ],
+                    403,
+                );
+            }
+
             $game = Game::find($id);
             if (!$game) {
                 return response()->json(["message" => "Game not found"], 404);
