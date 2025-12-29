@@ -76,7 +76,7 @@ const goHome = () => {
           <h3 class="column-title">Jogo Rápido <small>(1 Vitória)</small></h3>
           <div class="buttons-grid">
             <button @click="create(3, 1)" class="btn-create btn-green">
-              <div class="icon-wrapper"></div>
+              <div class="icon-wrapper">🃏</div>
               <div class="text-wrapper">
                 <span class="btn-title">Bisca de 3</span>
                 <span class="btn-desc">Partida Única</span>
@@ -84,7 +84,7 @@ const goHome = () => {
             </button>
 
             <button @click="create(9, 1)" class="btn-create btn-green">
-              <div class="icon-wrapper"></div>
+              <div class="icon-wrapper">🃏</div>
               <div class="text-wrapper">
                 <span class="btn-title">Bisca de 9</span>
                 <span class="btn-desc">Partida Única</span>
@@ -97,7 +97,7 @@ const goHome = () => {
           <h3 class="column-title gold-text">MATCH <small>(4 Vitórias)</small></h3>
           <div class="buttons-grid">
             <button @click="create(3, 4)" class="btn-create btn-gold">
-              <div class="icon-wrapper"></div>
+              <div class="icon-wrapper">🃏</div>
               <div class="text-wrapper">
                 <span class="btn-title">Match de 3</span>
                 <span class="btn-desc">Ganha quem tiver 4 vitórias</span>
@@ -105,7 +105,7 @@ const goHome = () => {
             </button>
 
             <button @click="create(9, 4)" class="btn-create btn-gold">
-              <div class="icon-wrapper"></div>
+              <div class="icon-wrapper">🃏</div>
               <div class="text-wrapper">
                 <span class="btn-title">Match de 9</span>
                 <span class="btn-desc">Ganha quem tiver 4 vitórias</span>

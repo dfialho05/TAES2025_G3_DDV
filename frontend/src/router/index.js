@@ -34,6 +34,7 @@ const router = createRouter({
           path: 'singleplayer',
           name: 'singleplayer',
           component: Game,
+          meta: { adminForbid: true },
         },
       ],
     },
@@ -41,7 +42,7 @@ const router = createRouter({
       path: '/lobby',
       name: 'Lobby',
       component: Lobby,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, adminForbid: true },
     },
     {
       path: '/about',
@@ -133,7 +134,7 @@ const router = createRouter({
       path: '/purchase',
       name: 'purchase',
       component: PurchasePage,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, adminForbid: true },
     },
     {
       path: '/transactions',
@@ -145,7 +146,7 @@ const router = createRouter({
       path: '/shop',
       name: 'Shop',
       component: ShopPage,
-      meta: { requiresAuth: true }, // Se usares proteção de rotas
+      meta: { requiresAuth: true, adminForbid: true },
     },
     {
       path: '/admin',
@@ -170,41 +171,47 @@ const router = createRouter({
   ],
 })
 
-// Async guard: if a route needs auth, try to restore the user from token before redirecting.
+// Async guard: Lógica centralizada de proteção
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
+  const SESSION_TOKEN_KEY = 'apiToken'
+  const token = sessionStorage.getItem(SESSION_TOKEN_KEY)
 
-  if (to.meta.requiresAuth) {
-    // If already logged in, allow
-    if (authStore.isLoggedIn) {
-      if (to.meta.requiresAdmin && !authStore.isAdmin) {
-        return next({ name: 'home' })
-      }
-      return next()
+  // 1. Tentar restaurar o utilizador SE houver token e ele ainda não estiver carregado
+  // Fazemos isto ANTES das verificações de rota para garantir que o isAdmin está correto
+  if (!authStore.isLoggedIn && token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    try {
+      await authStore.getUser()
+    } catch (e) {
+      // Se o token for inválido, limpamos tudo
+      sessionStorage.removeItem(SESSION_TOKEN_KEY)
+      delete axios.defaults.headers.common['Authorization']
+      // Não fazemos redirect aqui ainda, deixamos as regras abaixo decidirem
     }
-
-    // If not logged in but there's a token in sessionStorage, set axios header and try to fetch user
-    const SESSION_TOKEN_KEY = 'apiToken'
-    const token = sessionStorage.getItem(SESSION_TOKEN_KEY)
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      try {
-        await authStore.getUser()
-        // success — allow navigation
-        return next()
-      } catch {
-        // token invalid/expired -> clear sessionStorage and axios header and redirect to login
-        sessionStorage.removeItem(SESSION_TOKEN_KEY)
-        delete axios.defaults.headers.common['Authorization']
-        return next({ name: 'login' })
-      }
-    }
-
-    // no token -> go to login
-    return next({ name: 'login' })
   }
 
-  // route doesn't require auth
+  // 2. REGRA: Admin Forbid (Bloquear Admins)
+  // Se a rota proíbe Admins e o utilizador atual é Admin
+  if (to.meta.adminForbid && authStore.isAdmin) {
+    // Redireciona o Admin para uma área segura (ex: Dashboard ou Home)
+    return next({ name: 'home' })
+  }
+
+  // 3. REGRA: Requires Auth (Bloquear Visitantes)
+  if (to.meta.requiresAuth) {
+    // Se não estiver logado -> Login
+    if (!authStore.isLoggedIn) {
+      return next({ name: 'login' })
+    }
+
+    // Se a rota exige Admin e o user NÃO é admin -> Home
+    if (to.meta.requiresAdmin && !authStore.isAdmin) {
+      return next({ name: 'home' })
+    }
+  }
+
+  // 4. Se passou por tudo, permite a navegação
   return next()
 })
 

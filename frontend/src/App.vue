@@ -14,8 +14,8 @@
         </span>
       </div>
 
-      <RouterLink to="/purchase" v-if="authStore.isPlayer">
-        <span class="text-xs font-bold"> {{ authStore.currentUser?.coins_balance }} </span>
+      <RouterLink to="/purchase" v-if="authStore.isLoggedIn && authStore.isPlayer">
+        <span class="text-xs font-bold"> {{ authStore.currentUser?.coins_balance }} coins </span>
       </RouterLink>
     </div>
 
@@ -76,7 +76,7 @@
           </NavigationMenuLink>
         </NavigationMenuItem>
 
-        <NavigationMenuItem v-if="authStore.isLoggedIn">
+        <NavigationMenuItem v-if="authStore.isLoggedIn && !authStore.isAdmin">
           <NavigationMenuLink>
             <RouterLink to="/shop">Shop</RouterLink>
           </NavigationMenuLink>

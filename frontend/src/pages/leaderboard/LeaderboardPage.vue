@@ -36,7 +36,7 @@
         :disabled="isLoading"
         class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
       >
-        <span :class="['transition-transform', { 'animate-spin': isLoading }]">Refresh</span>
+        <span :class="['transition-transform', { 'animate-spin': isLoading }]">🔄</span>
         Refresh
       </button>
     </div>
@@ -72,7 +72,7 @@
         <div
           class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md dark:shadow-lg flex items-center gap-4 transition-colors"
         >
-          <span class="text-3xl">Players</span>
+          <span class="text-3xl">🙎🏿‍♂️</span>
           <div>
             <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ totalPlayers }}</div>
             <div class="text-gray-500 dark:text-gray-300 text-sm">Jogadores Ativos</div>
@@ -81,7 +81,7 @@
         <div
           class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md dark:shadow-lg flex items-center gap-4 transition-colors"
         >
-          <span class="text-3xl">Games</span>
+          <span class="text-3xl">🎮</span>
           <div>
             <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ totalGames }}</div>
             <div class="text-gray-500 dark:text-gray-300 text-sm">Total de Jogos</div>

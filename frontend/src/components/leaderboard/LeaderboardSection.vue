@@ -152,11 +152,11 @@ const getPositionClass = (position) => {
 const getMedal = (position) => {
   switch (position) {
     case 1:
-      return 'Gold'
+      return '1'
     case 2:
-      return 'Silver'
+      return '2'
     case 3:
-      return 'Bronze'
+      return '3'
     default:
       return position
   }

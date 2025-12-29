@@ -187,7 +187,7 @@ const handleExit = () => {
   <div class="game-container">
     <div v-if="isWaiting" class="overlay waiting-overlay">
       <div class="waiting-box">
-        <div class="spinner">Loading</div>
+        <div class="spinner">🔄</div>
         <h2>A preparar Jogo...</h2>
       </div>
     </div>
