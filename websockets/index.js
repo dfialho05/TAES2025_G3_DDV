@@ -15,9 +15,9 @@ io.on("connection", async (socket) => {
   socket.data.token = token;
 
   if (token) {
-    console.log(`🔌 Socket ${socket.id} ligado COM Token.`);
+    console.log(` Socket ${socket.id} ligado COM Token.`);
   } else {
-    console.log(`⚠️ Socket ${socket.id} ligado SEM Token.`);
+    console.log(` Socket ${socket.id} ligado SEM Token.`);
 
     // Criar usuário anônimo para jogos de practice
     // Nota: Certifica-te que o caminho do import está correto
@@ -30,7 +30,7 @@ io.on("connection", async (socket) => {
 
     addUser(socket.id, anonymousUser);
     console.log(
-      `👤 Usuário anônimo criado: ${anonymousUser.name} (Practice Mode)`,
+      ` Usuário anônimo criado: ${anonymousUser.name} (Practice Mode)`,
     );
   }
 
@@ -43,4 +43,4 @@ io.on("connection", async (socket) => {
   // -----------------------------
 });
 
-console.log("🚀 Servidor Bisca na porta 3000...");
+console.log(" Servidor Bisca na porta 3000...");

@@ -11,11 +11,11 @@ const emitBalanceUpdate = async (io, userId, token) => {
     if (balance !== null) {
       // Emit to all sockets of this user
       io.emit("balance_update", { userId, balance });
-      console.log(`💰 [Balance] Updated for user ${userId}: ${balance} coins`);
+      console.log(`[Balance] Updated for user ${userId}: ${balance} coins`);
     }
   } catch (error) {
     console.error(
-      `❌ [Balance] Error updating for user ${userId}:`,
+      `[Balance] Error updating for user ${userId}:`,
       error.message,
     );
   }
@@ -48,7 +48,7 @@ const startTurnTimer = (gameId, io) => {
     const g = games.get(gameId);
     if (!g) return;
 
-    console.log(`⏰ [State] Tempo esgotado para o Jogo ${gameId}`);
+    console.log(`[State] Tempo esgotado para o Jogo ${gameId}`);
 
     // O jogador atual perde por tempo
     const loser = g.turn;
@@ -126,10 +126,10 @@ export const createGame = async (
 
       if (match) {
         dbMatchId = match.id;
-        console.log(`✅ [DB] Match vs BOT criada (Pending): ID ${dbMatchId}`);
+        console.log(`[DB] Match vs BOT criada (Pending): ID ${dbMatchId}`);
         // Note: Entry fees will be charged when first game starts
       } else {
-        console.error(`❌ [State] Falha ao criar Match vs BOT.`);
+        console.error(`[State] Falha ao criar Match vs BOT.`);
         return null;
       }
     }
@@ -144,7 +144,7 @@ export const createGame = async (
       if (mode === "multiplayer") {
         if (!newGame || !newGame.player2) {
           console.log(
-            `⏳ [State] Multiplayer: Jogo em memória. À espera de P2 para registar na BD.`,
+            `[State] Multiplayer: Jogo em memória. À espera de P2 para registar na BD.`,
           );
           return null;
         }
@@ -157,7 +157,7 @@ export const createGame = async (
       // Usar newGame.dbMatchId que pode ter sido definido no joinGame
       const currentDbMatchId = newGame.dbMatchId || dbMatchId;
 
-      console.log(`🔍 [onGameStart] Callback chamado:`);
+      console.log(`  [onGameStart] Callback chamado:`);
       console.log(`   Mode: ${mode}`);
       console.log(`   P2 presente: ${newGame.player2 ? "SIM" : "NÃO"}`);
       console.log(`   P2 ID: ${p2Id || "NULL"}`);
@@ -174,10 +174,10 @@ export const createGame = async (
           userToken,
         );
         console.log(
-          ` 🔸 [DB] Game vinculado a Match ${currentDbMatchId} criado: ID ${gId}`,
+          `  [DB] Game vinculado a Match ${currentDbMatchId} criado: ID ${gId}`,
         );
         console.log(
-          `   ⚠️ Este game faz parte de uma MATCH - entry fees serão de 10 coins cada`,
+          `    Este game faz parte de uma MATCH - entry fees serão de 10 coins cada`,
         );
 
         // For multiplayer matches: DON'T charge here in onGameStart
@@ -191,7 +191,7 @@ export const createGame = async (
           userToken,
         );
         console.log(
-          ` 🔸 [DB] Game Solto criado: ID ${gId} (P1: ${user.id}, P2: ${p2Id || "Bot"})`,
+          `  [DB] Game Solto criado: ID ${gId} (P1: ${user.id}, P2: ${p2Id || "Bot"})`,
         );
         console.log(`   ℹ️ Game standalone - entry fees serão de 2 coins cada`);
 
@@ -203,7 +203,7 @@ export const createGame = async (
           const startResult = await LaravelAPI.startGame(gId, userToken);
           if (startResult) {
             console.log(
-              `✅ [DB] Standalone game vs BOT iniciado - Entry fee cobrada`,
+              ` [DB] Standalone game vs BOT iniciado - Entry fee cobrada`,
             );
 
             // Emit balance update for player
@@ -272,7 +272,7 @@ export const createGame = async (
       p1TotalPoints,
       p2TotalPoints,
     ) => {
-      console.log(`🔍 [onMatchEnd] Callback chamado:`);
+      console.log(`   [onMatchEnd] Callback chamado:`);
       console.log(`   isPractice: ${isPractice}`);
       console.log(`   isMatch: ${isMatch}`);
       console.log(`   dbMatchId (local): ${dbMatchId || "NULL"}`);
@@ -284,7 +284,7 @@ export const createGame = async (
 
       if (isPractice || !isMatch || !currentDbMatchId) {
         console.log(
-          `⚠️ [onMatchEnd] Callback cancelado (practice ou não é match ou sem matchId)`,
+          ` [onMatchEnd] Callback cancelado (practice ou não é match ou sem matchId)`,
         );
         return;
       }
@@ -298,7 +298,7 @@ export const createGame = async (
             : BOT_ID;
       }
 
-      console.log(`🏆 [DB] A fechar Match ${currentDbMatchId}.`);
+      console.log(`   [DB] A fechar Match ${currentDbMatchId}.`);
       console.log(`   Vencedor: ${realWinnerId}`);
       console.log(`   P1 Marks: ${p1Marks}, P2 Marks: ${p2Marks}`);
       await LaravelAPI.finishMatch(
@@ -311,10 +311,10 @@ export const createGame = async (
         userToken,
       );
 
-      console.log(`✅ [DB] Match ${currentDbMatchId} finalizada.`);
+      console.log(` [DB] Match ${currentDbMatchId} finalizada.`);
 
       // Emit balance updates for both players after match finish (winner receives payout)
-      console.log(`💰 [onMatchEnd] Emitindo balance updates...`);
+      console.log(` [onMatchEnd] Emitindo balance updates...`);
       if (global.io) {
         // Update winner balance
         if (realWinnerId && realWinnerId !== 0) {
@@ -344,7 +344,7 @@ export const createGame = async (
           await emitBalanceUpdate(global.io, loserId, loser.token);
         }
       } else {
-        console.error(`❌ [onMatchEnd] global.io não está disponível!`);
+        console.error(` [onMatchEnd] global.io não está disponível!`);
       }
     },
   };
@@ -395,12 +395,12 @@ export const joinGame = async (id, user) => {
 
     if (p1Id === userId) {
       console.warn(
-        `⚠️ [State] Jogador ${user.name} tentou entrar no próprio jogo.`,
+        ` [State] Jogador ${user.name} tentou entrar no próprio jogo.`,
       );
       return null;
     }
 
-    console.log(`👤 [State] Player 2 (${user.name}) entrou no Jogo ${id}`);
+    console.log(` [State] Player 2 (${user.name}) entrou no Jogo ${id}`);
 
     user.id = userId;
     game.player2 = user;
@@ -408,7 +408,7 @@ export const joinGame = async (id, user) => {
     // Se for match multiplayer, criar a match na BD ANTES de startNewMatch
     const isMatch = game.winsNeeded > 1;
 
-    console.log(`🔍 [Debug joinGame] Verificando se deve criar match:`);
+    console.log(` [Debug joinGame] Verificando se deve criar match:`);
     console.log(`   game.winsNeeded: ${game.winsNeeded}`);
     console.log(`   isMatch (winsNeeded > 1): ${isMatch}`);
     console.log(`   game.mode: ${game.mode}`);
@@ -418,7 +418,7 @@ export const joinGame = async (id, user) => {
     );
 
     if (isMatch && game.mode === "multiplayer" && !game.dbMatchId) {
-      console.log(`📝 [State] Criando Match multiplayer na BD (P2 entrou)...`);
+      console.log(` [State] Criando Match multiplayer na BD (P2 entrou)...`);
       const p1Token = game.player1.token;
 
       const match = await LaravelAPI.createMatch(
@@ -431,9 +431,9 @@ export const joinGame = async (id, user) => {
 
       if (match) {
         game.dbMatchId = match.id;
-        console.log(`✅ [DB] Match Multiplayer criada: ID ${game.dbMatchId}`);
+        console.log(` [DB] Match Multiplayer criada: ID ${game.dbMatchId}`);
       } else {
-        console.error(`❌ [State] Falha ao criar Match multiplayer.`);
+        console.error(` [State] Falha ao criar Match multiplayer.`);
         return null;
       }
     }
@@ -441,7 +441,7 @@ export const joinGame = async (id, user) => {
     // startNewMatch DEPOIS de criar a match para que dbMatchId já exista
     await game.startNewMatch(true);
 
-    console.log(`🔍 [State] Após startNewMatch:`);
+    console.log(` [State] Após startNewMatch:`);
     console.log(`   dbCurrentGameId: ${game.dbCurrentGameId || "NULL"}`);
     console.log(`   dbMatchId: ${game.dbMatchId || "NULL"}`);
     console.log(`   mode: ${game.mode}`);
@@ -458,7 +458,7 @@ export const joinGame = async (id, user) => {
 
     if (isStandaloneMultiplayer && game.dbCurrentGameId) {
       console.log(
-        `💰 [State] P2 entrou - Cobrando entry fees (2 coins cada) para standalone game ${game.dbCurrentGameId}`,
+        ` [State] P2 entrou - Cobrando entry fees (2 coins cada) para standalone game ${game.dbCurrentGameId}`,
       );
       console.log(`   P1: ${game.player1.id} (${game.player1.name})`);
       console.log(`   P2: ${user.id} (${user.name})`);
@@ -479,7 +479,7 @@ export const joinGame = async (id, user) => {
 
       if (startResult) {
         console.log(
-          `✅ [State] Entry fees (2 coins cada) cobradas de ambos os jogadores`,
+          ` [State] Entry fees (2 coins cada) cobradas de ambos os jogadores`,
         );
 
         // Emit balance updates for both players
@@ -493,12 +493,12 @@ export const joinGame = async (id, user) => {
         }
       } else {
         console.error(
-          `❌ [State] Falha ao cobrar entry fees do standalone game. Saldo insuficiente?`,
+          ` [State] Falha ao cobrar entry fees do standalone game. Saldo insuficiente?`,
         );
       }
     } else if (isMatchMultiplayer && game.dbMatchId) {
       console.log(
-        `💰 [State] P2 entrou - Cobrando entry fees (10 coins cada) para match ${game.dbMatchId}`,
+        ` [State] P2 entrou - Cobrando entry fees (10 coins cada) para match ${game.dbMatchId}`,
       );
       console.log(`   P1: ${game.player1.id} (${game.player1.name})`);
       console.log(`   P2: ${user.id} (${user.name})`);
@@ -516,7 +516,7 @@ export const joinGame = async (id, user) => {
 
       if (startResult) {
         console.log(
-          `✅ [State] Entry fees (10 coins cada) cobradas de ambos os jogadores`,
+          ` [State] Entry fees (10 coins cada) cobradas de ambos os jogadores`,
         );
 
         // Emit balance updates for both players
@@ -530,7 +530,7 @@ export const joinGame = async (id, user) => {
         }
       } else {
         console.error(
-          `❌ [State] Falha ao cobrar entry fees da match. Saldo insuficiente?`,
+          ` [State] Falha ao cobrar entry fees da match. Saldo insuficiente?`,
         );
       }
     }

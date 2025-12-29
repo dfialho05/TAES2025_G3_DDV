@@ -10,55 +10,56 @@ const handleGameForfeit = async (io, socket, specificGameId = null) => {
   let targetGame = null;
 
   if (specificGameId) {
-      // Se veio do botão "Sair", já sabemos o ID
-      targetGame = GameState.getGame(specificGameId);
+    // Se veio do botão "Sair", já sabemos o ID
+    targetGame = GameState.getGame(specificGameId);
   } else {
-      // Se veio do "Disconnect" (fechar aba), temos de procurar onde ele estava
-      // Usamos a função getRawGames que exportaste no state/game.js
-      const allGames = GameState.getRawGames(); 
-      
-      for (const game of allGames.values()) {
-          if (game.gameOver) continue;
-          
-          // Verifica se o user é P1 ou P2 neste jogo
-          // Convertemos para String para garantir que a comparação funciona
-          const p1Id = game.player1 ? String(game.player1.id) : null;
-          const p2Id = game.player2 ? String(game.player2.id) : null;
-          const userId = String(user.id);
+    // Se veio do "Disconnect" (fechar aba), temos de procurar onde ele estava
+    // Usamos a função getRawGames que exportaste no state/game.js
+    const allGames = GameState.getRawGames();
 
-          if (p1Id === userId || p2Id === userId) {
-              targetGame = game;
-              break; // Encontrámos o jogo ativo
-          }
+    for (const game of allGames.values()) {
+      if (game.gameOver) continue;
+
+      // Verifica se o user é P1 ou P2 neste jogo
+      // Convertemos para String para garantir que a comparação funciona
+      const p1Id = game.player1 ? String(game.player1.id) : null;
+      const p2Id = game.player2 ? String(game.player2.id) : null;
+      const userId = String(user.id);
+
+      if (p1Id === userId || p2Id === userId) {
+        targetGame = game;
+        break; // Encontrámos o jogo ativo
       }
+    }
   }
 
   // Se encontrámos um jogo ativo e ele ainda não acabou
   if (targetGame && !targetGame.gameOver) {
-      // Descobrir qual lado (player1 ou player2) desistiu
-      const p1Id = targetGame.player1 ? String(targetGame.player1.id) : null;
-      const userId = String(user.id);
-      
-      const side = p1Id === userId ? 'player1' : 'player2';
-      
-      console.log(`🏳️ [Game] ${user.name} (${side}) abandonou a partida (ID: ${targetGame.id}). Aplicando derrota.`);
-      
-      // Chama a mesma função do Tempo Esgotado (que passa tudo para o oponente)
-      await targetGame.resolveTimeout(side);
+    // Descobrir qual lado (player1 ou player2) desistiu
+    const p1Id = targetGame.player1 ? String(targetGame.player1.id) : null;
+    const userId = String(user.id);
 
-      // Notifica a sala (o adversário recebe o popup de vitória)
-      io.to(`game-${targetGame.id}`).emit("game_state", targetGame.getState());
-      
-      // Atualiza o lobby (para remover o jogo da lista ou atualizar status)
-      io.emit("games", GameState.getGames());
+    const side = p1Id === userId ? "player1" : "player2";
+
+    console.log(
+      ` [Game] ${user.name} (${side}) abandonou a partida (ID: ${targetGame.id}). Aplicando derrota.`,
+    );
+
+    // Chama a mesma função do Tempo Esgotado (que passa tudo para o oponente)
+    await targetGame.resolveTimeout(side);
+
+    // Notifica a sala (o adversário recebe o popup de vitória)
+    io.to(`game-${targetGame.id}`).emit("game_state", targetGame.getState());
+
+    // Atualiza o lobby (para remover o jogo da lista ou atualizar status)
+    io.emit("games", GameState.getGames());
   }
 };
 
 export const gameHandlers = (io, socket) => {
-  
   // 1. O user fechou o browser ou fez refresh
   socket.on("disconnect", async () => {
-      await handleGameForfeit(io, socket);
+    await handleGameForfeit(io, socket);
   });
 
   // 2. O user clicou em "Sair" ou "Voltar"
@@ -72,8 +73,10 @@ export const gameHandlers = (io, socket) => {
   socket.on("create-game", async (gameType, mode, targetWins, isPractice) => {
     const user = ConnectionState.getUser(socket.id);
     if (!user) {
-        console.error(`❌ [Game] Falha ao criar: Socket ${socket.id} não identificado.`);
-        return;
+      console.error(
+        ` [Game] Falha ao criar: Socket ${socket.id} não identificado.`,
+      );
+      return;
     }
 
     const game = await GameState.createGame(
@@ -85,17 +88,17 @@ export const gameHandlers = (io, socket) => {
     );
 
     if (game) {
-        socket.join(`game-${game.id}`);
-        console.log(
-          `[Game] Criado jogo ${game.id} por ${user.name}${isPractice ? " (PRACTICE)" : ""}`,
-        );
+      socket.join(`game-${game.id}`);
+      console.log(
+        `[Game] Criado jogo ${game.id} por ${user.name}${isPractice ? " (PRACTICE)" : ""}`,
+      );
 
-        socket.emit("game-joined", game.getState());
-        
-        // Iniciar fluxo
-        GameState.advanceGame(game.id, io);
-        
-        io.emit("games", GameState.getGames());
+      socket.emit("game-joined", game.getState());
+
+      // Iniciar fluxo
+      GameState.advanceGame(game.id, io);
+
+      io.emit("games", GameState.getGames());
     }
   });
 
@@ -112,15 +115,15 @@ export const gameHandlers = (io, socket) => {
     }
   });
 
-  socket.on("join-game", async (gid) => { 
+  socket.on("join-game", async (gid) => {
     const user = ConnectionState.getUser(socket.id);
-    const game = await GameState.joinGame(gid, user); 
-    
+    const game = await GameState.joinGame(gid, user);
+
     if (game) {
       socket.join(`game-${gid}`);
-      
+
       io.to(`game-${gid}`).emit("game_state", game.getState());
-      
+
       // Iniciar fluxo ao entrar P2
       GameState.advanceGame(gid, io);
 
@@ -134,7 +137,7 @@ export const gameHandlers = (io, socket) => {
       if (game.gameOver) return;
 
       console.log(`[Game] Next Round solicitado para Jogo ${gid}`);
-      game.confirmNextRound(); 
+      game.confirmNextRound();
 
       io.to(`game-${gid}`).emit("game_state", game.getState());
       GameState.advanceGame(gid, io);

@@ -22,11 +22,11 @@ async function apiCall(method, endpoint, data = null, token = null) {
     return response.data;
   } catch (error) {
     if (error.response) {
-      console.error(`❌ Laravel Error [${endpoint}]:`, error.response.data);
+      console.error(` Laravel Error [${endpoint}]:`, error.response.data);
       console.error(`   Status: ${error.response.status}`);
       console.error(`   Data sent:`, data);
     } else {
-      console.error(`❌ Network/Axios Error [${endpoint}]:`, error.message);
+      console.error(` Network/Axios Error [${endpoint}]:`, error.message);
     }
     return null;
   }
