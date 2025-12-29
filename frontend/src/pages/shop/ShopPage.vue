@@ -72,7 +72,7 @@
 import { onMounted, computed } from 'vue'
 import { useDeckStore } from '@/stores/deck'
 import { useAuthStore } from '@/stores/auth'
-import { toast } from 'vue-sonner' // Usar o toast bonito como no Perfil
+import { toast } from 'vue-sonner'
 
 // Importar os componentes UI (Shadcn/Tailwind)
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'

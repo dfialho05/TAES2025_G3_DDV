@@ -113,10 +113,6 @@
               </NavigationMenuLink>
 
               <NavigationMenuLink as-child>
-                <RouterLink to="/themes">My Themes</RouterLink>
-              </NavigationMenuLink>
-
-              <NavigationMenuLink as-child>
                 <a @click.prevent="logout" class="cursor-pointer">Logout</a>
               </NavigationMenuLink>
             </li>

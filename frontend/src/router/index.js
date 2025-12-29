@@ -8,8 +8,6 @@ import LoginPage from '@/pages/login/LoginPage.vue'
 import RegisterPage from '@/pages/register/RegisterPage.vue'
 import ProfilePage from '@/pages/profile/ProfilePage.vue'
 import HistoryPage from '@/pages/history/HistoryPage.vue'
-import ThemesListPage from '@/pages/themes/ThemesListPage.vue'
-import ThemeEditorPage from '@/pages/themes/ThemeEditorPage.vue'
 import PurchasePage from '@/pages/purchase/PurchasePage.vue'
 import ShopPage from '@/pages/shop/ShopPage.vue'
 import LeaderboardPage from '@/pages/leaderboard/LeaderboardPage.vue'
@@ -61,29 +59,24 @@ const router = createRouter({
       component: RegisterPage,
     },
 
-
     {
       path: '/profile',
       name: 'profile-redirect',
       beforeEnter: (to, from, next) => {
         const authStore = useAuthStore()
         if (authStore.user?.id) {
-
           next({ name: 'profile', params: { id: authStore.user.id } })
         } else {
-
           next({ name: 'login' })
         }
       },
     },
-
 
     // --- ALTERAÇÃO: Rota de Perfil (acesso restringido: owner ou admin) ---
     {
       path: '/profile/:id',
       name: 'profile',
       component: ProfilePage,
-
 
       beforeEnter: async (to, from, next) => {
         const authStore = useAuthStore()
@@ -127,9 +120,6 @@ const router = createRouter({
         // No token and not owner/admin -> require login
         return next({ name: 'login' })
       },
-
-
-
     },
 
     // --- Rota de Histórico ---
@@ -140,35 +130,17 @@ const router = createRouter({
     },
 
     {
-      path: '/themes',
-      name: 'themes',
-      component: ThemesListPage,
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/themes/create',
-      name: 'themes-create',
-      component: ThemeEditorPage,
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/themes/edit/:id',
-      name: 'themes-edit',
-      component: ThemeEditorPage,
-      meta: { requiresAuth: true },
-    },
-    {
       path: '/purchase',
       name: 'purchase',
       component: PurchasePage,
       meta: { requiresAuth: true },
     },
     {
-    path: '/transactions',
-    name: 'transactions',
-    component: () => import('@/pages/purchase/UserTransactionsPage.vue'),
-    meta: { requiresAuth: true }
-  },
+      path: '/transactions',
+      name: 'transactions',
+      component: () => import('@/pages/purchase/UserTransactionsPage.vue'),
+      meta: { requiresAuth: true },
+    },
     {
       path: '/shop',
       name: 'Shop',
