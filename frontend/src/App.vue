@@ -76,6 +76,12 @@
           </NavigationMenuLink>
         </NavigationMenuItem>
 
+        <NavigationMenuItem>
+          <NavigationMenuLink>
+            <RouterLink to="/tutorial">How to Play</RouterLink>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+
         <NavigationMenuItem v-if="authStore.isLoggedIn && !authStore.isAdmin">
           <NavigationMenuLink>
             <RouterLink to="/shop">Shop</RouterLink>

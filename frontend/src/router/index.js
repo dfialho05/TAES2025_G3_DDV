@@ -50,6 +50,11 @@ const router = createRouter({
       component: AboutPage,
     },
     {
+    path: '/tutorial',
+    name: 'tutorial',
+    component: () => import('@/pages/tutorial/TutorialView.vue'),
+    },
+    {
       path: '/login',
       name: 'login',
       component: LoginPage,
@@ -167,6 +172,7 @@ const router = createRouter({
         },
       ],
     },
+    
     // user-details route moved under '/admin' as a child of MainPage
   ],
 })
