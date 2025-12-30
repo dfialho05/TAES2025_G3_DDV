@@ -63,9 +63,6 @@ const goToLobby = () => {
             class="text-sm font-bold text-green-600 uppercase tracking-wide border-b border-green-100 pb-1 flex items-center justify-between"
           >
             <span>PARTIDA COMPLETA (Race to 4)</span>
-            <span class="text-[9px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
-              LOGIN OBRIGATÓRIO
-            </span>
           </h3>
 
           <div class="grid grid-cols-2 gap-3">
@@ -103,9 +100,7 @@ const goToLobby = () => {
             class="text-sm font-bold text-blue-600 uppercase tracking-wide border-b border-blue-100 pb-1 flex items-center justify-between"
           >
             <span>Partida Rápida (1 jogo)</span>
-            <span class="text-[9px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
-              LOGIN OBRIGATÓRIO
-            </span>
+
           </h3>
 
           <div class="grid grid-cols-2 gap-3">
@@ -137,41 +132,6 @@ const goToLobby = () => {
           </div>
         </div>
 
-        <!-- TREINO -->
-        <div class="space-y-2">
-          <h3
-            class="text-sm font-bold text-gray-500 uppercase tracking-wide border-b border-gray-100 pb-1 flex items-center justify-between"
-          >
-            <span>Treino</span>
-            <span
-              class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium"
-            >
-              SEM LOGIN
-            </span>
-          </h3>
-
-          <div class="grid grid-cols-2 gap-3">
-            <Button
-              :disabled="authStore.isAdmin"
-              @click="startPracticeGame(3, 1)"
-              variant="outline"
-              class="h-auto py-3 border-dashed border-2"
-              :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
-            >
-              <span class="text-md font-semibold">Practice 3</span>
-            </Button>
-
-            <Button
-              :disabled="authStore.isAdmin"
-              @click="startPracticeGame(9, 1)"
-              variant="outline"
-              class="h-auto py-3 border-dashed border-2"
-              :class="authStore.isAdmin && 'opacity-50 cursor-not-allowed'"
-            >
-              <span class="text-md font-semibold">Practice 9</span>
-            </Button>
-          </div>
-        </div>
 
         <!-- AVISO ADMIN -->
         <p v-if="authStore.isAdmin" class="text-sm text-center text-red-600 font-semibold mt-4">
