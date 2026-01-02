@@ -59,8 +59,10 @@
           <Button
             type="submit"
             class="w-full bg-primary text-primary-foreground hover:bg-primary/80"
+            :disabled="isLoading"
           >
-            Sign in
+            <span v-if="isLoading">Logging in...</span>
+            <span v-else>Sign in</span>
           </Button>
         </div>
 
@@ -87,12 +89,15 @@ import { toast } from 'vue-sonner'
 const authStore = useAuthStore()
 const router = useRouter()
 
+const isLoading = ref(false)
+
 const formData = ref({
-  email: 'a1@mail.pt',
-  password: '123',
+  email: '',
+  password: '',
 })
 
 const handleSubmit = async () => {
+  isLoading.value = true
   try {
     const result = await authStore.login(formData.value)
 
@@ -104,6 +109,8 @@ const handleSubmit = async () => {
     const errorMsg = error?.response?.data?.message || error?.message || 'Login failed'
     toast.error(`[API] Error logging in - ${errorMsg}`)
     console.error('Login failed:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 </script>

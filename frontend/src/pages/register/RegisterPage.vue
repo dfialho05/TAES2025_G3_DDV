@@ -102,7 +102,10 @@
         </div>
 
         <div>
-          <Button type="submit" class="w-full"> Registar e Entrar </Button>
+          <Button type="submit" class="w-full" :disabled="isLoading">
+            <span v-if="isLoading">Registering...</span>
+            <span v-else>Registar e Entrar</span>
+          </Button>
         </div>
 
         <div class="text-center text-sm">
@@ -132,15 +135,19 @@ import { toast } from 'vue-sonner'
 const authStore = useAuthStore()
 const router = useRouter()
 
+const isLoading = ref(false)
+
 const formData = ref({
-  email: 'test@mail.pt',
-  password: '123',
-  name: 'Test User',
-  nickname: 'TestUser',
+  email: '',
+  password: '',
+  name: '',
+  nickname: '',
   avatar: '',
 })
 
 const handleSubmit = async () => {
+  isLoading.value = true
+
   const payload = {
     name: formData.value.name,
     email: formData.value.email,
@@ -150,11 +157,22 @@ const handleSubmit = async () => {
   if (formData.value.avatar) payload.photo_avatar_filename = formData.value.avatar
 
   try {
-    const result = await authStore.register(payload)
+    // Await the toast.promise so we only call register once and wait for the result before navigating.
+    await toast.promise(authStore.register(payload), {
+      loading: 'Calling API',
+      success: (res) => {
+        // Try to extract the user name from the axios response or from the store
+        const name = res?.data?.user?.name ?? authStore.currentUser?.name ?? ''
+        return `Registration Successful - ${name}`
+      },
+      error: (err) => {
+        const msg =
+          err?.response?.data?.message ?? err?.response?.data ?? err?.message ?? 'Unknown error'
+        return `[API] Error registering - ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`
+      },
+    })
 
-    // Se chegou aqui, o registo foi bem-sucedido
-    const name = result?.name ?? authStore.currentUser?.name ?? ''
-    toast.success(`Registration Successful - ${name}`)
+    // Só redireciona se o registo foi bem-sucedido
     router.push('/')
   } catch (error) {
     // Se houver erro, mostra a mensagem e fica na página
@@ -166,6 +184,8 @@ const handleSubmit = async () => {
     const displayMsg = typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)
     toast.error(`[API] Error registering - ${displayMsg}`)
     console.error('Registration failed:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
