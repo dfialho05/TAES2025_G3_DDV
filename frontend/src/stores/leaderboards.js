@@ -32,7 +32,7 @@ export const useLeaderboardStore = defineStore('leaderboards', () => {
 
   const periods = computed(() => [
     { value: 'all', label: 'All Time', emoji: '' },
-    { value: 'month', label: 'This Month', emoji: '' },
+    // { value: 'month', label: 'This Month', emoji: '' }, TODO IN FUTURE
   ])
 
   const leaderboardTypes = computed(() => [
