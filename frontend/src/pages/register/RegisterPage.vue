@@ -1,12 +1,12 @@
 <template>
-  <div class="flex min-h-screen items-center justify-center 
-              bg-gray-50 dark:bg-gray-900 
-              px-4 py-12 sm:px-6 lg:px-8">
-
+  <div
+    class="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12 sm:px-6 lg:px-8"
+  >
     <div class="w-full max-w-md space-y-8">
       <div>
-        <h2 class="mt-6 text-center text-3xl font-bold tracking-tight 
-                   text-gray-900 dark:text-white">
+        <h2
+          class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white"
+        >
           Criar Conta
         </h2>
 
@@ -17,11 +17,11 @@
 
       <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <div class="space-y-4 rounded-md shadow-sm">
-
           <div>
-            
-            <label for="email" class="block text-sm font-medium 
-                                     text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              for="email"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Email
             </label>
 
@@ -36,8 +36,10 @@
           </div>
 
           <div>
-            <label for="password" class="block text-sm font-medium 
-                                         text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              for="password"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Password
             </label>
 
@@ -52,8 +54,10 @@
           </div>
 
           <div>
-            <label for="nickname" class="block text-sm font-medium 
-                                         text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              for="nickname"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Nickname
             </label>
             <Input
@@ -66,8 +70,10 @@
           </div>
 
           <div>
-            <label for="name" class="block text-sm font-medium 
-                                     text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              for="name"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Nome
             </label>
             <Input
@@ -80,8 +86,10 @@
           </div>
 
           <div>
-            <label for="avatar" class="block text-sm font-medium 
-                                       text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              for="avatar"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Avatar URL (opcional)
             </label>
             <Input
@@ -94,17 +102,16 @@
         </div>
 
         <div>
-          <Button type="submit" class="w-full">
-            Registar e Entrar
-          </Button>
+          <Button type="submit" class="w-full"> Registar e Entrar </Button>
         </div>
 
         <div class="text-center text-sm">
           <span class="text-gray-600 dark:text-gray-300">Já tem conta? </span>
 
-          <router-link 
-            to="/login" 
-            class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+          <router-link
+            to="/login"
+            class="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+          >
             Fazer login
           </router-link>
         </div>
@@ -142,21 +149,23 @@ const handleSubmit = async () => {
   if (formData.value.nickname) payload.nickname = formData.value.nickname
   if (formData.value.avatar) payload.photo_avatar_filename = formData.value.avatar
 
-  // Await the toast.promise so we only call register once and wait for the result before navigating.
-  await toast.promise(authStore.register(payload), {
-    loading: 'Calling API',
-    success: (res) => {
-      // Try to extract the user name from the axios response or from the store
-      const name = res?.data?.user?.name ?? authStore.currentUser?.name ?? ''
-      return `Registration Successful - ${name}`
-    },
-    error: (err) => {
-      const msg =
-        err?.response?.data?.message ?? err?.response?.data ?? err?.message ?? 'Unknown error'
-      return `[API] Error registering - ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`
-    },
-  })
+  try {
+    const result = await authStore.register(payload)
 
-  router.push('/')
+    // Se chegou aqui, o registo foi bem-sucedido
+    const name = result?.name ?? authStore.currentUser?.name ?? ''
+    toast.success(`Registration Successful - ${name}`)
+    router.push('/')
+  } catch (error) {
+    // Se houver erro, mostra a mensagem e fica na página
+    const errorMsg =
+      error?.response?.data?.message ||
+      error?.response?.data ||
+      error?.message ||
+      'Registration failed'
+    const displayMsg = typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)
+    toast.error(`[API] Error registering - ${displayMsg}`)
+    console.error('Registration failed:', error)
+  }
 }
 </script>

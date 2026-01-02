@@ -1,3 +1,13 @@
+<template>
+  <!-- Minimal placeholder so the SFC parser sees a template -->
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="text-center text-slate-700">
+      <h1 class="text-2xl font-semibold">About</h1>
+      <p class="mt-2 text-sm">Content is commented out below for development purposes.</p>
+    </div>
+  </div>
+</template>
+
 <!-- <script setup>
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

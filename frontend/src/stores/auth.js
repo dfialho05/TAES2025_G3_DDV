@@ -1,147 +1,81 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, inject } from 'vue'
 import { useAPIStore } from './api'
+import axios from 'axios' // OBRIGATÓRIO
 
 export const useAuthStore = defineStore('auth', () => {
   const apiStore = useAPIStore()
-
-  // 1. Variável reativa para o token (lê do sítio certo: sessionStorage 'apiToken')
-  const token = ref(sessionStorage.getItem('apiToken'))
-
+  const SERVER_BASE_URL = inject('serverBaseURL')
   const currentUser = ref(undefined)
   const initialized = ref(false)
-  let initPromise = Promise.resolve()
 
-  const isLoggedIn = computed(() => {
-    return currentUser.value !== undefined
-  })
+  const isLoggedIn = computed(() => currentUser.value !== undefined)
 
   const login = async (credentials) => {
+    // 1. Inicializar proteção CSRF
+    await axios.get(`${SERVER_BASE_URL}/sanctum/csrf-cookie`)
+
+    // 2. Tentar o login
     await apiStore.postLogin(credentials)
 
-    // 2. Atualizar o token reativo após login com sucesso
-    token.value = sessionStorage.getItem('apiToken')
-
+    // 3. Obter utilizador
     await getUser()
+
+    return currentUser.value
+  }
+
+  const register = async (credentials) => {
+    // 1. Inicializar proteção CSRF
+    await axios.get(`${SERVER_BASE_URL}/sanctum/csrf-cookie`)
+
+    // 2. Tentar o registo
+    await apiStore.postRegister(credentials)
+
+    // 3. Obter utilizador (já faz login automático no backend)
+    await getUser()
+
+    return currentUser.value
   }
 
   const logout = async () => {
     await apiStore.postLogout()
     currentUser.value = undefined
-
-    // 3. Limpar token reativo
-    token.value = null
-
-    try {
-      localStorage.setItem('logout', Date.now().toString())
-    } catch (e) { }
   }
 
   const getUser = async () => {
-    const response = await apiStore.getAuthUser()
-    currentUser.value = response.data.data || response.data
-  }
-
-  const register = async (payload) => {
-    const response = await apiStore.postRegister(payload)
-    if (response?.data?.user) {
-      currentUser.value = response.data.user.data || response.data.user
-      // Atualizar token também no registo se o backend o devolver logo
-      token.value = sessionStorage.getItem('apiToken')
-    } else {
-      await getUser()
-    }
-    return response
-  }
-
-  const deleteAccount = async (current_password) => {
-    const response = await apiStore.postDeleteAccount(current_password)
     try {
-      await logout()
+      const response = await apiStore.getAuthUser()
+      currentUser.value = response.data?.data || response.data
     } catch (err) {
-      const status = err?.response?.status
-      if (status === 401) console.warn('Ignorando 401 no logout')
-      else throw err
+      currentUser.value = undefined
+      throw err
     }
-    return response
   }
 
   const init = async () => {
     if (initialized.value) return
-    if (initPromise) return initPromise
-
-    initPromise = (async () => {
-      const SESSION_TOKEN_KEY = 'apiToken'
-      const storedToken = sessionStorage.getItem(SESSION_TOKEN_KEY)
-
-      // Sincronizar estado inicial
-      if (storedToken) token.value = storedToken;
-
-      if (storedToken) {
-        try {
-          await getUser()
-        } catch (e) {
-          try { await apiStore.postLogout() } catch (e) {}
-          currentUser.value = undefined
-          token.value = null
-        }
-      }
+    try {
+      await getUser()
+    } catch (e) {
+      currentUser.value = undefined
+    } finally {
       initialized.value = true
-      initPromise = null
-    })()
-
-    return initPromise
-  }
-
-  const updateUser = (updates) => {
-    if (currentUser.value) {
-      currentUser.value = { ...currentUser.value, ...updates }
     }
   }
 
-  const updateCoinsBalance = (newBalance) => {
-    if (currentUser.value) {
-      currentUser.value = { ...currentUser.value, coins_balance: newBalance }
-    }
-  }
-
-  const updateCustomData = (customUpdates) => {
-    if (currentUser.value) {
-      const newCustom = { ...currentUser.value.custom, ...customUpdates }
-      currentUser.value = { ...currentUser.value, custom: newCustom }
-    }
-  }
-
-  const refreshUser = async () => {
-    if (currentUser.value) {
-      try { await getUser() } catch (err) { throw err }
-    }
-  }
-
-  const isAdmin = computed(() => {
-  return currentUser.value?.type === 'A'
-})
-
-const isPlayer = computed(() => {
-  return currentUser.value?.type !== 'A'
-}) 
+  const isAdmin = computed(() => currentUser.value?.type === 'A')
+  const isPlayer = computed(() => currentUser.value?.type === 'P')
 
   return {
-    token, // <--- IMPORTANTE: Exportar o token para o socket usar
     currentUser,
     isLoggedIn,
     initialized,
     init,
     login,
+    register,
     logout,
     isAdmin,
     isPlayer,
     getUser,
-    register,
-    deleteAccount,
-    updateUser,
-    updateCoinsBalance,
-    updateCustomData,
-    refreshUser,
   }
 })

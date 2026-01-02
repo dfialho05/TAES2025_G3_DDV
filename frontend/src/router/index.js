@@ -102,29 +102,22 @@ const router = createRouter({
           return next()
         }
 
-        // Try to restore user from token in sessionStorage (if any)
-        const SESSION_TOKEN_KEY = 'apiToken'
-        const token = sessionStorage.getItem(SESSION_TOKEN_KEY)
-        if (token) {
-          // ensure axios has header and try to fetch the user
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        // Try to restore user from cookie (automatic with withCredentials)
+        if (!authStore.isLoggedIn) {
           try {
             await authStore.getUser()
-            // after fetching user, re-evaluate permissions
-            if (authStore.isAdmin) return next()
-            if (String(authStore.currentUser?.id) === requestedId) return next()
-            // not admin and not owner -> redirect to home
-            return next({ name: 'home' })
           } catch (err) {
-            // token invalid/expired -> clean and redirect to login
-            sessionStorage.removeItem(SESSION_TOKEN_KEY)
-            delete axios.defaults.headers.common['Authorization']
+            // Cookie invalid/expired -> redirect to login
             return next({ name: 'login' })
           }
         }
 
-        // No token and not owner/admin -> require login
-        return next({ name: 'login' })
+        // after fetching user, re-evaluate permissions
+        if (authStore.isAdmin) return next()
+        if (String(authStore.currentUser?.id) === requestedId) return next()
+
+        // not admin and not owner -> redirect to home
+        return next({ name: 'home' })
       },
     },
 
@@ -180,19 +173,15 @@ const router = createRouter({
 // Async guard: Lógica centralizada de proteção
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-  const SESSION_TOKEN_KEY = 'apiToken'
-  const token = sessionStorage.getItem(SESSION_TOKEN_KEY)
 
-  // 1. Tentar restaurar o utilizador SE houver token e ele ainda não estiver carregado
+  // 1. Tentar restaurar o utilizador se ele ainda não estiver carregado
+  // O cookie encriptado será enviado automaticamente pelo browser
   // Fazemos isto ANTES das verificações de rota para garantir que o isAdmin está correto
-  if (!authStore.isLoggedIn && token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  if (!authStore.isLoggedIn) {
     try {
       await authStore.getUser()
     } catch (e) {
-      // Se o token for inválido, limpamos tudo
-      sessionStorage.removeItem(SESSION_TOKEN_KEY)
-      delete axios.defaults.headers.common['Authorization']
+      // Se a autenticação por cookie falhar, o utilizador não está logado
       // Não fazemos redirect aqui ainda, deixamos as regras abaixo decidirem
     }
   }

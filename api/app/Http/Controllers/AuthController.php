@@ -44,29 +44,23 @@ class AuthController extends Controller
 
         if (!Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
-                "email" => ["The provided credentials are incorrect."],
+                "email" => ["Credenciais incorretas."],
             ]);
         }
 
         $user = Auth::user();
 
-        // Check if user is blocked
         if ($user->isBlocked()) {
             Auth::logout();
-            return response()->json(
-                [
-                    "message" =>
-                        "Your account has been blocked. Please contact support.",
-                ],
-                403,
-            );
+            return response()->json(["message" => "Conta bloqueada."], 403);
         }
 
-        $token = $user->createToken("auth-token")->plainTextToken;
+        // Regenerar session ID para segurança
+        $request->session()->regenerate();
 
         return response()->json([
-            "token" => $token,
             "user" => new UserResource($user),
+            "message" => "Bem-vindo!",
         ]);
     }
 
@@ -78,11 +72,12 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        Auth::guard("web")->logout();
 
-        return response()->json([
-            "message" => "Logged out successfully",
-        ]);
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json(["message" => "Logout ok"]);
     }
 
     /**
@@ -96,11 +91,12 @@ class AuthController extends Controller
         try {
             $user = $this->userService->register($request->validated());
 
-            $token = $user->createToken("auth-token")->plainTextToken;
+            // Fazer login automático após registo
+            Auth::login($user);
+            $request->session()->regenerate();
 
             return response()->json(
                 [
-                    "token" => $token,
                     "user" => new UserResource($user),
                     "message" =>
                         "Registration successful! Welcome bonus of 10 coins has been credited to your account.",
@@ -152,8 +148,10 @@ class AuthController extends Controller
                 $request->input("current_password"),
             );
 
-            // Revoke all tokens
-            $request->user()->tokens()->delete();
+            // Invalidar sessão
+            Auth::guard("web")->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
             return response()->json([
                 "message" => "Account deleted successfully.",

@@ -12,11 +12,23 @@ return Application::configure(basePath: dirname(__DIR__))
         health: "/up",
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Ativa o suporte para cookies na API (Sanctum)
+        $middleware->statefulApi();
+
+        // Exceções de CSRF para rotas de autenticação
+        $middleware->validateCsrfTokens(except: ["api/login", "api/register"]);
+
         $middleware->alias([
             "admin" => \App\Http\Middleware\AdminMiddleware::class,
+            "abilities" =>
+                \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
+            "ability" =>
+                \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
         ]);
-    })
 
+        // Aplica o throttle às rotas para proteção DDoS
+        $middleware->throttleApi();
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })
