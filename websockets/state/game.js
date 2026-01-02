@@ -43,6 +43,12 @@ const startTurnTimer = (gameId, io) => {
   // Só inicia se o jogo existir, não tiver acabado e não estiver em pausa de ronda
   if (!game || game.gameOver || game.roundOver) return;
 
+  // IMPORTANTE: Não iniciar timer se for multiplayer e P2 ainda não entrou
+  if (game.mode === "multiplayer" && !game.player2) {
+    console.log(`[State] Timer NÃO iniciado: Aguardando P2 no Jogo ${gameId}`);
+    return;
+  }
+
   // Inicia o timer
   const timer = setTimeout(async () => {
     const g = games.get(gameId);
@@ -420,6 +426,21 @@ export const joinGame = async (id, user) => {
     if (isMatch && game.mode === "multiplayer" && !game.dbMatchId) {
       console.log(` [State] Criando Match multiplayer na BD (P2 entrou)...`);
       const p1Token = game.player1.token;
+      const p2Token = user.token;
+
+      // DEBUG: Verificar tokens
+      console.log(
+        `   [DEBUG] P1 (${game.player1.name}) ID: ${game.player1.id}`,
+      );
+      console.log(
+        `   [DEBUG] P1 Token:`,
+        p1Token ? `PRESENTE (${p1Token.substring(0, 20)}...)` : "AUSENTE/NULL",
+      );
+      console.log(`   [DEBUG] P2 (${user.name}) ID: ${user.id}`);
+      console.log(
+        `   [DEBUG] P2 Token:`,
+        p2Token ? `PRESENTE (${p2Token.substring(0, 20)}...)` : "AUSENTE/NULL",
+      );
 
       const match = await LaravelAPI.createMatch(
         game.player1,
@@ -621,6 +642,7 @@ export const advanceGame = (id, io) => {
     gameTimers.set(id, timer);
   } else {
     // Turno de Jogador Humano: INICIAR TIMER DE 20s
+    // (só inicia se ambos os jogadores estiverem presentes em multiplayer)
     startTurnTimer(id, io);
   }
 };

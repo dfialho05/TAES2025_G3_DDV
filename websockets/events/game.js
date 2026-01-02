@@ -95,8 +95,18 @@ export const gameHandlers = (io, socket) => {
 
       socket.emit("game-joined", game.getState());
 
-      // Iniciar fluxo
-      GameState.advanceGame(game.id, io);
+      // Iniciar fluxo apenas se for singleplayer/practice
+      // Para multiplayer, o fluxo só começa quando P2 entrar (no join-game)
+      if (mode === "singleplayer" || isPractice) {
+        console.log(
+          `[Game] Iniciando fluxo (singleplayer/practice) para jogo ${game.id}`,
+        );
+        GameState.advanceGame(game.id, io);
+      } else {
+        console.log(
+          `[Game] Aguardando P2 para iniciar fluxo do jogo ${game.id}`,
+        );
+      }
 
       io.emit("games", GameState.getGames());
     }
@@ -124,7 +134,8 @@ export const gameHandlers = (io, socket) => {
 
       io.to(`game-${gid}`).emit("game_state", game.getState());
 
-      // Iniciar fluxo ao entrar P2
+      // Iniciar fluxo ao entrar P2 (agora o timer pode começar)
+      console.log(` [Game] P2 entrou - iniciando fluxo do jogo ${gid}`);
       GameState.advanceGame(gid, io);
 
       io.emit("games", GameState.getGames());

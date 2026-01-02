@@ -26,6 +26,21 @@ export const useAPIStore = defineStore('api', () => {
     return await axios.post('/register', credentials)
   }
 
+  /**
+   * Create an API token for the currently authenticated session user.
+   * This calls the backend endpoint POST /api/token which should return { token: '...' }.
+   * Used by the frontend when login/register do not return a token directly.
+   */
+  const createApiToken = async () => {
+    try {
+      const res = await axios.post('/token')
+      return res.data?.token ?? null
+    } catch (err) {
+      console.warn('API create token failed:', err)
+      return null
+    }
+  }
+
   const getAuthUser = async () => {
     const res = await axios.get('/users/me')
     return res.data
@@ -147,6 +162,7 @@ export const useAPIStore = defineStore('api', () => {
     postLogin,
     postLogout,
     postRegister,
+    createApiToken,
     getAuthUser,
     putUser,
     fetchUser,

@@ -159,7 +159,7 @@ const THEME_KEY = 'theme'
 
 // 1. Tenta ligar ao iniciar
 onMounted(() => {
-  const token = localStorage.getItem('token') || authStore.token
+  const token = localStorage.getItem('api_token') || authStore.token
   if (token) {
     socketStore.handleConnection()
   }

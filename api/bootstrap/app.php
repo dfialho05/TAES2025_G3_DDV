@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             "admin" => \App\Http\Middleware\AdminMiddleware::class,
+            "ws.token" => \App\Http\Middleware\WebSocketTokenMiddleware::class,
             "abilities" =>
                 \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
             "ability" =>

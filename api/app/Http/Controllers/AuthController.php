@@ -48,6 +48,7 @@ class AuthController extends Controller
             ]);
         }
 
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         if ($user->isBlocked()) {
@@ -55,11 +56,24 @@ class AuthController extends Controller
             return response()->json(["message" => "Conta bloqueada."], 403);
         }
 
-        // Regenerar session ID para segurança
-        $request->session()->regenerate();
+        // Criar token API para WebSocket authentication
+        // Revoke all existing tokens to ensure only one active session
+        $user->tokens()->delete();
+
+        // Create token with 'ws' ability and 30-minute expiration
+        $tokenResult = $user->createToken("websocket-token", ["ws"]);
+        $tokenResult->accessToken->expires_at = now()->addMinutes(30);
+        $tokenResult->accessToken->save();
+        $token = $tokenResult->plainTextToken;
+
+        // Regenerar session ID para segurança (apenas se sessão estiver disponível)
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
 
         return response()->json([
             "user" => new UserResource($user),
+            "token" => $token,
             "message" => "Bem-vindo!",
         ]);
     }
@@ -72,12 +86,57 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
+        // Revoke all API tokens
+        /** @var \App\Models\User|null $user */
+        $user = $request->user();
+        if ($user) {
+            $user->tokens()->delete();
+        }
+
         Auth::guard("web")->logout();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Invalidar sessão (apenas se existir)
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json(["message" => "Logout ok"]);
+    }
+
+    /**
+     * Create a short-lived API token for the authenticated session user.
+     *
+     * This endpoint is intended for clients that have authenticated via session/cookie
+     * and need a Bearer token for server-to-server or WebSocket exchanges.
+     *
+     * The token created will be scoped with a minimal ability ('ws') — callers
+     * should validate token abilities where appropriate.
+     *
+     * Endpoint: POST /api/token (you will need to register a route if required)
+     */
+    public function createApiToken(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User|null $user */
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(["message" => "Unauthenticated."], 401);
+        }
+
+        // Optionally revoke previous websocket tokens to limit active tokens
+        // $user->tokens()->where('name', 'websocket-token')->delete();
+
+        // Create a new token with a limited ability 'ws' and 30-minute expiration
+        $tokenResult = $user->createToken("websocket-token", ["ws"]);
+        $tokenResult->accessToken->expires_at = now()->addMinutes(30);
+        $tokenResult->accessToken->save();
+        $token = $tokenResult->plainTextToken;
+
+        return response()->json([
+            "token" => $token,
+            "message" => "API token created.",
+        ]);
     }
 
     /**
@@ -93,11 +152,22 @@ class AuthController extends Controller
 
             // Fazer login automático após registo
             Auth::login($user);
-            $request->session()->regenerate();
+
+            // Criar token API para WebSocket authentication with 'ws' ability and 30-minute expiration
+            $tokenResult = $user->createToken("websocket-token", ["ws"]);
+            $tokenResult->accessToken->expires_at = now()->addMinutes(30);
+            $tokenResult->accessToken->save();
+            $token = $tokenResult->plainTextToken;
+
+            // Regenerar session ID para segurança (apenas se sessão estiver disponível)
+            if ($request->hasSession()) {
+                $request->session()->regenerate();
+            }
 
             return response()->json(
                 [
                     "user" => new UserResource($user),
+                    "token" => $token,
                     "message" =>
                         "Registration successful! Welcome bonus of 10 coins has been credited to your account.",
                 ],
@@ -148,10 +218,12 @@ class AuthController extends Controller
                 $request->input("current_password"),
             );
 
-            // Invalidar sessão
+            // Invalidar sessão (apenas se existir)
             Auth::guard("web")->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
 
             return response()->json([
                 "message" => "Account deleted successfully.",

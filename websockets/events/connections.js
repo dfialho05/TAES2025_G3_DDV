@@ -2,8 +2,45 @@ import * as ConnectionState from "../state/connections.js";
 
 export const connectionsHandlers = (io, socket) => {
   socket.on("join", (userData) => {
+    // DEBUG: Log completo do que chega
+    console.log(`\n[JOIN DEBUG] Socket ${socket.id}`);
+    console.log(`  userData recebido:`, userData);
+    console.log(
+      `  userData.token:`,
+      userData?.token
+        ? `PRESENTE (${userData.token.substring(0, 20)}...)`
+        : "AUSENTE",
+    );
+    console.log(
+      `  socket.handshake.auth.token:`,
+      socket.handshake.auth.token
+        ? `PRESENTE (${socket.handshake.auth.token.substring(0, 20)}...)`
+        : "AUSENTE",
+    );
+    console.log(
+      `  socket.data.token:`,
+      socket.data.token
+        ? `PRESENTE (${socket.data.token.substring(0, 20)}...)`
+        : "AUSENTE",
+    );
+
     // 1. Tentar pegar o token real do socket
-    const token = socket.handshake.auth.token || socket.data.token || null;
+    //    - prioriza token enviado no payload do 'join' (se presente)
+    //    - fallback para handshake / socket.data
+    const tokenFromHandshake =
+      socket.handshake.auth.token || socket.data.token || null;
+    const tokenFromPayload = userData && userData.token ? userData.token : null;
+    const token = tokenFromPayload || tokenFromHandshake;
+
+    console.log(
+      `  Token FINAL escolhido:`,
+      token ? `PRESENTE (${token.substring(0, 20)}...)` : "AUSENTE\n",
+    );
+
+    // Persistir token enviado no payload no socket para chamadas futuras
+    if (tokenFromPayload) {
+      socket.data.token = tokenFromPayload;
+    }
 
     // 2. Validação de segurança
     if (!userData || userData.id === "loading") {

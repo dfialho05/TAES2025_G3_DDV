@@ -73,11 +73,7 @@ Route::middleware(["throttle:api"])->group(function () {
     ]);
 
     // Basic Game Operations (Public)
-    Route::apiResource("games", GameController::class)->only([
-        "index",
-        "show",
-        "store",
-    ]);
+    Route::apiResource("games", GameController::class)->only(["index", "show"]);
 
     // Decks & Assets
     Route::get("/decks", [DeckController::class, "index"]);
@@ -147,6 +143,12 @@ Route::middleware(["auth:sanctum", "throttle:gameplay"])->group(function () {
         AuthController::class,
         "deleteAccount",
     ]);
+
+    // Create an API token for the currently authenticated session user.
+    // This is intended for clients authenticated via session/cookie that need
+    // a short-lived Bearer token for WebSocket/server-to-server operations.
+    Route::post("/token", [AuthController::class, "createApiToken"]);
+
     Route::post("/logout", [AuthController::class, "logout"]);
 
     // File Uploads (Considerar limite próprio se necessário)
@@ -155,14 +157,8 @@ Route::middleware(["auth:sanctum", "throttle:gameplay"])->group(function () {
 
     // Personal Match/Game Management
     Route::get("/matches/me", [MatchController::class, "history"]);
-    Route::post("/matches", [MatchController::class, "store"]);
     Route::get("/matches/{id}", [MatchController::class, "show"]);
     Route::patch("/matches/{id}", [MatchController::class, "update"]);
-    Route::post("/matches/{id}/start", [MatchController::class, "startMatch"]);
-    Route::post("/matches/{id}/finish", [
-        MatchController::class,
-        "finishMatch",
-    ]);
     Route::post("/matches/{id}/cancel", [
         MatchController::class,
         "cancelMatch",
@@ -171,17 +167,37 @@ Route::middleware(["auth:sanctum", "throttle:gameplay"])->group(function () {
         MatchController::class,
         "getMatchTransactions",
     ]);
-
-    Route::post("/matches/{matchId}/games", [
-        GameController::class,
-        "createGameForMatch",
-    ]);
     Route::get("/matches/{matchId}/games", [
         GameController::class,
         "gamesByMatch",
     ]);
-    Route::post("/games/{id}/start", [GameController::class, "startGame"]);
-    Route::post("/games/{id}/finish", [GameController::class, "finishGame"]);
+
+    // WebSocket-specific routes (called by Node.js server with token auth)
+    // These routes require the 'ws.token' middleware to validate token ability and expiration
+    Route::middleware("ws.token")->group(function () {
+        // Match operations called by WebSocket server
+        Route::post("/matches", [MatchController::class, "store"]);
+        Route::post("/matches/{id}/start", [
+            MatchController::class,
+            "startMatch",
+        ]);
+        Route::post("/matches/{id}/finish", [
+            MatchController::class,
+            "finishMatch",
+        ]);
+
+        // Game operations called by WebSocket server
+        Route::post("/games", [GameController::class, "store"]);
+        Route::post("/matches/{matchId}/games", [
+            GameController::class,
+            "createGameForMatch",
+        ]);
+        Route::post("/games/{id}/start", [GameController::class, "startGame"]);
+        Route::post("/games/{id}/finish", [
+            GameController::class,
+            "finishGame",
+        ]);
+    });
 
     // Store & Purchases
     Route::post("/purchases/", [CoinPurchaseController::class, "initiate"]);

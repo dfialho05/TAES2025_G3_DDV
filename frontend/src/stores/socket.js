@@ -18,8 +18,8 @@ export const useSocketStore = defineStore('socket', () => {
   const SOCKET_URL = 'http://localhost:3000'
 
   const connect = (allowAnonymous = false) => {
-    // Obtém token se existir
-    const token = allowAnonymous ? null : authStore.token || localStorage.getItem('token')
+    // Obtém token API para WebSocket se existir
+    const token = allowAnonymous ? null : authStore.token || localStorage.getItem('api_token')
 
     if (socket.value) socket.value.disconnect()
 
@@ -46,7 +46,22 @@ export const useSocketStore = defineStore('socket', () => {
     if (!socket.value) return
 
     let userData = authStore.currentUser
-    const hasToken = authStore.token || localStorage.getItem('token')
+    const hasToken = authStore.token || localStorage.getItem('api_token')
+
+    // DEBUG: Log do token
+    console.log('\n[Socket announceUser DEBUG]')
+    console.log(
+      '  authStore.token:',
+      authStore.token ? `PRESENTE (${authStore.token.substring(0, 20)}...)` : 'AUSENTE',
+    )
+    console.log(
+      '  localStorage api_token:',
+      localStorage.getItem('api_token')
+        ? `PRESENTE (${localStorage.getItem('api_token').substring(0, 20)}...)`
+        : 'AUSENTE',
+    )
+    console.log('  hasToken:', hasToken ? 'SIM' : 'NÃO')
+    console.log('  userData:', userData ? userData.name : 'AUSENTE')
 
     // CASO 1: Temos token, mas o user ainda não carregou (está a fazer fetch)
     // NÃO enviamos nada agora. Esperamos pelo watch do currentUser.
@@ -75,7 +90,12 @@ export const useSocketStore = defineStore('socket', () => {
 
     // CASO 3: Utilizador autenticado e carregado
     console.log('[Socket] Enviando identidade (JOIN):', userData)
-    socket.value.emit('join', userData)
+    // Incluir token (se existir) no payload para o servidor persistir
+    const payload = {
+      ...userData,
+      token: authStore.token || localStorage.getItem('token') || null,
+    }
+    socket.value.emit('join', payload)
   }
 
   const setupListeners = () => {
