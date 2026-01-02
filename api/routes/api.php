@@ -16,7 +16,6 @@ use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\StatisticsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\RateLimiter;
 use App\Models\CoinTransaction;
 
 /*

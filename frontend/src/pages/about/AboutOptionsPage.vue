@@ -1,4 +1,4 @@
-<script>
+<!-- <script>
 export default {
   data() {
     return {
@@ -25,4 +25,4 @@ export default {
     <button @click="decrease">-</button>
   </div>
 </template>
-
+ -->

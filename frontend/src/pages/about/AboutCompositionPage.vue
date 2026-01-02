@@ -1,4 +1,4 @@
-<script>
+<!-- <script>
 import { ref, reactive } from 'vue'
 export default {
   setup() {
@@ -30,4 +30,4 @@ export default {
     <button v-on:click="increase">+</button>
     <button @click="decrease">-</button>
   </div>
-</template>
+</template> -->

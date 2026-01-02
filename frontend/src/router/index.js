@@ -44,15 +44,15 @@ const router = createRouter({
       component: Lobby,
       meta: { requiresAuth: true, adminForbid: true },
     },
-    {
+    /*{
       path: '/about',
       name: 'about',
       component: AboutPage,
-    },
+    },*/
     {
-    path: '/tutorial',
-    name: 'tutorial',
-    component: () => import('@/pages/tutorial/TutorialView.vue'),
+      path: '/tutorial',
+      name: 'tutorial',
+      component: () => import('@/pages/tutorial/TutorialView.vue'),
     },
     {
       path: '/login',
@@ -172,7 +172,7 @@ const router = createRouter({
         },
       ],
     },
-    
+
     // user-details route moved under '/admin' as a child of MainPage
   ],
 })

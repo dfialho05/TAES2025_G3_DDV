@@ -1,4 +1,4 @@
-<script setup>
+<!-- <script setup>
 import { ref, onMounted, inject } from 'vue'
 
 const socket = inject('socket')
@@ -55,4 +55,4 @@ onMounted(async () => {
       </section>
     </main>
   </div>
-</template>
+</template> -->

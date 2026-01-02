@@ -70,11 +70,11 @@
           </NavigationMenuLink>
         </NavigationMenuItem>
 
-        <NavigationMenuItem>
-          <NavigationMenuLink>
-            <RouterLink to="/about">About</RouterLink>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
+        <!-- <NavigationMenuItem> -->
+        <!-- <NavigationMenuLink> -->
+        <!-- <RouterLink to="/about">About</RouterLink> -->
+        <!-- </NavigationMenuLink> -->
+        <!-- </NavigationMenuItem> -->
 
         <NavigationMenuItem>
           <NavigationMenuLink>

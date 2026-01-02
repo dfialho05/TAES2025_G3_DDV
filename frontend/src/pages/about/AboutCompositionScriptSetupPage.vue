@@ -1,4 +1,4 @@
-<script setup>
+<!-- <script setup>
     import { ref, reactive } from 'vue'
 
     const hello = ref('Hello World')
@@ -19,4 +19,4 @@
     <button v-on:click="increase">+</button>
     <button @click="decrease">-</button>
   </div>
-</template>
+</template> -->

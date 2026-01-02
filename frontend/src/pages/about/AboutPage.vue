@@ -1,4 +1,4 @@
-<script setup>
+<!-- <script setup>
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ref, onMounted, inject } from 'vue'
@@ -127,4 +127,4 @@ onMounted(async () => {
       </section>
     </div>
   </div>
-</template>
+</template> -->
