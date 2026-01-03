@@ -1,46 +1,117 @@
 import { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
 import { connectionsHandlers } from "./events/connections.js";
 import { gameHandlers } from "./events/game.js";
+import {
+  redisPublisher,
+  redisSubscriber,
+  checkRedisHealth,
+} from "./redis/client.js";
+import {
+  recoverAllGamesOnStartup,
+  startPeriodicSync,
+  handleClientReconnection,
+} from "./redis/recoveryManager.js";
+import { startWatchdog } from "./workers/watchdog.js";
+import { getRawGames } from "./state/game.js";
+import { authMiddleware } from "./middleware/auth.js";
 
 const io = new Server(3000, {
   cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
-// Make io globally available for balance updates
+io.adapter(createAdapter(redisPublisher, redisSubscriber));
+
+console.log("[Socket.IO] Redis Adapter configurado para multi-node support");
+
 global.io = io;
 
-io.on("connection", async (socket) => {
-  // CAPTURAR TOKEN
-  const token = socket.handshake.auth.token;
-  socket.data.token = token;
+io.use(authMiddleware);
+console.log("[Socket.IO] Middleware de autenticação configurado");
 
-  if (token) {
-    console.log(` Socket ${socket.id} ligado COM Token.`);
-  } else {
-    console.log(` Socket ${socket.id} ligado SEM Token.`);
+// Inicialização assíncrona do servidor
+async function initializeServer() {
+  try {
+    // Verificar saúde do Redis
+    const redisHealthy = await checkRedisHealth();
+    if (!redisHealthy) {
+      console.error(
+        "[Redis] Não foi possível conectar ao Redis. Verifique se o serviço está rodando.",
+      );
+      process.exit(1);
+    }
+    console.log("[Redis] Conexão estabelecida e saudável");
 
-    // Criar usuário anônimo para jogos de practice
-    // Nota: Certifica-te que o caminho do import está correto
-    const { addUser } = await import("./state/connections.js");
-    const anonymousUser = {
-      id: `anon_${socket.id}`,
-      name: "Guest Player",
-      token: null,
+    // Recuperar jogos ativos após reinício do servidor
+    const gamesMap = getRawGames();
+    await recoverAllGamesOnStartup(io, gamesMap);
+
+    // Iniciar sincronização periódica dos jogos para Redis
+    startPeriodicSync(gamesMap, 10000); // 10 segundos
+    console.log("[Recovery] Sincronização periódica iniciada");
+
+    // Iniciar Watchdog Worker para monitorar timeouts
+    startWatchdog();
+    console.log("[Watchdog] Worker iniciado");
+
+    io.on("connection", async (socket) => {
+      const user = socket.data.user;
+      const isGuest = socket.data.isGuest;
+
+      if (user) {
+        console.log(
+          `[Connection] Socket ${socket.id} conectado: ${user.name} (ID: ${user.id})`,
+        );
+      } else if (isGuest) {
+        console.log(
+          `[Connection] Socket ${socket.id} conectado como GUEST (Practice Mode)`,
+        );
+
+        const { addUser } = await import("./state/connections.js");
+        const anonymousUser = {
+          id: `guest_${socket.id}`,
+          name: `Guest ${socket.id.substring(0, 4)}`,
+          token: null,
+          isGuest: true,
+        };
+
+        addUser(socket.id, anonymousUser);
+        socket.data.user = anonymousUser;
+      }
+
+      await handleClientReconnection(socket, io);
+
+      gameHandlers(io, socket);
+      connectionsHandlers(io, socket);
+    });
+
+    console.log("\nServidor Bisca rodando na porta 3000");
+    console.log("Funcionalidades ativas:");
+    console.log("WebSocket Server");
+    console.log("Redis Adapter (Multi-node support)");
+    console.log("Recovery System (Reconexão automática)");
+    console.log("Watchdog Worker (Monitoramento de timeouts)");
+    console.log("Periodic Sync (Estado para Redis a cada 10s)");
+    console.log("\n");
+
+    // Graceful shutdown
+    const shutdown = async () => {
+      console.log("\n[Server] Iniciando shutdown gracioso...");
+
+      // Parar novos jogos
+      io.close();
+
+      console.log("[Server] Shutdown completo\n");
+      process.exit(0);
     };
 
-    addUser(socket.id, anonymousUser);
-    console.log(
-      ` Usuário anônimo criado: ${anonymousUser.name} (Practice Mode)`,
-    );
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+  } catch (error) {
+    console.error("[Server] Erro fatal na inicialização:", error.message);
+    process.exit(1);
   }
+}
 
-  // --- CORREÇÃO CRÍTICA AQUI ---
-  // 1. Primeiro carregamos o Jogo (Para detetar desistências ANTES de apagar o user)
-  gameHandlers(io, socket);
-
-  // 2. Depois carregamos as Conexões (Para apagar o user da memória)
-  connectionsHandlers(io, socket);
-  // -----------------------------
-});
-
-console.log(" Servidor Bisca na porta 3000...");
+// Inicializar servidor
+initializeServer();

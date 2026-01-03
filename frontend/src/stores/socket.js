@@ -7,18 +7,18 @@ import { useBiscaStore } from './biscaStore'
 export const useSocketStore = defineStore('socket', () => {
   const socket = ref(null)
   const isConnected = ref(false)
+  const isReconnecting = ref(false)
+  const reconnectAttempts = ref(0)
+  const maxReconnectAttempts = 10
 
-  // NOVO: Guardar o ID temporário de convidado
   const guestUserId = ref(null)
 
   const authStore = useAuthStore()
   const biscaStore = useBiscaStore()
 
-  // Ajusta a porta conforme o teu servidor (3000, 3001, etc.)
   const SOCKET_URL = 'http://localhost:3000'
 
   const connect = (allowAnonymous = false) => {
-    // Obtém token API para WebSocket se existir
     const token = allowAnonymous ? null : authStore.token || localStorage.getItem('api_token')
 
     if (socket.value) socket.value.disconnect()
@@ -27,7 +27,11 @@ export const useSocketStore = defineStore('socket', () => {
       auth: { token: token },
       transports: ['websocket'],
       reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: maxReconnectAttempts,
       forceNew: true,
+      withCredentials: true,
     })
 
     setupListeners()
@@ -38,6 +42,8 @@ export const useSocketStore = defineStore('socket', () => {
       socket.value.disconnect()
       socket.value = null
       isConnected.value = false
+      isReconnecting.value = false
+      reconnectAttempts.value = 0
     }
   }
 
@@ -109,9 +115,58 @@ export const useSocketStore = defineStore('socket', () => {
       announceUser()
     })
 
-    socket.value.on('disconnect', () => {
-      console.log(`[Socket] Desconectado`)
+    socket.value.on('disconnect', (reason) => {
+      console.log(`[Socket] Desconectado. Razão: ${reason}`)
       isConnected.value = false
+
+      if (reason === 'io server disconnect') {
+        console.log('[Socket] Servidor forçou desconexão, tentando reconectar...')
+        socket.value.connect()
+      }
+    })
+
+    socket.value.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`[Socket] Tentativa de reconexão ${attemptNumber}/${maxReconnectAttempts}`)
+      isReconnecting.value = true
+      reconnectAttempts.value = attemptNumber
+    })
+
+    socket.value.on('reconnect', (attemptNumber) => {
+      console.log(`[Socket] Reconectado após ${attemptNumber} tentativas`)
+      isReconnecting.value = false
+      reconnectAttempts.value = 0
+      isConnected.value = true
+
+      const token = authStore.token || localStorage.getItem('api_token')
+      if (token && socket.value.auth) {
+        socket.value.auth.token = token
+      }
+
+      announceUser()
+
+      if (biscaStore.gameID) {
+        console.log('[Socket] Re-entrando no jogo após reconexão:', biscaStore.gameID)
+        socket.value.emit('join-game', biscaStore.gameID)
+      }
+    })
+
+    socket.value.on('reconnect_error', (error) => {
+      console.error('[Socket] Erro de reconexão:', error.message)
+    })
+
+    socket.value.on('reconnect_failed', () => {
+      console.error('[Socket] Falha ao reconectar após todas as tentativas')
+      isReconnecting.value = false
+      reconnectAttempts.value = 0
+
+      if (biscaStore.gameID) {
+        console.log('[Socket] Limpando jogo devido a falha de reconexão')
+        biscaStore.resetGameState()
+      }
+    })
+
+    socket.value.on('connect_error', (error) => {
+      console.error('[Socket] Erro de conexão:', error.message)
     })
 
     socket.value.on('game-joined', (data) => {
@@ -119,8 +174,50 @@ export const useSocketStore = defineStore('socket', () => {
       biscaStore.processGameState(data)
     })
 
-    socket.value.on('game_state', (data) => biscaStore.processGameState(data))
+    socket.value.on('game_state', (data) => {
+      biscaStore.processGameState(data)
+    })
+
     socket.value.on('games', (list) => biscaStore.setAvailableGames(list))
+
+    socket.value.on('game_annulled', (data) => {
+      console.log('[Socket] Jogo anulado pelo servidor:', data)
+      biscaStore.handleGameAnnulled(data)
+    })
+
+    socket.value.on('game_timeout', (data) => {
+      console.log('[Socket] Jogo expirado por timeout:', data)
+      biscaStore.handleGameAnnulled(data)
+    })
+
+    socket.value.on('recovery_error', (data) => {
+      console.error('[Socket] Erro de recuperação:', data)
+      biscaStore.resetGameState()
+
+      if (data.shouldRedirect && data.redirectTo) {
+        console.log('[Socket] Redirecionando para:', data.redirectTo)
+        const router = window?.$router
+        if (router) {
+          router.push(data.redirectTo)
+        } else {
+          window.location.href = data.redirectTo
+        }
+      }
+    })
+
+    socket.value.on('game_recovered', (data) => {
+      console.log('[Socket] Jogo recuperado com sucesso:', data)
+      if (data.gameState) {
+        biscaStore.processGameState(data.gameState)
+      }
+    })
+
+    socket.value.on('reconnection_complete', (data) => {
+      console.log('[Socket] Reconexão completa:', data)
+      if (data.hasActiveGame && data.gameId) {
+        console.log('[Socket] Jogo ativo detectado:', data.gameId)
+      }
+    })
 
     socket.value.on('balance_update', ({ userId, balance }) => {
       console.log(`[Socket] Balance atualizada para user ${userId}: ${balance} coins`)
@@ -182,7 +279,9 @@ export const useSocketStore = defineStore('socket', () => {
   return {
     socket,
     isConnected,
-    guestUserId, // <--- Exportado para ser usado no biscaStore
+    isReconnecting,
+    reconnectAttempts,
+    guestUserId,
     connect,
     disconnect,
     handleConnection,

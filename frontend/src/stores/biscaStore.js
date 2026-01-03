@@ -1,18 +1,25 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useSocketStore } from './socket'
 import { useAuthStore } from './auth'
+
+const GAME_STATE_KEY = 'bisca_game_state'
 
 export const useBiscaStore = defineStore('bisca', () => {
   const socketStore = useSocketStore()
   const authStore = useAuthStore()
 
-  // STATE
+  const isRecovering = ref(false)
+  const connectionLost = ref(false)
+  const showAnnulledModal = ref(false)
+  const annulledReason = ref('')
+  const annulledMessage = ref('')
+
   const gameID = ref(null)
   const mySide = ref('player1')
   const opponentName = ref('Oponente')
   const isWaiting = ref(false)
-  const gameMode = ref(3) // Guardar o modo (3 ou 9)
+  const gameMode = ref(3)
 
   const playerHand = ref([])
   const opponentHandCount = ref(0)
@@ -26,7 +33,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   const sessionScore = ref({ me: 0, opponent: 0 })
 
   const currentTurn = ref(null)
-  const gameTarget = ref(1) // Wins Needed
+  const gameTarget = ref(1)
 
   const isGameOver = ref(false)
   const isRoundOver = ref(false)
@@ -36,25 +43,135 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   const botCardCount = computed(() => opponentHandCount.value)
 
-  // LOGIC
+  const persistGameState = () => {
+    if (!gameID.value) return
+
+    const state = {
+      gameID: gameID.value,
+      mySide: mySide.value,
+      gameMode: gameMode.value,
+      gameTarget: gameTarget.value,
+      timestamp: Date.now(),
+    }
+
+    try {
+      localStorage.setItem(GAME_STATE_KEY, JSON.stringify(state))
+    } catch (error) {
+      console.error('[BiscaStore] Erro ao persistir estado:', error)
+    }
+  }
+
+  const loadPersistedState = () => {
+    try {
+      const stored = localStorage.getItem(GAME_STATE_KEY)
+      if (!stored) return null
+
+      const state = JSON.parse(stored)
+      const age = Date.now() - state.timestamp
+
+      if (age > 300000) {
+        clearPersistedState()
+        return null
+      }
+
+      return state
+    } catch (error) {
+      console.error('[BiscaStore] Erro ao carregar estado persistido:', error)
+      clearPersistedState()
+      return null
+    }
+  }
+
+  const clearPersistedState = () => {
+    try {
+      localStorage.removeItem(GAME_STATE_KEY)
+    } catch (error) {
+      console.error('[BiscaStore] Erro ao limpar estado:', error)
+    }
+  }
+
+  const attemptRecovery = async () => {
+    const state = loadPersistedState()
+    if (!state || !state.gameID) {
+      console.log('[BiscaStore] Nenhum estado de jogo para recuperar')
+      return false
+    }
+
+    console.log('[BiscaStore] Tentando recuperar jogo:', state.gameID)
+    isRecovering.value = true
+
+    try {
+      gameID.value = state.gameID
+      gameMode.value = state.gameMode
+      gameTarget.value = state.gameTarget
+      mySide.value = state.mySide
+
+      socketStore.emitJoinGame(state.gameID)
+
+      setTimeout(() => {
+        if (isRecovering.value) {
+          console.warn('[BiscaStore] Timeout na recuperação do jogo')
+          isRecovering.value = false
+          resetGameState()
+        }
+      }, 5000)
+
+      return true
+    } catch (error) {
+      console.error('[BiscaStore] Erro ao recuperar jogo:', error)
+      isRecovering.value = false
+      resetGameState()
+      return false
+    }
+  }
+
+  watch(
+    () => gameID.value,
+    (newGameID) => {
+      if (newGameID) {
+        persistGameState()
+      } else {
+        clearPersistedState()
+      }
+    },
+  )
+
+  watch(
+    () => socketStore.isConnected,
+    (connected) => {
+      if (!connected && gameID.value) {
+        connectionLost.value = true
+        console.log('[BiscaStore] Conexão perdida durante o jogo')
+      } else if (connected && connectionLost.value && gameID.value) {
+        console.log('[BiscaStore] Conexão restaurada, tentando recuperar jogo')
+        attemptRecovery()
+      }
+    },
+  )
+
   const processGameState = (data) => {
     if (gameID.value && data.id && String(data.id) !== String(gameID.value)) return
-    if (data.id) gameID.value = data.id
+
+    if (data.id) {
+      gameID.value = data.id
+      if (isRecovering.value) {
+        console.log('[BiscaStore] Jogo recuperado com sucesso')
+        isRecovering.value = false
+        connectionLost.value = false
+      }
+    }
 
     if (data.gameOver || data.roundOver) {
       console.log('[Store] Estado Final Recebido. Pontos Ronda:', data.lastRoundPoints)
     }
 
-    // ATUALIZAR OBJETIVOS E MODO
     if (data.winsNeeded) gameTarget.value = parseInt(data.winsNeeded)
     if (data.gameType) gameMode.value = parseInt(data.gameType)
 
-    // === IDENTIFICAR JOGADOR ===
-    // Tenta obter ID do login. Se vazio, tenta obter ID de convidado do socketStore.
     let myId = String(authStore.currentUser?.id || '')
 
     if (!myId && socketStore.guestUserId) {
-        myId = String(socketStore.guestUserId)
+      myId = String(socketStore.guestUserId)
     }
 
     const p1Id = String(data.player1Id || '')
@@ -66,9 +183,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
 
     console.log(`Perspetiva definida: Sou ${mySide.value} (Meu ID: ${myId}, P1 ID: ${p1Id})`)
-    // ============================
 
-    // Mapear dados
     if (mySide.value === 'player1') {
       playerHand.value = data.player1Hand || []
       opponentName.value = data.p2Name
@@ -149,8 +264,8 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   })
 
-  // ACTIONS
   const startGame = (type, mode, wins, isPractice = false) => {
+    clearPersistedState()
     gameID.value = null
     playerHand.value = []
     tableCards.value = []
@@ -172,13 +287,41 @@ export const useBiscaStore = defineStore('bisca', () => {
   const quitGame = () => {
     if (gameID.value) {
       socketStore.emitLeaveGame(gameID.value)
-      gameID.value = null
-      playerHand.value = []
-      tableCards.value = []
-      score.value = { me: 0, opponent: 0 }
-      isGameOver.value = false
-      isRoundOver.value = false
+      resetGameState()
     }
+  }
+
+  const resetGameState = () => {
+    gameID.value = null
+    playerHand.value = []
+    tableCards.value = []
+    score.value = { me: 0, opponent: 0 }
+    sessionScore.value = { me: 0, opponent: 0 }
+    isGameOver.value = false
+    isRoundOver.value = false
+    isRecovering.value = false
+    connectionLost.value = false
+    showAnnulledModal.value = false
+    annulledReason.value = ''
+    annulledMessage.value = ''
+    clearPersistedState()
+  }
+
+  const handleGameAnnulled = (data) => {
+    console.log('[BiscaStore] Jogo anulado:', data)
+
+    annulledMessage.value =
+      data?.message || 'O jogo foi encerrado devido a inatividade ou erro no servidor.'
+    annulledReason.value = data?.reason || ''
+    showAnnulledModal.value = true
+
+    resetGameState()
+  }
+
+  const closeAnnulledModal = () => {
+    showAnnulledModal.value = false
+    annulledReason.value = ''
+    annulledMessage.value = ''
   }
 
   const joinGame = (id) => socketStore.emitJoinGame(id)
@@ -196,6 +339,11 @@ export const useBiscaStore = defineStore('bisca', () => {
     botCardCount,
     opponentName,
     isWaiting,
+    isRecovering,
+    connectionLost,
+    showAnnulledModal,
+    annulledReason,
+    annulledMessage,
     trunfo,
     trunfoNaipe,
     tableCards,
@@ -208,7 +356,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     availableGames,
     sessionScore,
     gameTarget,
-    gameMode, // Exportar gameMode
+    gameMode,
     popupData,
     processGameState,
     setAvailableGames,
@@ -218,5 +366,10 @@ export const useBiscaStore = defineStore('bisca', () => {
     playCard,
     quitGame,
     closeRoundPopup,
+    attemptRecovery,
+    resetGameState,
+    handleGameAnnulled,
+    closeAnnulledModal,
+    loadPersistedState,
   }
 })

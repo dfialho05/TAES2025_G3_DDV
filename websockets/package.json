@@ -8,6 +8,13 @@
     "dev": "node --watch index.js",
     "start": "node index.js",
     "test": "echo '🧪 EXECUTANDO TODOS OS TESTES FUNCIONAIS DO SISTEMA WEBSOCKET' && echo '========================================================' && npm run test:unit && npm run test:websockets && npm run test:capote && npm run test:practice && echo '' && echo '🎉 TODOS OS TESTES FUNCIONAIS CONCLUÍDOS! ✅'",
+    "redis:check": "redis-cli ping",
+    "redis:monitor": "redis-cli MONITOR",
+    "redis:stats": "redis-cli INFO stats",
+    "redis:games": "redis-cli SMEMBERS active_games",
+    "redis:flush": "redis-cli FLUSHDB",
+    "watchdog:manual": "node -e \"import('./workers/watchdog.js').then(m => m.manualCheck())\"",
+    "recovery:test": "node tests/test-recovery-system.js",
     "test:bot": "node tests/testBot.js",
     "test:integration": "node tests/integration-test.js",
     "test:cards": "node tests/test-card-distribution.js",
@@ -30,10 +37,14 @@
     "test:practice": "node tests/test-practice-mode.js",
     "test:practice:integration": "node tests/test-practice-integration.js",
     "test:practice:all": "node tests/run-practice-tests.js",
-    "test:help": "echo 'COMANDOS DE TESTE DISPONÍVEIS:' && echo '• npm test                  - Executa todos os testes funcionais' && echo '• npm run test:unit         - Apenas testes unitários básicos' && echo '• npm run test:quick        - Teste rápido (apenas conexões)' && echo '• npm run test:complete     - Todos os testes incluindo integração' && echo '• npm run test:suite        - Suite completa com relatório' && echo '• npm run test:connections  - Testes de conexões' && echo '• npm run test:game-state   - Testes de estado do jogo' && echo '• npm run test:bisca-logic  - Testes da lógica da Bisca' && echo '• npm run test:websockets   - Testes de eventos WebSocket' && echo '• npm run test:capote       - Testes de pontuação especial' && echo '• npm run test:integration-full - Testes de integração' && echo '• npm run test:practice     - Testes unitários practice mode' && echo '• npm run test:practice:integration - Testes integração practice' && echo '• npm run test:practice:all - Suite completa practice mode'"
+    "test:help": "echo 'COMANDOS DE TESTE DISPONÍVEIS:' && echo '• npm test                  - Executa todos os testes funcionais' && echo '• npm run test:unit         - Apenas testes unitários básicos' && echo '• npm run test:quick        - Teste rápido (apenas conexões)' && echo '• npm run test:complete     - Todos os testes incluindo integração' && echo '• npm run test:suite        - Suite completa com relatório' && echo '• npm run test:connections  - Testes de conexões' && echo '• npm run test:game-state   - Testes de estado do jogo' && echo '• npm run test:bisca-logic  - Testes da lógica da Bisca' && echo '• npm run test:websockets   - Testes de eventos WebSocket' && echo '• npm run test:capote       - Testes de pontuação especial' && echo '• npm run test:integration-full - Testes de integração' && echo '• npm run test:practice     - Testes unitários practice mode' && echo '• npm run test:practice:integration - Testes integração practice' && echo '• npm run test:practice:all - Suite completa practice mode' && echo '' && echo 'COMANDOS REDIS/RECOVERY:' && echo '• npm run redis:check       - Verifica conexão Redis' && echo '• npm run redis:monitor     - Monitora comandos Redis em tempo real' && echo '• npm run redis:stats       - Estatísticas do Redis' && echo '• npm run redis:games       - Lista jogos ativos' && echo '• npm run redis:flush       - Limpa todos os dados (CUIDADO!)' && echo '• npm run watchdog:manual   - Executa verificação manual do Watchdog' && echo '• npm run recovery:test     - Testa sistema de recuperação'"
   },
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "ioredis": "^5.8.2",
+    "redis": "^5.10.0",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

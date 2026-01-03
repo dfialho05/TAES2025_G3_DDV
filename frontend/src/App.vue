@@ -140,6 +140,7 @@ import { onMounted, watch, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSocketStore } from '@/stores/socket'
+import { useBiscaStore } from '@/stores/biscaStore'
 import UserAvatar from '@/components/UserAvatar.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'vue-sonner'
@@ -154,18 +155,27 @@ import {
 
 const authStore = useAuthStore()
 const socketStore = useSocketStore()
+const biscaStore = useBiscaStore()
 const router = useRouter()
 const THEME_KEY = 'theme'
 
-// 1. Tenta ligar ao iniciar
-onMounted(() => {
+onMounted(async () => {
   const token = localStorage.getItem('api_token') || authStore.token
   if (token) {
     socketStore.handleConnection()
   }
+
+  await new Promise((resolve) => setTimeout(resolve, 500))
+
+  if (socketStore.isConnected) {
+    const recovered = await biscaStore.attemptRecovery()
+    if (recovered) {
+      console.log('[App] Estado de jogo recuperado')
+      router.push('/game')
+    }
+  }
 })
 
-// 2. Se o token mudar (Login/Logout), reinicia a conexão
 watch(
   () => authStore.token,
   (newToken) => {
@@ -175,6 +185,17 @@ watch(
     } else {
       console.log('[App] Logout. A desligar Socket...')
       socketStore.disconnect()
+      biscaStore.resetGameState()
+    }
+  },
+)
+
+watch(
+  () => socketStore.isConnected,
+  async (connected) => {
+    if (connected && biscaStore.gameID && !biscaStore.isRecovering) {
+      console.log('[App] Socket reconectado com jogo ativo, tentando recuperar')
+      await biscaStore.attemptRecovery()
     }
   },
 )

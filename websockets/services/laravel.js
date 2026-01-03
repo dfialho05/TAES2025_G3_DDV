@@ -153,3 +153,78 @@ export const getUserInfo = async (token) => {
   const result = await apiCall("GET", "/users/me", null, token);
   return result ? result.data : null;
 };
+
+// 9. Reembolsar moedas ao utilizador
+export const refundCoins = async (userId, amount, token, metadata = {}) => {
+  const body = {
+    user_id: userId,
+    amount: amount,
+    reason: metadata.reason || "Game timeout/cancellation",
+    game_id: metadata.game_id || null,
+    timestamp: metadata.timestamp || new Date().toISOString(),
+  };
+
+  console.log(
+    `[Laravel] Solicitando reembolso de ${amount} coins para user ${userId}`,
+  );
+  const result = await apiCall("POST", "/refund", body, token);
+
+  if (result) {
+    console.log(
+      `[Laravel] Reembolso concluído com sucesso para user ${userId}`,
+    );
+    return result;
+  } else {
+    console.error(`[Laravel] Falha ao processar reembolso para user ${userId}`);
+    return null;
+  }
+};
+
+// 10. Cancelar uma match
+export const cancelMatch = async (
+  matchId,
+  token,
+  reason = "Server timeout",
+) => {
+  const body = {
+    status: "Cancelled",
+    reason: reason,
+    cancelled_at: new Date().toISOString(),
+  };
+
+  console.log(`[Laravel] Cancelando match ${matchId}. Razão: ${reason}`);
+  const result = await apiCall(
+    "POST",
+    `/matches/${matchId}/cancel`,
+    body,
+    token,
+  );
+
+  if (result) {
+    console.log(`[Laravel] Match ${matchId} cancelada com sucesso`);
+    return result;
+  } else {
+    console.error(`[Laravel] Falha ao cancelar match ${matchId}`);
+    return null;
+  }
+};
+
+// 11. Cancelar um game
+export const cancelGame = async (gameId, token, reason = "Server timeout") => {
+  const body = {
+    status: "Cancelled",
+    reason: reason,
+    cancelled_at: new Date().toISOString(),
+  };
+
+  console.log(`[Laravel] Cancelando game ${gameId}. Razão: ${reason}`);
+  const result = await apiCall("POST", `/games/${gameId}/cancel`, body, token);
+
+  if (result) {
+    console.log(`[Laravel] Game ${gameId} cancelado com sucesso`);
+    return result;
+  } else {
+    console.error(`[Laravel] Falha ao cancelar game ${gameId}`);
+    return null;
+  }
+};

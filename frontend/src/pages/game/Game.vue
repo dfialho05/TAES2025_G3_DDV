@@ -5,7 +5,10 @@ import { storeToRefs } from 'pinia'
 import { useDeckStore } from '@/stores/deck'
 import { useBiscaStore } from '@/stores/biscaStore'
 import { useSocketStore } from '@/stores/socket'
+import { useGameRecovery } from '@/composables/useGameRecovery'
 import Card from '@/components/game/Card.vue'
+import ConnectionStatus from '@/components/game/ConnectionStatus.vue'
+import GameAnnulledModal from '@/components/game/GameAnnulledModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +16,7 @@ const router = useRouter()
 const gameStore = useBiscaStore()
 const deckStore = useDeckStore()
 const socketStore = useSocketStore()
+const { setupRecoveryWatchers, handlePageReload } = useGameRecovery()
 
 const {
   playerHand,
@@ -22,7 +26,7 @@ const {
   opponentName,
   isWaiting,
   score,
-  gameMode, // <-- Certifica-te que está aqui
+  gameMode,
   logs,
   currentTurn,
   cardsLeft,
@@ -32,6 +36,9 @@ const {
   popupData,
   isGameOver,
   isRoundOver,
+  showAnnulledModal,
+  annulledMessage,
+  annulledReason,
 } = storeToRefs(gameStore)
 
 const isConnected = computed(() => socketStore.isConnected)
@@ -129,6 +136,14 @@ onMounted(async () => {
 
   if (deckStore.decks.length === 0) await deckStore.fetchDecks()
 
+  setupRecoveryWatchers()
+
+  const recovered = await handlePageReload()
+  if (recovered) {
+    console.log('[Game] Jogo recuperado após recarregamento')
+    return
+  }
+
   // 1. Criar novo jogo (vem do Lobby com mode+wins)
   if (route.query.mode && route.query.wins && !route.query.id) {
     const cards = parseInt(route.query.mode)
@@ -184,6 +199,15 @@ const handleExit = () => {
 </script>
 
 <template>
+  <ConnectionStatus />
+
+  <GameAnnulledModal
+    :show="showAnnulledModal"
+    :message="annulledMessage"
+    :reason="annulledReason"
+    @close="gameStore.closeAnnulledModal"
+  />
+
   <div class="game-container">
     <div v-if="isWaiting" class="overlay waiting-overlay">
       <div class="waiting-box">

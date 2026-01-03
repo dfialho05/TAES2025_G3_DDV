@@ -17,7 +17,6 @@ axios.defaults.withCredentials = true
 
 // Interceptor para enviar CSRF token automaticamente
 axios.interceptors.request.use((config) => {
-  // Extrai o token CSRF do cookie XSRF-TOKEN
   const token = document.cookie
     .split('; ')
     .find((row) => row.startsWith('XSRF-TOKEN='))
@@ -29,6 +28,63 @@ axios.interceptors.request.use((config) => {
 
   return config
 })
+
+let isRefreshingApiToken = false
+let failedRequestsQueue = []
+
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+
+    if (
+      error.response?.status === 401 &&
+      error.response?.data?.message === 'Token expired' &&
+      !originalRequest._retry
+    ) {
+      if (isRefreshingApiToken) {
+        return new Promise((resolve, reject) => {
+          failedRequestsQueue.push({ resolve, reject })
+        })
+          .then((token) => {
+            originalRequest.headers['Authorization'] = `Bearer ${token}`
+            return axios(originalRequest)
+          })
+          .catch((err) => {
+            return Promise.reject(err)
+          })
+      }
+
+      originalRequest._retry = true
+      isRefreshingApiToken = true
+
+      try {
+        const authStore = useAuthStore()
+        const newToken = await authStore.refreshToken()
+
+        if (newToken) {
+          failedRequestsQueue.forEach((request) => {
+            request.resolve(newToken)
+          })
+          failedRequestsQueue = []
+
+          originalRequest.headers['Authorization'] = `Bearer ${newToken}`
+          return axios(originalRequest)
+        }
+      } catch (refreshError) {
+        failedRequestsQueue.forEach((request) => {
+          request.reject(refreshError)
+        })
+        failedRequestsQueue = []
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshingApiToken = false
+      }
+    }
+
+    return Promise.reject(error)
+  },
+)
 
 const app = createApp(App)
 const pinia = createPinia()
